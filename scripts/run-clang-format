@@ -1,0 +1,101 @@
+#===- run-clang-format ------------------------------------------------===#
+# 
+# Copyright (c) 2024 Junjie Shen
+#
+# see https://github.com/shenjunjiekoda/knight/blob/main/LICENSE for
+# license information.
+#
+#===------------------------------------------------------------------===#
+#
+#  This script runs clang-format on the whole repository.
+#
+#===------------------------------------------------------------------===#
+
+#!/usr/bin/python3
+
+import os
+import argparse
+from pathlib import Path
+import re
+import subprocess
+import sys
+
+# Constants
+CLANG_FORMAT_VERSION = "16.0.6"
+SOURCE_EXTENSIONS = (".c", ".cpp", ".h", ".hpp")
+IGNORE_DIRECTORIES = {".git", "build"}
+
+
+def find_clang_format(executable):
+    """Find the clang-format executable in the PATH."""
+    path = Path(executable)
+    if path.is_file() and os.access(path, os.X_OK):
+        return path
+    for dir in map(Path, os.environ["PATH"].split(os.pathsep)):
+        full_path = dir / executable
+        if full_path.is_file() and os.access(full_path, os.X_OK):
+            return full_path
+    return None
+
+
+def check_clang_format_version(clang_format):
+    """Check the clang-format version."""
+    try:
+        output = subprocess.check_output([str(clang_format), "--version"], text=True)
+        match = re.match(r"clang-format version ([0-9\.]+)", output)
+        if not match:
+            raise ValueError("unexpected output from clang-format --version")
+        if match.group(1) != CLANG_FORMAT_VERSION:
+            print(
+                f"Warning: Expected clang-format version {CLANG_FORMAT_VERSION}, but found {match.group(1)}",
+                file=sys.stderr,
+            )
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(f"Failed to execute '{clang_format}': {e}")
+
+
+def format_source_files(src_dir, clang_format):
+    """Format source files using clang-format."""
+    for root, dirs, files in os.walk(src_dir):
+        # Remove ignored directories from the search
+        dirs[:] = [d for d in dirs if d not in IGNORE_DIRECTORIES]
+
+        for file in files:
+            file_path = Path(root) / file
+            if file_path.suffix in SOURCE_EXTENSIONS:
+                print(f"[*] Formatting {file_path}")
+                subprocess.run(
+                    [str(clang_format), "-i", "-style=file", str(file_path)], check=True
+                )
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Run clang-format on the whole repository"
+    )
+    parser.add_argument(
+        "--srcdir",
+        type=Path,
+        default=Path(__file__).resolve().parent.parent,
+        help="Path to the source directory",
+    )
+    parser.add_argument(
+        "--clang-format", default="clang-format", help="Path to the clang-format binary"
+    )
+    args = parser.parse_args()
+
+    if not args.srcdir.is_dir():
+        print(f"Error: '{args.srcdir}' is not a directory", file=sys.stderr)
+        sys.exit(1)
+
+    clang_format = find_clang_format(args.clang_format)
+    if not clang_format:
+        print(f"Error: '{args.clang_format}' not found in PATH", file=sys.stderr)
+        sys.exit(1)
+
+    check_clang_format_version(clang_format)
+    format_source_files(args.srcdir, clang_format)
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,37 @@
+---
+BasedOnStyle: LLVM
+---
+Language: Cpp
+Standard: c++20
+
+IndentWidth: 4
+ColumnLimit: 80
+
+PointerAlignment: Left
+DerivePointerAlignment: false
+
+SpacesInAngles: true
+AccessModifierOffset: -2
+
+# Disable formatting options which may break tests.
+SortIncludes: false
+ReflowComments: false
+
+# Indent preprocessor directives
+IndentPPDirectives: AfterHash
+
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortLambdasOnASingleLine: All
+
+BinPackParameters: false
+BinPackArguments: false
+
+PenaltyBreakBeforeFirstCallParameter: 5000
+PenaltyReturnTypeOnItsOwnLine: 500
+
+SpacesBeforeTrailingComments: 1
+IncludeBlocks: Preserve
+
+---
