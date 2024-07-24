@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 #===- run-clang-format ------------------------------------------------===#
 # 
 # Copyright (c) 2024 Junjie Shen
@@ -11,7 +13,6 @@
 #
 #===------------------------------------------------------------------===#
 
-#!/usr/bin/python3
 
 import os
 import argparse
