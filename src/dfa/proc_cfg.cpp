@@ -1,7 +1,20 @@
+//===- proc_cfg.cpp ---------------------------------------------------===//
+//
+// Copyright (c) 2024 Junjie Shen
+//
+// see https://github.com/shenjunjiekoda/knight/blob/main/LICENSE for
+// license information.
+//
+//===------------------------------------------------------------------===//
+//
+//  This file implements the procedural control flow graph.
+//
+//===------------------------------------------------------------------===//
+
 #include "dfa/proc_cfg.hpp"
 #include "util/assert.hpp"
 
-namespace knight {
+namespace knight::dfa {
 
 namespace {
 
@@ -142,4 +155,4 @@ ProcCFG::ProcCFG(FunctionRef proc,
       m_stmt_to_block(std::move(stmt_to_block)),
       m_reachable_block(std::move(reachable_block)) {}
 
-} // namespace knight
+} // namespace knight::dfa

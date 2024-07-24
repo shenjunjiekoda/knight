@@ -22,7 +22,7 @@
 #include "support/dumpable.hpp"
 #include "support/graph.hpp"
 
-namespace knight {
+namespace knight::dfa {
 
 /// \brief The simple procedural CFG wrapper of a clang::CFG.
 class ProcCFG {
@@ -88,4 +88,4 @@ class ProcCFG {
 static_assert(is_dumpable< ProcCFG >::value, "ProcCFG must be dumpable");
 static_assert(isa_graph< ProcCFG >::value, "ProcCFG must be a graph");
 
-} // namespace knight
+} // namespace knight::dfa
