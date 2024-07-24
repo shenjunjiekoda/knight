@@ -22,13 +22,14 @@ namespace knight {
 template < typename T >
 concept dumpable = requires(const T& obj, llvm::raw_ostream& os) {
     { obj.dump(os) } -> std::same_as< void >;
-};
+}; // concept dumpable
 
 template < dumpable T > struct DumplableTrait {
     static void dump(llvm::raw_ostream& os, const T& obj) { obj.dump(os); }
-};
+}; // struct DumplableTrait
 
 template < typename T >
-struct is_dumpable : std::bool_constant< dumpable< T > > {};
+struct is_dumpable : std::bool_constant< dumpable< T > > {
+}; // struct is_dumpable
 
 } // namespace knight

@@ -20,6 +20,7 @@
 #include <llvm/Support/raw_ostream.h>
 
 #include "support/dumpable.hpp"
+#include "support/graph.hpp"
 
 namespace knight {
 
@@ -85,5 +86,6 @@ class ProcCFG {
 }; // class ProcCFG
 
 static_assert(is_dumpable< ProcCFG >::value, "ProcCFG must be dumpable");
+static_assert(isa_graph< ProcCFG >::value, "ProcCFG must be a graph");
 
 } // namespace knight
