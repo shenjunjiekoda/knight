@@ -45,4 +45,18 @@ checker names.
                                      cl::init(""),
                                      cl::cat(knight_category));
 
+inline cl::opt< std::string > overlay_file("overlay_file",
+                                           desc(R"(
+Overlay the vfs described by overlay file on the real fs.
+)"),
+                                           cl::value_desc("filename"),
+                                           cl::cat(knight_category));
+
+inline cl::opt< bool > use_color("use-color",
+                                 desc(R"(
+Use colors in output.
+)"),
+                                 cl::init(true),
+                                 cl::cat(knight_category));
+
 } // namespace knight::cl_opts

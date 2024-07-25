@@ -27,6 +27,7 @@ enum class DomainKind {
 
 inline llvm::StringRef get_domain_name(DomainKind kind) {
     switch (kind) {
+#undef DOMAIN_DEF
 #define DOMAIN_DEF(KIND, NAME, ID, DESC)                                       \
     case DomainKind::KIND:                                                     \
         return NAME;
@@ -38,6 +39,7 @@ inline llvm::StringRef get_domain_name(DomainKind kind) {
 
 inline llvm::StringRef get_domain_desc(DomainKind kind) {
     switch (kind) {
+#undef DOMAIN_DEF
 #define DOMAIN_DEF(KIND, NAME, ID, DESC)                                       \
     case DomainKind::KIND:                                                     \
         return DESC;
@@ -49,6 +51,7 @@ inline llvm::StringRef get_domain_desc(DomainKind kind) {
 
 inline uint8_t get_domain_id(DomainKind kind) {
     switch (kind) {
+#undef DOMAIN_DEF
 #define DOMAIN_DEF(KIND, NAME, ID, DESC)                                       \
     case DomainKind::KIND:                                                     \
         return ID;
