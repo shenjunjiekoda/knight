@@ -15,6 +15,7 @@
 #include <llvm/Support/raw_ostream.h>
 #include <llvm/Support/InitLLVM.h>
 #include <llvm/Support/WithColor.h>
+#include <llvm/Support/TargetSelect.h>
 
 #include <clang/Tooling/CommonOptionsParser.h>
 #include <string>
@@ -87,14 +88,18 @@ int main(int argc, const char** argv) {
 
     auto opts_provider = get_opts_provider();
     auto input_path = std::string("dummy");
-    if (const auto& src_path_lst = opts_parser->getSourcePathList();
-        !src_path_lst.empty()) {
+    const auto& src_path_lst = opts_parser->getSourcePathList();
+    if (!src_path_lst.empty()) {
         input_path = fs::make_absolute(src_path_lst.front());
     }
 
     auto opts = opts_provider->get_options_for(input_path);
 
     llvm::outs() << "Hello " << opts.user << ", this is knight!\n";
+
+    llvm::InitializeAllTargetInfos();
+    llvm::InitializeAllTargetMCs();
+    llvm::InitializeAllAsmParsers();
 
     return NORMAL_EXIT;
 }

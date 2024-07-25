@@ -13,11 +13,11 @@
 
 #pragma once
 
-#include "llvm/Support/CommandLine.h"
+#include <llvm/Support/CommandLine.h>
+#include <llvm/Option/OptTable.h>
+
 #include <clang/Driver/Options.h>
 #include <clang/Tooling/CommonOptionsParser.h>
-
-#include <llvm/Option/OptTable.h>
 
 namespace knight::cl_opts {
 

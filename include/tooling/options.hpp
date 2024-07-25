@@ -27,17 +27,18 @@ enum class OptionSource { Default, CommandLine, ConfigFile };
 const char* optionSourceToString(OptionSource source);
 
 using CheckerOptVal = std::variant< bool, std::string, int >;
+using Extentions = std::set< std::string >;
 
 /// \brief Knight options.
 struct KnightOptions {
     /// \brief Checks filter.
-    std::optional< std::string > checks = "";
+    std::string checks = "";
 
     /// \brief Header file extensions.
-    std::set< std::string > header_extensions = {"h", "hh", "hpp", "hxx"};
+    Extentions header_extensions = {"h", "hh", "hpp", "hxx"};
 
     /// \brief Implematation file extensions.
-    std::set< std::string > impl_extensions = {"c", "cc", "cpp", "cxx"};
+    Extentions impl_extensions = {"c", "cc", "cpp", "cxx"};
 
     /// \brief checker specific options
     std::map< std::string, CheckerOptVal > check_opts{};
@@ -62,8 +63,10 @@ struct KnightOptionsProvider {
 }; // struct KnightOptionsProvider
 
 struct KnightOptionsDefaultProvider : KnightOptionsProvider {
+  public:
     KnightOptions options;
 
+  public:
     KnightOptionsDefaultProvider();
 
     OptionSource get_checker_option_source(
@@ -80,6 +83,10 @@ struct KnightOptionsDefaultProvider : KnightOptionsProvider {
 }; // struct KnightOptionsDefaultProvider
 
 struct KnightOptionsCommandLineProvider : KnightOptionsDefaultProvider {
+  protected:
+    std::set< std::string > m_cmd_override_opts;
+
+  public:
     KnightOptionsCommandLineProvider() = default;
 
     OptionSource get_checker_option_source(
@@ -88,8 +95,6 @@ struct KnightOptionsCommandLineProvider : KnightOptionsDefaultProvider {
     void set_checker_option(const std::string& option,
                             CheckerOptVal value) override;
 
-  protected:
-    std::set< std::string > m_cmd_override_opts;
 }; // class KnightOptionsCommandLineProvider
 
 // TODO: add config file support

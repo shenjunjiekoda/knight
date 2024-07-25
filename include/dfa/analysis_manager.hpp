@@ -67,6 +67,31 @@ struct StmtAnalysisInfo {
 /// \brief The analysis manager which holds all the registered analyses.
 ///
 class AnalysisManager {
+  private:
+    /// \brief analysis context
+    AnalysisContext& m_ctx;
+
+    /// \brief registered analyses
+    std::unordered_map< AnalysisID, std::unique_ptr< AnalysisBase > >
+        m_analyses;
+    std::unordered_set< AnalysisID > m_required_analyses;
+    std::unordered_map< AnalysisID, std::unordered_set< AnalysisID > >
+        m_analysis_dependencies;
+
+    /// \brief registered domains
+    std::unordered_map< DomID, AnalysisID > m_domains;
+    std::unordered_map< AnalysisID, std::unordered_set< DomID > >
+        m_analysis_domains;
+    std::unordered_map< DomID, std::unordered_set< DomID > > m_dom_dependencies;
+
+    /// \brief visit begin function callbacks
+    std::vector< internal::AnalyzeBeginFunctionCallBack >
+        m_begin_function_analyses;
+    /// \brief visit end function callbacks
+    std::vector< internal::AnalyzeEndFunctionCallBack > m_end_function_analyses;
+    /// \brief visit statement callbacks
+    std::vector< internal::StmtAnalysisInfo > m_stmt_analyses;
+
   public:
     AnalysisManager(AnalysisContext& ctx) : m_ctx(ctx) {}
 
@@ -102,31 +127,6 @@ class AnalysisManager {
     /// @}
   private:
     bool is_analysis_registered(AnalysisID id) const;
-
-  private:
-    /// \brief analysis context
-    AnalysisContext& m_ctx;
-
-    /// \brief registered analyses
-    std::unordered_map< AnalysisID, std::unique_ptr< AnalysisBase > >
-        m_analyses;
-    std::unordered_set< AnalysisID > m_required_analyses;
-    std::unordered_map< AnalysisID, std::unordered_set< AnalysisID > >
-        m_analysis_dependencies;
-
-    /// \brief registered domains
-    std::unordered_map< DomID, AnalysisID > m_domains;
-    std::unordered_map< AnalysisID, std::unordered_set< DomID > >
-        m_analysis_domains;
-    std::unordered_map< DomID, std::unordered_set< DomID > > m_dom_dependencies;
-
-    /// \brief visit begin function callbacks
-    std::vector< internal::AnalyzeBeginFunctionCallBack >
-        m_begin_function_analyses;
-    /// \brief visit end function callbacks
-    std::vector< internal::AnalyzeEndFunctionCallBack > m_end_function_analyses;
-    /// \brief visit statement callbacks
-    std::vector< internal::StmtAnalysisInfo > m_stmt_analyses;
 
 }; // class AnalysisManager
 
