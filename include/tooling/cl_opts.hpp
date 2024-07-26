@@ -36,13 +36,38 @@ inline cl::desc desc(StringRef desc) {
     return cl::desc{desc.ltrim()};
 }
 
-inline cl::opt< std::string > checks("checks",
-                                     desc(R"(
-use `*` for all checks enabled, and `-` prefix to disable 
-checks. You can provide a comma-separated glob list of 
+inline cl::opt< std::string > analyses("analyses",
+                                       desc(R"(
+use `*` for all analyses enabled, and `-` prefix to disable 
+analyses. You can provide a comma-separated glob list of 
 checker names.
 )"),
-                                     cl::init(""),
+                                       cl::init(""),
+                                       cl::cat(knight_category));
+
+inline cl::opt< std::string > checkers("checkers",
+                                       desc(R"(
+use `*` for all checkers enabled, and `-` prefix to disable 
+checkers. You can provide a comma-separated glob list of 
+checker names.
+)"),
+                                       cl::init(""),
+                                       cl::cat(knight_category));
+
+inline cl::opt< bool > list_checkers("list-checkers",
+                                     desc(R"(
+list enabled checkers and exit program. Use with
+-checkers=* to list all available checkers.
+)"),
+                                     cl::init(false),
+                                     cl::cat(knight_category));
+
+inline cl::opt< bool > list_analyses("list-analyses",
+                                     desc(R"(
+list enabled analyses and exit program. Use with
+-analyses=* to list all available analyses.
+)"),
+                                     cl::init(false),
                                      cl::cat(knight_category));
 
 inline cl::opt< std::string > overlay_file("overlay_file",

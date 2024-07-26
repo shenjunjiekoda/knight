@@ -31,8 +31,11 @@ using Extentions = std::set< std::string >;
 
 /// \brief Knight options.
 struct KnightOptions {
-    /// \brief Checks filter.
-    std::string checks = "";
+    /// \brief Checkers filter.
+    std::string checkers = "";
+
+    /// \brief Analyses filter.
+    std::string analyses = "";
 
     /// \brief Header file extensions.
     Extentions header_extensions = {"h", "hh", "hpp", "hxx"};

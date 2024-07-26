@@ -18,13 +18,16 @@
 
 namespace knight::fs {
 
+using FileSystemRef = llvm::IntrusiveRefCntPtr< llvm::vfs::FileSystem >;
+using OverlayFileSystemRef =
+    llvm::IntrusiveRefCntPtr< llvm::vfs::OverlayFileSystem >;
+
 /// \brief Create a new VFS overlay from a YAML file.
-llvm::IntrusiveRefCntPtr< llvm::vfs::FileSystem > get_vfs_from_yaml(
-    const std::string& overlay_yaml_file,
-    llvm::IntrusiveRefCntPtr< llvm::vfs::FileSystem > base_fs);
+FileSystemRef get_vfs_from_yaml(const std::string& overlay_yaml_file,
+                                FileSystemRef base_fs);
 
 /// \brief Create a base VFS from RFS.
-llvm::IntrusiveRefCntPtr< llvm::vfs::OverlayFileSystem > create_base_vfs();
+OverlayFileSystemRef create_base_vfs();
 
 /// \brief Make path an absolute path.
 ///

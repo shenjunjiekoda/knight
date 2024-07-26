@@ -44,7 +44,9 @@ void KnightContext::set_current_file(llvm::StringRef file) {
     m_current_file = file.str();
     m_current_options = get_options_for(file);
     m_current_check_matcher =
-        std::make_unique< Globs >(m_current_options.checks);
+        std::make_unique< Globs >(m_current_options.checkers);
+    m_current_analysis_matcher =
+        std::make_unique< Globs >(m_current_options.analyses);
 }
 
 clang::DiagnosticBuilder KnightContext::diag(
@@ -64,6 +66,7 @@ clang::DiagnosticBuilder KnightContext::diag(
 
 void KnightContext::set_current_ast_context(clang::ASTContext* ast_ctx) {
     m_current_ast_ctx = ast_ctx;
+    m_diag_engine->setSourceManager(&ast_ctx->getSourceManager());
     m_diag_engine->SetArgToStringFn(&clang::FormatASTNodeDiagnosticArgument,
                                     ast_ctx);
 }
@@ -72,6 +75,13 @@ bool KnightContext::is_check_enabled(llvm::StringRef checker) const {
     knight_assert_msg(m_current_check_matcher != nullptr,
                       "checker matcher is null");
     return m_current_check_matcher->matches(checker);
+}
+
+bool KnightContext::is_analysis_directly_enabled(
+    llvm::StringRef analysis) const {
+    knight_assert_msg(m_current_analysis_matcher != nullptr,
+                      "analysis matcher is null");
+    return m_current_analysis_matcher->matches(analysis);
 }
 
 std::optional< std::string > KnightContext::get_check_name(unsigned diag_id) {

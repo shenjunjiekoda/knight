@@ -14,36 +14,26 @@
 #include "dfa/analysis_manager.hpp"
 #include "dfa/analysis/analysis_base.hpp"
 #include "util/assert.hpp"
+
 #include <memory>
+#include <queue>
 
 namespace knight::dfa {
 
-bool AnalysisManager::is_analysis_registered(AnalysisID id) const {
-    return m_analyses.count(id) > 0U;
+bool AnalysisManager::is_analysis_required(AnalysisID id) const {
+    return m_required_analyses.count(id) > 0U;
 }
 
-void AnalysisManager::register_analysis(
-    // TODO: add enabling logic for analyses (check filter and required checkers)
-    std::unique_ptr< AnalysisBase > analysis) {
-    auto id = analysis->get_id();
-    m_analyses.emplace(id, std::move(analysis));
+void AnalysisManager::add_required_analysis(AnalysisID id) {
+    m_required_analyses.insert(id);
 }
 
-std::optional< AnalysisBase* > AnalysisManager::get_analysis(AnalysisID id) {
-    auto it = m_analyses.find(id);
-    if (it == m_analyses.end()) {
-        return std::nullopt;
-    }
-    return it->second.get();
+void AnalysisManager::register_analysis(AnalysisID id) {
+    m_analyses.insert(id);
 }
 
 void AnalysisManager::add_analysis_dependency(AnalysisID id,
                                               AnalysisID required_id) {
-    if (!is_analysis_registered(required_id)) {
-        m_required_analyses.insert(required_id);
-    }
-
-    // Check for circular dependency.
     if (m_analysis_dependencies.count(required_id) > 0U) {
         knight_assert_msg(m_analysis_dependencies[required_id].count(id) == 0U,
                           "Circular dependency detected");
@@ -59,6 +49,42 @@ void AnalysisManager::add_analysis_dependency(AnalysisID id,
     }
 }
 
+void AnalysisManager::compute_all_required_analyses_by_dependencies() {
+    std::queue< AnalysisID > q;
+    for (auto id : m_required_analyses) {
+        q.push(id);
+    }
+
+    AnalysisIDSet visited;
+    while (!q.empty()) {
+        auto id = q.front();
+        q.pop();
+        if (visited.contains(id)) {
+            continue;
+        }
+        visited.insert(id);
+        add_required_analysis(id);
+        for (auto dep_id : get_analysis_dependencies(id)) {
+            q.push(dep_id);
+        }
+    }
+}
+
+void AnalysisManager::enable_analysis(
+    std::unique_ptr< AnalysisBase > analysis) {
+    // TODO: add enabling logic for analyses (check filter and required checkers)
+    auto id = analysis->get_id();
+    m_enabled_analyses.emplace(id, std::move(analysis));
+}
+
+std::optional< AnalysisBase* > AnalysisManager::get_analysis(AnalysisID id) {
+    auto it = m_enabled_analyses.find(id);
+    if (it == m_enabled_analyses.end()) {
+        return std::nullopt;
+    }
+    return it->second.get();
+}
+
 std::unordered_set< AnalysisID > AnalysisManager::get_analysis_dependencies(
     AnalysisID id) const {
     auto it = m_analysis_dependencies.find(id);
@@ -69,9 +95,7 @@ std::unordered_set< AnalysisID > AnalysisManager::get_analysis_dependencies(
 }
 
 void AnalysisManager::register_domain(AnalysisID analysis_id, DomID dom_id) {
-    if (is_analysis_registered(analysis_id)) {
-        m_analysis_domains[analysis_id].insert(dom_id);
-    }
+    m_analysis_domains[analysis_id].insert(dom_id);
     m_analysis_domains[analysis_id].insert(dom_id);
 }
 
@@ -82,23 +106,6 @@ std::unordered_set< DomID > AnalysisManager::get_registered_domains_in(
         return {};
     }
     return it->second;
-}
-
-void AnalysisManager::add_dom_dependency(DomID id, DomID required_id) {
-    // Check for circular dependency.
-    if (m_dom_dependencies.count(required_id) > 0U) {
-        knight_assert_msg(m_dom_dependencies[required_id].count(id) == 0U,
-                          "Circular dependency detected");
-    }
-
-    m_dom_dependencies[id].insert(required_id);
-
-    // Add dependencies of required dom recursively.
-    if (m_dom_dependencies.count(required_id) > 0U) {
-        for (auto dep_id : m_dom_dependencies[required_id]) {
-            add_dom_dependency(id, dep_id);
-        }
-    }
 }
 
 void AnalysisManager::register_for_stmt(internal::AnalyzeStmtCallBack anz_fn,

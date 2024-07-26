@@ -1,4 +1,4 @@
-//===- dom_base.hpp ---------------------------------------------------===//
+//===- analysis_base.hpp ----------------------------------------------===//
 //
 // Copyright (c) 2024 Junjie Shen
 //
@@ -26,7 +26,11 @@ class AnalysisBase {
 
     virtual AnalysisNameRef get_name() const = 0;
     virtual AnalysisID get_id() const = 0;
-
+    virtual bool is_language_supported(
+        const clang::LangOptions& lang_opts) const {
+        return true;
+    }
+    virtual void add_dependencies(AnalysisManager& mgr) const {}
 }; // class AnalysisBase
 
 template < typename ANALYSIS1, typename... ANALYSES >
@@ -50,7 +54,7 @@ class Analysis< ANALYSIS1 > : public ANALYSIS1, public AnalysisBase {
 
 //=------------------- Callback Registration -------------------=//
 
-namespace callback {
+namespace analyze {
 
 class BeginFunction {
     template < typename ANALYSIS >
@@ -155,6 +159,6 @@ template < clang_stmt STMT > class PostStmt {
     }
 }; // class PostStmt
 
-} // namespace callback
+} // namespace analyze
 
 } // namespace knight::dfa

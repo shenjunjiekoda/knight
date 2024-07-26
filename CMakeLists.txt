@@ -27,7 +27,7 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
   message(FATAL_ERROR "In-source builds are not allowed.")
 endif()
 
-message(STATUS "- Project: ${PROJECT_NAME} (${PACKAGE_VERSION})")
+message(STATUS "${PROJECT_NAME} (${PACKAGE_VERSION})")
 message(STATUS "- Build type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "- Install prefix: ${CMAKE_INSTALL_PREFIX}")
 message(STATUS "- Generator: ${CMAKE_GENERATOR}")

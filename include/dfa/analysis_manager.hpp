@@ -16,7 +16,9 @@
 #include "dfa/analysis_context.hpp"
 #include "dfa/domain/dom_base.hpp"
 #include "dfa/proc_cfg.hpp"
+#include "tooling/context.hpp"
 
+#include <memory>
 #include <unordered_set>
 
 namespace knight::dfa {
@@ -24,6 +26,7 @@ namespace knight::dfa {
 class AnalysisBase;
 
 using AnalysisID = uint8_t;
+using AnalysisIDSet = std::unordered_set< AnalysisID >;
 using AnalysisNameRef = llvm::StringRef;
 
 template < typename T > class AnalysisCallBack;
@@ -67,22 +70,29 @@ struct StmtAnalysisInfo {
 /// \brief The analysis manager which holds all the registered analyses.
 ///
 class AnalysisManager {
-  private:
-    /// \brief analysis context
-    AnalysisContext& m_ctx;
+    friend class CheckerManager;
 
-    /// \brief registered analyses
-    std::unordered_map< AnalysisID, std::unique_ptr< AnalysisBase > >
-        m_analyses;
-    std::unordered_set< AnalysisID > m_required_analyses;
+  private:
+    KnightContext& m_ctx;
+
+    /// \brief analysis context
+    std::unique_ptr< AnalysisContext > m_analysis_ctx;
+
+    /// \brief analyses
+    std::unordered_set< AnalysisID > m_analyses; // all analyses
     std::unordered_map< AnalysisID, std::unordered_set< AnalysisID > >
-        m_analysis_dependencies;
+        m_analysis_dependencies; // all analysis dependencies
+
+    std::unordered_map< AnalysisID, std::unique_ptr< AnalysisBase > >
+        m_enabled_analyses; // enabled analysis shall be created.
+    std::unordered_set< AnalysisID >
+        m_required_analyses; // all analyses should be created,
+    // shall be equivalent with enabled analyses key set.
 
     /// \brief registered domains
     std::unordered_map< DomID, AnalysisID > m_domains;
     std::unordered_map< AnalysisID, std::unordered_set< DomID > >
         m_analysis_domains;
-    std::unordered_map< DomID, std::unordered_set< DomID > > m_dom_dependencies;
 
     /// \brief visit begin function callbacks
     std::vector< internal::AnalyzeBeginFunctionCallBack >
@@ -93,18 +103,24 @@ class AnalysisManager {
     std::vector< internal::StmtAnalysisInfo > m_stmt_analyses;
 
   public:
-    AnalysisManager(AnalysisContext& ctx) : m_ctx(ctx) {}
+    AnalysisManager(KnightContext& ctx)
+        : m_ctx(ctx), m_analysis_ctx(std::make_unique< AnalysisContext >(
+                          ctx.get_ast_context())) {}
 
   public:
     /// \brief specialized analysis management
     ///
     /// Dependencies shall be handled before the registration.
     /// @{
-    void register_analysis(std::unique_ptr< AnalysisBase > analysis);
-    std::optional< AnalysisBase* > get_analysis(AnalysisID id);
+    void register_analysis(AnalysisID id);
     void add_analysis_dependency(AnalysisID id, AnalysisID required_id);
     std::unordered_set< AnalysisID > get_analysis_dependencies(
         AnalysisID id) const;
+
+    void enable_analysis(std::unique_ptr< AnalysisBase > analysis);
+    bool is_analysis_required(AnalysisID id) const;
+
+    std::optional< AnalysisBase* > get_analysis(AnalysisID id);
     /// @}
 
     /// \brief domain management
@@ -114,7 +130,6 @@ class AnalysisManager {
     /// @{
     void register_domain(AnalysisID analysis_id, DomID dom_id);
     std::unordered_set< DomID > get_registered_domains_in(AnalysisID id) const;
-    void add_dom_dependency(DomID id, DomID required_id);
     /// @}
 
     /// \brief callback registrations
@@ -125,9 +140,12 @@ class AnalysisManager {
                            internal::MatchStmtCallBack match_cb,
                            internal::VisitStmtKind kind);
     /// @}
-  private:
-    bool is_analysis_registered(AnalysisID id) const;
 
+  private:
+    /// \brief check analysis is enabled or not
+    void add_required_analysis(AnalysisID id);
+
+    void compute_all_required_analyses_by_dependencies();
 }; // class AnalysisManager
 
 } // namespace knight::dfa

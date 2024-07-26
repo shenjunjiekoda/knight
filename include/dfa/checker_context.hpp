@@ -1,4 +1,4 @@
-//===- analysis_context.hpp -------------------------------------------===//
+//===- checker_context.hpp --------------------------------------------===//
 //
 // Copyright (c) 2024 Junjie Shen
 //
@@ -7,7 +7,7 @@
 //
 //===------------------------------------------------------------------===//
 //
-//  This header defines the analysis context class.
+//  This header defines the checker context class.
 //
 //===------------------------------------------------------------------===//
 
@@ -18,17 +18,17 @@
 
 namespace knight::dfa {
 
-class AnalysisContext {
+class CheckerContext {
   private:
     clang::ASTContext& m_ast_ctx;
 
   public:
-    AnalysisContext(clang::ASTContext& ast_ctx) : m_ast_ctx(ast_ctx) {}
+    CheckerContext(clang::ASTContext& ast_ctx) : m_ast_ctx(ast_ctx) {}
 
     clang::ASTContext& getASTContext() const { return m_ast_ctx; }
     clang::SourceManager& getSourceManager() const {
         return m_ast_ctx.getSourceManager();
     }
-}; // class AnalysisContext
+}; // class CheckerContext
 
 } // namespace knight::dfa

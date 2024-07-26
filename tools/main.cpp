@@ -21,8 +21,11 @@
 #include <string>
 
 #include "tooling/cl_opts.hpp"
+#include "tooling/context.hpp"
+#include "tooling/knight.hpp"
 #include "tooling/options.hpp"
 #include "util/vfs.hpp"
+#include "llvm/Support/CommandLine.h"
 
 using namespace llvm;
 using namespace clang;
@@ -35,6 +38,7 @@ constexpr ErrCode NORMAL_EXIT = 0;
 constexpr ErrCode OPT_PARSE_FAILURE = 1;
 constexpr ErrCode BASE_VFS_CREATE_FAILURE = 2;
 constexpr ErrCode VFS_FILE_FAILURE = 3;
+constexpr ErrCode NO_INPUT_FILES = 4;
 
 llvm::IntrusiveRefCntPtr< llvm::vfs::OverlayFileSystem > get_vfs(
     ErrCode& code) {
@@ -58,13 +62,26 @@ llvm::IntrusiveRefCntPtr< llvm::vfs::OverlayFileSystem > get_vfs(
 
 std::unique_ptr< KnightOptionsProvider > get_opts_provider() {
     auto opts_provider = std::make_unique< KnightOptionsCommandLineProvider >();
-    if (checks.getNumOccurrences() > 0) {
-        opts_provider->options.checks = checks;
+    if (analyses.getNumOccurrences() > 0) {
+        opts_provider->options.analyses = analyses;
+    }
+    if (checkers.getNumOccurrences() > 0) {
+        opts_provider->options.checkers = checkers;
     }
     if (use_color.getNumOccurrences() > 0) {
         opts_provider->options.use_color = use_color;
     }
     return std::move(opts_provider);
+}
+
+std::vector< std::string > get_enabled_checkers() {
+    KnightContext context(std::move(get_opts_provider()));
+    KnightASTConsumerFactory factory(context);
+    std::vector< std::string > checkers;
+    for (const auto& [_, name] : factory.get_enabled_checks()) {
+        checkers.push_back(name.str());
+    }
+    return checkers;
 }
 
 int main(int argc, const char** argv) {
@@ -100,6 +117,26 @@ int main(int argc, const char** argv) {
     llvm::InitializeAllTargetInfos();
     llvm::InitializeAllTargetMCs();
     llvm::InitializeAllAsmParsers();
+
+    auto checkers = get_enabled_checkers();
+    if (list_checkers) {
+        if (checkers.empty()) {
+            llvm::errs() << "No checkers are enabled.\n";
+        } else {
+            llvm::errs() << "Enabled checkers:\n";
+            auto i = 0;
+            for (const auto& checker : checkers) {
+                llvm::errs() << ++i << ". " << checker << "\n";
+            }
+        }
+        return NORMAL_EXIT;
+    }
+
+    if (src_path_lst.empty()) {
+        llvm::errs() << "No input files provided.\n";
+        llvm::cl::PrintHelpMessage(false, true);
+        return NO_INPUT_FILES;
+    }
 
     return NORMAL_EXIT;
 }

@@ -43,6 +43,8 @@ class KnightContext {
     KnightOptions m_current_options;
     clang::ASTContext* m_current_ast_ctx;
     std::unique_ptr< Globs > m_current_check_matcher;
+    std::unique_ptr< Globs > m_current_analysis_matcher;
+    std::string m_current_build_dir;
 
   public:
     KnightContext(std::unique_ptr< KnightOptionsProvider > opts_provider);
@@ -64,6 +66,8 @@ class KnightContext {
         return m_current_ast_ctx->getLangOpts();
     }
 
+    clang::ASTContext& get_ast_context() const { return *m_current_ast_ctx; }
+
     const clang::SourceManager& get_source_manager() const {
         return m_current_ast_ctx->getSourceManager();
     }
@@ -71,9 +75,19 @@ class KnightContext {
     /// \brief set the current clang AST context
     void set_current_ast_context(clang::ASTContext* ast_ctx);
 
+    /// \brief set the current build directory.
+    void set_current_build_dir(llvm::StringRef build_dir) {
+        m_current_build_dir = build_dir;
+    }
+
     /// \brief get the enabled status of checker.
     /// \returns \c true if the checker is enabled, \c false otherwise.
     bool is_check_enabled(llvm::StringRef checker) const;
+
+    /// \brief get the directly enabled status of checker by the options.
+    ///
+    /// \returns \c true if the checker is enabled, \c false otherwise.
+    bool is_analysis_directly_enabled(llvm::StringRef analysis) const;
 
     /// \brief Returns the corresponding checker name for the given diagnostic ID.
     /// \returns The checker name if found, or an empty optional if not found.

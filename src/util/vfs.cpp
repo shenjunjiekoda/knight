@@ -2,9 +2,8 @@
 
 namespace knight::fs {
 
-llvm::IntrusiveRefCntPtr< llvm::vfs::FileSystem > get_vfs_from_yaml(
-    const std::string& overlay_yaml_file,
-    llvm::IntrusiveRefCntPtr< llvm::vfs::FileSystem > base_fs) {
+FileSystemRef get_vfs_from_yaml(const std::string& overlay_yaml_file,
+                                FileSystemRef base_fs) {
     auto buffer = base_fs->getBufferForFile(overlay_yaml_file);
     if (!buffer) {
         llvm::errs() << "Can't load virtual filesystem overlay yaml file '"
@@ -13,10 +12,9 @@ llvm::IntrusiveRefCntPtr< llvm::vfs::FileSystem > get_vfs_from_yaml(
         return nullptr;
     }
 
-    llvm::IntrusiveRefCntPtr< llvm::vfs::FileSystem > fs =
-        llvm::vfs::getVFSFromYAML(std::move(buffer.get()),
-                                  nullptr,
-                                  overlay_yaml_file);
+    FileSystemRef fs = llvm::vfs::getVFSFromYAML(std::move(buffer.get()),
+                                                 nullptr,
+                                                 overlay_yaml_file);
     if (!fs) {
         llvm::errs() << "Yaml error: invalid virtual filesystem overlay file '"
                      << overlay_yaml_file << "'.\n";
@@ -25,8 +23,8 @@ llvm::IntrusiveRefCntPtr< llvm::vfs::FileSystem > get_vfs_from_yaml(
     return fs;
 }
 
-llvm::IntrusiveRefCntPtr< llvm::vfs::OverlayFileSystem > create_base_vfs() {
-    return llvm::IntrusiveRefCntPtr< llvm::vfs::OverlayFileSystem >(
+OverlayFileSystemRef create_base_vfs() {
+    return OverlayFileSystemRef(
         new llvm::vfs::OverlayFileSystem(llvm::vfs::getRealFileSystem()));
 }
 
