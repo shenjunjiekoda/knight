@@ -56,8 +56,9 @@ KnightFactory::CheckerRefs KnightFactory::create_checkers(
     const auto& LO = context->get_lang_options();
     for (const auto& [checker, registry] : m_checker_registry) {
         if (m_checker_mgr.is_checker_required(checker.first)) {
-            CheckerRef checker = registry();
-            checkers.push_back(std::move(checker));
+            auto checker = registry();
+            checkers.push_back(checker.get());
+            m_checker_mgr.enable_checker(std::move(checker));
         }
     }
     return checkers;

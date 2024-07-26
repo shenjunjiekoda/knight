@@ -141,7 +141,6 @@ class AnalysisManager {
                            internal::VisitStmtKind kind);
     /// @}
 
-  private:
     /// \brief check analysis is enabled or not
     void add_required_analysis(AnalysisID id);
 

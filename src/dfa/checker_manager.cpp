@@ -24,13 +24,14 @@ void CheckerManager::register_checker(CheckerID id) {
 }
 
 bool CheckerManager::is_checker_required(CheckerID id) const {
-    return m_enabled_checkers.count(id) > 0U;
+    return m_required_checkers.count(id) > 0U;
 }
 
 void CheckerManager::enable_checker(
     // TODO: add enabling logic for checkers (check filter and required checkers)
     std::unique_ptr< CheckerBase > checker) {
     auto id = checker->get_id();
+    m_required_checkers.emplace(id);
     m_enabled_checkers.emplace(id, std::move(checker));
 }
 

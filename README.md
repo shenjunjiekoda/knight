@@ -1,3 +1,5 @@
+<img src="doc/icon.png" alt="logo" width="20%" />
+
 # Knight
 
 Knight is a static analysis tool for c/c++ programs written in C++20.

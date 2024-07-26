@@ -46,15 +46,17 @@ class CheckerManager;
 class KnightFactory {
   public:
     using Analysis = dfa::AnalysisBase;
+    using UniqueAnalysisRef = std::unique_ptr< Analysis >;
     using AnalysisRef = std::unique_ptr< Analysis >;
     using AnalysisRefs = std::vector< AnalysisRef >;
 
     using Checker = dfa::CheckerBase;
-    using CheckerRef = std::unique_ptr< Checker >;
+    using UniqueCheckerRef = std::unique_ptr< Checker >;
+    using CheckerRef = Checker*;
     using CheckerRefs = std::vector< CheckerRef >;
 
-    using AnalysisRegistryFn = std::function< AnalysisRef() >;
-    using CheckerRegistryFn = std::function< CheckerRef() >;
+    using AnalysisRegistryFn = std::function< UniqueAnalysisRef() >;
+    using CheckerRegistryFn = std::function< UniqueCheckerRef() >;
 
     using AnalysisRegistryFnMap =
         llvm::DenseMap< std::pair< dfa::AnalysisID, llvm::StringRef >,
