@@ -84,6 +84,16 @@ std::vector< std::string > get_enabled_checkers() {
     return checkers;
 }
 
+std::vector< std::string > get_directly_enabled_analyses() {
+    KnightContext context(std::move(get_opts_provider()));
+    KnightASTConsumerFactory factory(context);
+    std::vector< std::string > analyses;
+    for (const auto& [_, name] : factory.get_directly_enabled_analyses()) {
+        analyses.push_back(name.str());
+    }
+    return analyses;
+}
+
 int main(int argc, const char** argv) {
     llvm::InitLLVM X(argc, argv);
 
@@ -118,15 +128,29 @@ int main(int argc, const char** argv) {
     llvm::InitializeAllTargetMCs();
     llvm::InitializeAllAsmParsers();
 
-    auto checkers = get_enabled_checkers();
-    if (list_checkers) {
-        if (checkers.empty()) {
-            llvm::errs() << "No checkers are enabled.\n";
-        } else {
-            llvm::errs() << "Enabled checkers:\n";
-            auto i = 0;
-            for (const auto& checker : checkers) {
-                llvm::errs() << ++i << ". " << checker << "\n";
+    auto enabled_checkers = get_enabled_checkers();
+    auto enabled_analyses = get_directly_enabled_analyses();
+    if (list_checkers || list_analyses) {
+        if (list_checkers) {
+            if (enabled_checkers.empty()) {
+                llvm::errs() << "No checkers are enabled.\n";
+            } else {
+                llvm::errs() << "\nEnabled checkers:\n";
+                auto i = 0;
+                for (const auto& checker : enabled_checkers) {
+                    llvm::errs() << ++i << ". " << checker << "\n";
+                }
+            }
+        }
+        if (list_analyses) {
+            if (enabled_analyses.empty()) {
+                llvm::errs() << "No analyses are enabled.\n";
+            } else {
+                llvm::errs() << "\nEnabled analyses:\n";
+                auto i = 0;
+                for (const auto& analysis : enabled_analyses) {
+                    llvm::errs() << ++i << ". " << analysis << "\n";
+                }
             }
         }
         return NORMAL_EXIT;
