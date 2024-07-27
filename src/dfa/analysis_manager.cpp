@@ -12,6 +12,7 @@
 //===------------------------------------------------------------------===//
 
 #include "dfa/analysis_manager.hpp"
+#include "dfa/analysis/analyses.hpp"
 #include "dfa/analysis/analysis_base.hpp"
 #include "util/assert.hpp"
 
@@ -26,10 +27,6 @@ bool AnalysisManager::is_analysis_required(AnalysisID id) const {
 
 void AnalysisManager::add_required_analysis(AnalysisID id) {
     m_required_analyses.insert(id);
-}
-
-void AnalysisManager::register_analysis(AnalysisID id) {
-    m_analyses.insert(id);
 }
 
 void AnalysisManager::add_analysis_dependency(AnalysisID id,

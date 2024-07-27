@@ -17,7 +17,7 @@
 namespace knight::dfa {
 
 clang::ASTContext& CheckerContext::get_ast_context() const {
-    return m_ctx.get_ast_context();
+    return *m_ctx.get_ast_context();
 }
 
 clang::SourceManager& CheckerContext::get_source_manager() const {

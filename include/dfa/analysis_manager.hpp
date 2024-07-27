@@ -112,7 +112,7 @@ class AnalysisManager {
     ///
     /// Dependencies shall be handled before the registration.
     /// @{
-    void register_analysis(AnalysisID id);
+    void add_required_analysis(AnalysisID id);
     void add_analysis_dependency(AnalysisID id, AnalysisID required_id);
     std::unordered_set< AnalysisID > get_analysis_dependencies(
         AnalysisID id) const;
@@ -140,9 +140,6 @@ class AnalysisManager {
                            internal::MatchStmtCallBack match_cb,
                            internal::VisitStmtKind kind);
     /// @}
-
-    /// \brief check analysis is enabled or not
-    void add_required_analysis(AnalysisID id);
 
     void compute_all_required_analyses_by_dependencies();
 }; // class AnalysisManager

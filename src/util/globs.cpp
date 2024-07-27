@@ -44,7 +44,7 @@ Globs::Globs(llvm::StringRef globs) {
         bool isNegative = globs.consume_front("-");
         auto current = globs.split(',').first.trim();
         if (!current.empty()) {
-            Glob g{!isNegative, create_regex_for(current)};
+            Glob g{isNegative, create_regex_for(current)};
             m_globs.push_back(std::move(g));
         }
         globs = globs.split(',').second;

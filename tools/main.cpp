@@ -16,6 +16,7 @@
 #include <llvm/Support/InitLLVM.h>
 #include <llvm/Support/WithColor.h>
 #include <llvm/Support/TargetSelect.h>
+#include <llvm/Support/CommandLine.h>
 
 #include <clang/Tooling/CommonOptionsParser.h>
 #include <string>
@@ -25,7 +26,6 @@
 #include "tooling/knight.hpp"
 #include "tooling/options.hpp"
 #include "util/vfs.hpp"
-#include "llvm/Support/CommandLine.h"
 
 using namespace llvm;
 using namespace clang;
@@ -122,8 +122,6 @@ int main(int argc, const char** argv) {
 
     auto opts = opts_provider->get_options_for(input_path);
 
-    llvm::outs() << "Hello " << opts.user << ", this is knight!\n";
-
     llvm::InitializeAllTargetInfos();
     llvm::InitializeAllTargetMCs();
     llvm::InitializeAllAsmParsers();
@@ -161,6 +159,14 @@ int main(int argc, const char** argv) {
         llvm::cl::PrintHelpMessage(false, true);
         return NO_INPUT_FILES;
     }
+
+    KnightContext ctx(std::move(opts_provider));
+    KnightDriver driver(ctx,
+                        opts_parser->getCompilations(),
+                        src_path_lst,
+                        base_vfs);
+    auto diags = driver.run();
+    // TODO: handle diags
 
     return NORMAL_EXIT;
 }

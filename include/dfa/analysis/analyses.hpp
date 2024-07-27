@@ -22,6 +22,7 @@
 namespace knight::dfa {
 
 enum class AnalysisKind {
+    None,
 #define ANALYSIS_DEF(KIND, NAME, ID, DESC) KIND,
 #include "analyses.def"
 }; // enum class AnalysisKind
@@ -60,6 +61,22 @@ inline uint8_t get_analysis_id(AnalysisKind kind) {
     default:
         return 0;
     }
+}
+
+inline AnalysisKind get_analysis_kind(uint8_t id) {
+    switch (id) {
+#undef ANALYSIS_DEF
+#define ANALYSIS_DEF(KIND, NAME, ID, DESC)                                     \
+    case ID:                                                                   \
+        return AnalysisKind::KIND;
+#include "analyses.def"
+    default:
+        return AnalysisKind::None;
+    }
+}
+
+inline llvm::StringRef get_analysis_name_by_id(uint8_t id) {
+    return get_analysis_name(get_analysis_kind(id));
 }
 
 } // namespace knight::dfa

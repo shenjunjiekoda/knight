@@ -60,6 +60,9 @@ class AnalysisBase {
 template < typename ANALYSIS1, typename... ANALYSES >
 class Analysis : public ANALYSIS1, public ANALYSES..., public AnalysisBase {
   public:
+    Analysis< ANALYSIS1, ANALYSES... >(KnightContext& ctx)
+        : AnalysisBase(ctx) {}
+
     template < typename ANALYSIS >
     static void register_callback(ANALYSIS* checker, AnalysisManager& mgr) {
         ANALYSIS1::register_callback(checker, mgr);
@@ -70,6 +73,8 @@ class Analysis : public ANALYSIS1, public ANALYSES..., public AnalysisBase {
 template < typename ANALYSIS1 >
 class Analysis< ANALYSIS1 > : public ANALYSIS1, public AnalysisBase {
   public:
+    Analysis< ANALYSIS1 >(KnightContext& ctx) : AnalysisBase(ctx) {}
+
     template < typename ANALYSIS >
     static void register_callback(ANALYSIS* checker, AnalysisManager& mgr) {
         ANALYSIS1::register_callback(checker, mgr);

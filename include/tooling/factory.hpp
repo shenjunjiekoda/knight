@@ -21,9 +21,11 @@
 #include <llvm/ADT/StringRef.h>
 #include <llvm/ADT/DenseMap.h>
 
+#include "dfa/analysis/analyses.hpp"
 #include "dfa/analysis/analysis_base.hpp"
 #include "dfa/analysis_manager.hpp"
 #include "dfa/checker/checker_base.hpp"
+#include "dfa/checker/checkers.hpp"
 #include "dfa/checker_manager.hpp"
 #include "support/checker.hpp"
 #include "support/analysis.hpp"
@@ -92,25 +94,28 @@ class KnightFactory {
     /// \brief Registers the analysis with the name.
     /// TODO: add concept
     template < typename ANALYSIS >
-    void register_analysis(dfa::AnalysisID id, llvm::StringRef name) {
+    void register_analysis(dfa::AnalysisKind kind) {
         if constexpr (dfa::is_dependent_analysis< ANALYSIS >::value) {
             ANALYSIS::add_dependencies(m_analysis_mgr);
         }
-        add_analysis_create_fn(id, [](KnightContext& ctx) {
-            return std::make_unique< ANALYSIS >(ctx);
-        });
+        add_analysis_create_fn(dfa::get_analysis_id(kind),
+                               dfa::get_analysis_name(kind),
+                               [](KnightContext& ctx) {
+                                   return std::make_unique< ANALYSIS >(ctx);
+                               });
     }
 
     /// \brief Registers the checker with the name.
     /// TODO: add concept
-    template < typename CHECKER >
-    void register_checker(dfa::CheckerID id, llvm::StringRef name) {
+    template < typename CHECKER > void register_checker(dfa::CheckerKind kind) {
         if constexpr (dfa::is_dependent_checker< CHECKER >::value) {
             CHECKER::add_dependencies(m_checker_mgr);
         }
-        add_checker_create_fn(id, [](KnightContext& ctx) {
-            return std::make_unique< CHECKER >(ctx);
-        });
+        add_checker_create_fn(dfa::get_checker_id(kind),
+                              dfa::get_checker_name(kind),
+                              [](KnightContext& ctx) {
+                                  return std::make_unique< CHECKER >(ctx);
+                              });
     }
 
     /// \brief Create instances of analyses that are required.

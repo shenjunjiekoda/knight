@@ -60,6 +60,9 @@ class CheckerBase {
 template < typename CHECKER1, typename... CHECKERS >
 class Checker : public CHECKER1, public CHECKERS..., public CheckerBase {
   public:
+    Checker< CheckerBase, CHECKER1, CHECKERS... >(KnightContext& ctx)
+        : CheckerBase(ctx) {}
+
     template < typename CHECKER >
     static void register_callback(CHECKER* checker, CheckerManager& mgr) {
         CHECKER1::register_callback(checker, mgr);
@@ -70,6 +73,8 @@ class Checker : public CHECKER1, public CHECKERS..., public CheckerBase {
 template < typename CHECKER1 >
 class Checker< CHECKER1 > : public CHECKER1, public CheckerBase {
   public:
+    Checker< CheckerBase, CHECKER1 >(KnightContext& ctx) : CheckerBase(ctx) {}
+
     template < typename CHECKER >
     static void register_callback(CHECKER* checker, CheckerManager& mgr) {
         CHECKER1::register_callback(checker, mgr);

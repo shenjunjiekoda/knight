@@ -104,7 +104,7 @@ class CheckerManager {
     /// Each checker may depend on some analyses.
     /// Dependencies shall be handled before the registration.
     /// @{
-    void register_checker(CheckerID id);
+    void add_required_checker(CheckerID id);
     bool is_checker_required(CheckerID id) const;
 
     void enable_checker(std::unique_ptr< CheckerBase > checker);

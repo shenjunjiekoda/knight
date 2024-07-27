@@ -91,12 +91,12 @@ std::unique_ptr< clang::ASTConsumer > KnightASTConsumerFactory::
     }
 
     for (const auto& [id, _] : get_enabled_checks()) {
-        m_checker_manager->register_checker(id);
+        m_checker_manager->add_required_checker(id);
     }
     auto checkers = m_factory->create_checkers(&m_ctx);
 
     for (const auto& [id, _] : get_directly_enabled_analyses()) {
-        m_analysis_manager->register_analysis(id);
+        m_analysis_manager->add_required_analysis(id);
     }
     m_analysis_manager->compute_all_required_analyses_by_dependencies();
     auto analyses = m_factory->create_analyses(&m_ctx);

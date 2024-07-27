@@ -19,7 +19,7 @@
 
 namespace knight::dfa {
 
-void CheckerManager::register_checker(CheckerID id) {
+void CheckerManager::add_required_checker(CheckerID id) {
     m_required_checkers.emplace(id);
 }
 

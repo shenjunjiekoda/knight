@@ -72,7 +72,7 @@ class KnightContext {
     }
 
     /// \brief Get the current ast context.
-    clang::ASTContext& get_ast_context() const { return *m_current_ast_ctx; }
+    clang::ASTContext* get_ast_context() const { return m_current_ast_ctx; }
 
     /// \brief Get the current source manager.
     clang::SourceManager& get_source_manager() const {
