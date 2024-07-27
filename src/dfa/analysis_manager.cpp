@@ -73,7 +73,7 @@ void AnalysisManager::compute_all_required_analyses_by_dependencies() {
 void AnalysisManager::enable_analysis(
     std::unique_ptr< AnalysisBase > analysis) {
     // TODO: add enabling logic for analyses (check filter and required checkers)
-    auto id = analysis->get_id();
+    auto id = get_analysis_id(analysis->get_kind());
     m_enabled_analyses.emplace(id, std::move(analysis));
 }
 

@@ -25,6 +25,8 @@
 #include "dfa/analysis_manager.hpp"
 #include "dfa/checker/checker_base.hpp"
 #include "dfa/checker_manager.hpp"
+#include "support/checker.hpp"
+#include "support/analysis.hpp"
 
 #include <unordered_map>
 
@@ -47,7 +49,7 @@ class KnightFactory {
   public:
     using Analysis = dfa::AnalysisBase;
     using UniqueAnalysisRef = std::unique_ptr< Analysis >;
-    using AnalysisRef = std::unique_ptr< Analysis >;
+    using AnalysisRef = Analysis*;
     using AnalysisRefs = std::vector< AnalysisRef >;
 
     using Checker = dfa::CheckerBase;
@@ -55,8 +57,9 @@ class KnightFactory {
     using CheckerRef = Checker*;
     using CheckerRefs = std::vector< CheckerRef >;
 
-    using AnalysisRegistryFn = std::function< UniqueAnalysisRef() >;
-    using CheckerRegistryFn = std::function< UniqueCheckerRef() >;
+    using AnalysisRegistryFn =
+        std::function< UniqueAnalysisRef(KnightContext&) >;
+    using CheckerRegistryFn = std::function< UniqueCheckerRef(KnightContext&) >;
 
     using AnalysisRegistryFnMap =
         llvm::DenseMap< std::pair< dfa::AnalysisID, llvm::StringRef >,
@@ -76,26 +79,38 @@ class KnightFactory {
                   dfa::CheckerManager& checker_mgr);
 
   public:
-    /// \brief Add analysis registry function with analysis id.
+    /// \brief Add analysis registry function with analysis id and name.
     void add_analysis_create_fn(dfa::AnalysisID id,
                                 llvm::StringRef name,
                                 AnalysisRegistryFn registry);
 
-    /// \brief Add checker registry function with checker id.
+    /// \brief Add checker registry function with checker id and name.
     void add_checker_create_fn(dfa::CheckerID id,
                                llvm::StringRef name,
                                CheckerRegistryFn registry);
 
     /// \brief Registers the analysis with the name.
-    template < typename ANALYSIS > void register_analysis(dfa::AnalysisID id) {
-        add_analysis_create_fn(id,
-                               []() { return std::make_unique< ANALYSIS >(); });
+    /// TODO: add concept
+    template < typename ANALYSIS >
+    void register_analysis(dfa::AnalysisID id, llvm::StringRef name) {
+        if constexpr (dfa::is_dependent_analysis< ANALYSIS >::value) {
+            ANALYSIS::add_dependencies(m_analysis_mgr);
+        }
+        add_analysis_create_fn(id, [](KnightContext& ctx) {
+            return std::make_unique< ANALYSIS >(ctx);
+        });
     }
 
     /// \brief Registers the checker with the name.
-    template < typename CHECKER > void register_checker(dfa::CheckerID id) {
-        add_checker_create_fn(id,
-                              []() { return std::make_unique< CHECKER >(); });
+    /// TODO: add concept
+    template < typename CHECKER >
+    void register_checker(dfa::CheckerID id, llvm::StringRef name) {
+        if constexpr (dfa::is_dependent_checker< CHECKER >::value) {
+            CHECKER::add_dependencies(m_checker_mgr);
+        }
+        add_checker_create_fn(id, [](KnightContext& ctx) {
+            return std::make_unique< CHECKER >(ctx);
+        });
     }
 
     /// \brief Create instances of analyses that are required.

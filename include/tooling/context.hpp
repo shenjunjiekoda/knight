@@ -68,7 +68,7 @@ class KnightContext {
 
     clang::ASTContext& get_ast_context() const { return *m_current_ast_ctx; }
 
-    const clang::SourceManager& get_source_manager() const {
+    clang::SourceManager& get_source_manager() const {
         return m_current_ast_ctx->getSourceManager();
     }
 
@@ -98,18 +98,18 @@ class KnightContext {
 
     /// \brief diagnoser
     /// @{
-    clang::DiagnosticBuilder diag(
+    clang::DiagnosticBuilder diagnose(
         llvm::StringRef checker,
         clang::SourceLocation loc,
         llvm::StringRef info,
         clang::DiagnosticIDs::Level diag_level = clang::DiagnosticIDs::Warning);
 
-    clang::DiagnosticBuilder diag(
+    clang::DiagnosticBuilder diagnose(
         llvm::StringRef checker,
         llvm::StringRef info,
         clang::DiagnosticIDs::Level diag_level = clang::DiagnosticIDs::Warning);
 
-    clang::DiagnosticBuilder diag(const clang::tooling::Diagnostic& d);
+    clang::DiagnosticBuilder diagnose(const clang::tooling::Diagnostic& d);
     /// @}
 
 }; // class KnightContext

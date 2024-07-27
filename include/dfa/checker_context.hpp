@@ -16,19 +16,23 @@
 #include "clang/AST/ASTContext.h"
 #include "clang/AST/DeclBase.h"
 
-namespace knight::dfa {
+namespace knight {
+
+class KnightContext;
+
+namespace dfa {
 
 class CheckerContext {
   private:
-    clang::ASTContext& m_ast_ctx;
+    KnightContext& m_ctx;
 
   public:
-    CheckerContext(clang::ASTContext& ast_ctx) : m_ast_ctx(ast_ctx) {}
+    CheckerContext(KnightContext& ctx) : m_ctx(ctx) {}
 
-    clang::ASTContext& getASTContext() const { return m_ast_ctx; }
-    clang::SourceManager& getSourceManager() const {
-        return m_ast_ctx.getSourceManager();
-    }
+    KnightContext& get_knight_context() const { return m_ctx; }
+    clang::ASTContext& get_ast_context() const;
+    clang::SourceManager& get_source_manager() const;
 }; // class CheckerContext
 
-} // namespace knight::dfa
+} // namespace dfa
+} // namespace knight

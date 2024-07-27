@@ -1,16 +1,17 @@
+//===- domains.hpp ----------------------------------------------------===//
+//
+// Copyright (c) 2024 Junjie Shen
+//
+// see https://github.com/shenjunjiekoda/knight/blob/main/LICENSE for
+// license information.
+//
+//===------------------------------------------------------------------===//
+//
+//  This header defines the domain metadatas.
+//
+//===------------------------------------------------------------------===//
+
 #pragma once
-
-// #ifndef DOMAIN_DEF
-// /// Create a new domain metadata.
-// ///
-// /// @param KIND The kind of the domain.
-// /// @param NAME The name of the domain.
-// /// @param ID The unique ID of the domain.
-// /// @param DESC The description of the domain.
-// #define DOMAIN_DEF(KIND, NAME, ID, DESC)
-// #endif
-
-// DOMAIN_DEF(DemoItvDom, "DemoItvDom", 0, "A demo interval domain.")
 
 #include <llvm/ADT/StringRef.h>
 

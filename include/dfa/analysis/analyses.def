@@ -1,0 +1,24 @@
+//===- analyses.def ---------------------------------------------------===//
+//
+// Copyright (c) 2024 Junjie Shen
+//
+// see https://github.com/shenjunjiekoda/knight/blob/main/LICENSE for
+// license information.
+//
+//===------------------------------------------------------------------===//
+//
+//  This header defines the metadata of analyses.
+//
+//===------------------------------------------------------------------===//
+
+#ifndef ANALYSIS_DEF
+/// Create a new analysis metadata.
+///    
+/// @param KIND The kind of the analysis.
+/// @param NAME The name of the analysis.
+/// @param ID The unique ID of the analysis.
+/// @param DESC The description of the analysis.
+#define ANALYSIS_DEF(KIND, NAME, ID, DESC)
+#endif
+
+ANALYSIS_DEF(DemoAnalysis, "DemoAnalysis", 0, "A demo analysis.")

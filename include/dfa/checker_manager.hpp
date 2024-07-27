@@ -95,8 +95,7 @@ class CheckerManager {
 
   public:
     CheckerManager(KnightContext& ctx, AnalysisManager& analysis_mgr)
-        : m_ctx(ctx), m_checker_ctx(std::make_unique< CheckerContext >(
-                          ctx.get_ast_context())),
+        : m_ctx(ctx), m_checker_ctx(std::make_unique< CheckerContext >(ctx)),
           m_analysis_mgr(analysis_mgr) {}
 
   public:

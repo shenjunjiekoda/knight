@@ -15,23 +15,46 @@
 
 #include "dfa/checker_context.hpp"
 #include "dfa/checker_manager.hpp"
+#include "dfa/checker/checkers.hpp"
 #include "support/clang_ast.hpp"
 
 namespace knight::dfa {
 
 /// \brief Base class for all data flow checkers.
+///
+/// derived checker can add analysis dependencies by implementing
+/// the following function:
+/// \code
+///     static void add_dependencies(CheckerManager& mgr) {}
+/// \endcode
 class CheckerBase {
   public:
+    CheckerBase(KnightContext& ctx);
     virtual ~CheckerBase() = default;
 
-    virtual CheckerNameRef get_name() const = 0;
-    virtual CheckerID get_id() const = 0;
+    virtual CheckerKind get_kind() const = 0;
     virtual bool is_language_supported(
         const clang::LangOptions& lang_opts) const {
         return true;
     }
-    virtual void add_dependencies(CheckerManager& mgr) const {}
 
+  protected:
+    clang::DiagnosticBuilder diagnose(
+        clang::SourceLocation loc,
+        llvm::StringRef info,
+        clang::DiagnosticIDs::Level diag_level = clang::DiagnosticIDs::Warning);
+
+    clang::DiagnosticBuilder diagnose(
+        llvm::StringRef info,
+        clang::DiagnosticIDs::Level diag_level = clang::DiagnosticIDs::Warning);
+
+    clang::DiagnosticBuilder diagnose(
+        clang::DiagnosticIDs::Level diag_level = clang::DiagnosticIDs::Warning);
+
+    KnightContext& get_knight_context() { return m_ctx; }
+
+  private:
+    KnightContext& m_ctx;
 }; // class CheckerBase
 
 template < typename CHECKER1, typename... CHECKERS >

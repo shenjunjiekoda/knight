@@ -25,15 +25,8 @@ class DemoItvDom : public AbsDom< DemoItvDom > {
   public:
     DemoItvDom(int l, int u) : lower(l), upper(u) {}
 
-    /// \brief the unique name of the domain
-    llvm::StringRef get_name() const override {
-        return get_domain_name(DomainKind::DemoItvDom);
-    }
-
-    /// \brief the unique id of the domain
-    DomID get_id() const override {
-        return get_domain_id(DomainKind::DemoItvDom);
-    }
+    /// \brief specify the domain kind
+    DomainKind get_kind() const override { return DomainKind::DemoItvDom; }
 
   public:
     void normalize() override {}

@@ -16,6 +16,8 @@
 #include <llvm/Support/raw_ostream.h>
 #include <llvm/ADT/StringRef.h>
 
+#include "dfa/domain/domains.hpp"
+
 namespace knight::dfa {
 
 using DomID = uint8_t;
@@ -28,11 +30,8 @@ class AbsDomBase {
     /// \brief Create the top abstract value
     AbsDomBase() = default;
 
-    /// \brief the unique name of the domain
-    virtual llvm::StringRef get_name() const = 0;
-
-    /// \brief the unique id of the domain
-    virtual DomID get_id() const = 0;
+    /// \brief Get the kind of the domain
+    virtual DomainKind get_kind() const = 0;
 
     /// \brief Normalize the abstract value
     ///
@@ -96,8 +95,7 @@ class AbsDomBase {
 /// \brief Base wrapper class for all domains
 ///
 /// Derived domain shall be final and requires the following methods:
-/// - `get_name() const`
-/// - `get_id() const`
+/// - `get_kind() const`
 /// - `normalize()`
 /// - `is_bottom() const`
 /// - `is_top() const`

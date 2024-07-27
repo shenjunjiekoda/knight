@@ -104,8 +104,8 @@ class AnalysisManager {
 
   public:
     AnalysisManager(KnightContext& ctx)
-        : m_ctx(ctx), m_analysis_ctx(std::make_unique< AnalysisContext >(
-                          ctx.get_ast_context())) {}
+        : m_ctx(ctx), m_analysis_ctx(std::make_unique< AnalysisContext >(ctx)) {
+    }
 
   public:
     /// \brief specialized analysis management

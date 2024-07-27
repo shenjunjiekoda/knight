@@ -49,7 +49,7 @@ void KnightContext::set_current_file(llvm::StringRef file) {
         std::make_unique< Globs >(m_current_options.analyses);
 }
 
-clang::DiagnosticBuilder KnightContext::diag(
+clang::DiagnosticBuilder KnightContext::diagnose(
     llvm::StringRef checker,
     clang::SourceLocation loc,
     llvm::StringRef info,
@@ -99,7 +99,7 @@ std::optional< std::string > KnightContext::get_check_name(unsigned diag_id) {
     return std::nullopt;
 }
 
-clang::DiagnosticBuilder KnightContext::diag(
+clang::DiagnosticBuilder KnightContext::diagnose(
     llvm::StringRef checker,
     llvm::StringRef info,
     clang::DiagnosticIDs::Level diag_level) {
@@ -111,7 +111,7 @@ clang::DiagnosticBuilder KnightContext::diag(
     return m_diag_engine->Report(custom_diag_id);
 }
 
-clang::DiagnosticBuilder KnightContext::diag(
+clang::DiagnosticBuilder KnightContext::diagnose(
     const clang::tooling::Diagnostic& d) {
     auto& src_mgr = m_diag_engine->getSourceManager();
     auto& file_mgr = src_mgr.getFileManager();
@@ -123,10 +123,10 @@ clang::DiagnosticBuilder KnightContext::diag(
     auto loc_in_file = file_start.getLocWithOffset(
         static_cast< clang::SourceLocation::IntTy >(d.Message.FileOffset));
 
-    return diag(d.DiagnosticName,
-                loc_in_file,
-                d.Message.Message,
-                static_cast< clang::DiagnosticIDs::Level >(d.DiagLevel));
+    return diagnose(d.DiagnosticName,
+                    loc_in_file,
+                    d.Message.Message,
+                    static_cast< clang::DiagnosticIDs::Level >(d.DiagLevel));
 }
 
 } // namespace knight

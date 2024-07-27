@@ -15,22 +15,46 @@
 
 #include "dfa/analysis_context.hpp"
 #include "dfa/analysis_manager.hpp"
+#include "dfa/analysis/analyses.hpp"
 #include "support/clang_ast.hpp"
 
 namespace knight::dfa {
 
 /// \brief Base class for all data flow analyses.
+///
+/// derived checker can add analysis dependencies by implementing
+/// the following function:
+/// \code
+///     static void add_dependencies(AnalysisManager& mgr) {}
+/// \endcode
 class AnalysisBase {
   public:
+    AnalysisBase(KnightContext& ctx);
     virtual ~AnalysisBase() = default;
 
-    virtual AnalysisNameRef get_name() const = 0;
-    virtual AnalysisID get_id() const = 0;
+    virtual AnalysisKind get_kind() const = 0;
     virtual bool is_language_supported(
         const clang::LangOptions& lang_opts) const {
         return true;
     }
-    virtual void add_dependencies(AnalysisManager& mgr) const {}
+
+  protected:
+    clang::DiagnosticBuilder diagnose(
+        clang::SourceLocation loc,
+        llvm::StringRef info,
+        clang::DiagnosticIDs::Level diag_level = clang::DiagnosticIDs::Warning);
+
+    clang::DiagnosticBuilder diagnose(
+        llvm::StringRef info,
+        clang::DiagnosticIDs::Level diag_level = clang::DiagnosticIDs::Warning);
+
+    clang::DiagnosticBuilder diagnose(
+        clang::DiagnosticIDs::Level diag_level = clang::DiagnosticIDs::Warning);
+
+    KnightContext& get_knight_context() { return m_ctx; }
+
+  private:
+    KnightContext& m_ctx;
 }; // class AnalysisBase
 
 template < typename ANALYSIS1, typename... ANALYSES >
