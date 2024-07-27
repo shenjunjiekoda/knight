@@ -94,6 +94,36 @@ std::vector< std::string > get_directly_enabled_analyses() {
     return analyses;
 }
 
+void print_enabled_checkers(
+    const std::vector< std::string >& enabled_checkers) {
+    auto size = enabled_checkers.size();
+    if (size == 0) {
+        llvm::errs() << "No checkers are enabled.\n";
+    } else {
+        llvm::errs() << "\n* enabled" << size << " checker"
+                     << (size > 1 ? "s" : "") << ":\n";
+        auto i = 0;
+        for (const auto& checker : enabled_checkers) {
+            llvm::errs() << "(" << ++i << ") " << checker << "\n";
+        }
+    }
+}
+
+void print_enabled_analyses(
+    const std::vector< std::string >& enabled_analyses) {
+    auto size = enabled_analyses.size();
+    if (size == 0) {
+        llvm::errs() << "No analyses are enabled.\n";
+    } else {
+        llvm::errs() << "\n* enabled " << size << " "
+                     << (size > 1 ? "analyses" : "analysis") << ":\n";
+        auto i = 0;
+        for (const auto& analysis : enabled_analyses) {
+            llvm::errs() << "(" << ++i << ") " << analysis << "\n";
+        }
+    }
+}
+
 int main(int argc, const char** argv) {
     llvm::InitLLVM X(argc, argv);
 
@@ -130,26 +160,10 @@ int main(int argc, const char** argv) {
     auto enabled_analyses = get_directly_enabled_analyses();
     if (list_checkers || list_analyses) {
         if (list_checkers) {
-            if (enabled_checkers.empty()) {
-                llvm::errs() << "No checkers are enabled.\n";
-            } else {
-                llvm::errs() << "\nEnabled checkers:\n";
-                auto i = 0;
-                for (const auto& checker : enabled_checkers) {
-                    llvm::errs() << ++i << ". " << checker << "\n";
-                }
-            }
+            print_enabled_checkers(enabled_checkers);
         }
         if (list_analyses) {
-            if (enabled_analyses.empty()) {
-                llvm::errs() << "No analyses are enabled.\n";
-            } else {
-                llvm::errs() << "\nEnabled analyses:\n";
-                auto i = 0;
-                for (const auto& analysis : enabled_analyses) {
-                    llvm::errs() << ++i << ". " << analysis << "\n";
-                }
-            }
+            print_enabled_analyses(enabled_analyses);
         }
         return NORMAL_EXIT;
     }
