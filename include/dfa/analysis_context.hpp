@@ -13,8 +13,8 @@
 
 #pragma once
 
-#include "clang/AST/ASTContext.h"
-#include "clang/AST/DeclBase.h"
+#include <clang/AST/ASTContext.h>
+#include <clang/AST/DeclBase.h>
 
 namespace knight {
 

@@ -16,13 +16,18 @@
 #include "dfa/analysis_manager.hpp"
 #include "dfa/checker_manager.hpp"
 #include "tooling/context.hpp"
+#include "tooling/diagnostic.hpp"
 #include "tooling/factory.hpp"
 #include "util/vfs.hpp"
 
+#include <clang/AST/ASTConsumer.h>
+#include <clang/AST/DeclGroup.h>
+#include <clang/Basic/LLVM.h>
+#include <clang/Basic/Diagnostic.h>
 #include <clang/Frontend/CompilerInstance.h>
-#include "clang/AST/ASTConsumer.h"
-#include "clang/AST/DeclGroup.h"
-#include "llvm/Support/raw_ostream.h"
+#include <clang/Tooling/CompilationDatabase.h>
+#include <llvm/Support/raw_ostream.h>
+
 #include <memory>
 
 namespace knight {
@@ -38,9 +43,9 @@ class KnightASTConsumer : public clang::ASTConsumer {
           m_checker_manager(checker_manager), m_checkers(std::move(checkers)),
           m_analysis(std::move(analysis)) {}
 
+    // TODO: run analysis and checkers here? on the decl_group?
     bool HandleTopLevelDecl(clang::DeclGroupRef decl_group) override {
         llvm::outs() << "KnightASTConsumer::HandleTopLevelDecl\n";
-
         return true;
     }
 
@@ -79,5 +84,26 @@ class KnightASTConsumerFactory {
     std::vector< std::pair< dfa::AnalysisID, llvm::StringRef > >
     get_directly_enabled_analyses() const;
 }; // class KnightASTConsumerFactory
+
+class KnightDriver {
+  private:
+    KnightContext& m_ctx;
+    const clang::tooling::CompilationDatabase& m_cdb;
+    std::vector< std::string > m_input_files;
+    llvm::IntrusiveRefCntPtr< llvm::vfs::OverlayFileSystem > m_base_fs;
+
+  public:
+    KnightDriver(
+        KnightContext& ctx,
+        const clang::tooling::CompilationDatabase& cdb,
+        std::vector< std::string > input_files,
+        llvm::IntrusiveRefCntPtr< llvm::vfs::OverlayFileSystem > base_fs)
+        : m_ctx(ctx), m_cdb(cdb), m_input_files(std::move(input_files)),
+          m_base_fs(base_fs) {}
+
+  public:
+    std::vector< KnightDiagnostic > run();
+
+}; // class KnightDriver
 
 } // namespace knight

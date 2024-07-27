@@ -13,7 +13,8 @@
 
 #pragma once
 
-#include "clang/AST/Stmt.h"
+#include <clang/AST/Stmt.h>
+
 #include <concepts>
 
 namespace knight {

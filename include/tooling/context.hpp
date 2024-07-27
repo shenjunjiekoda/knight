@@ -16,10 +16,10 @@
 
 #include "tooling/options.hpp"
 #include "util/globs.hpp"
-#include "clang/Basic/SourceManager.h"
 
 #include <llvm/ADT/StringRef.h>
 
+#include <clang/Basic/SourceManager.h>
 #include <clang/Basic/LangOptions.h>
 #include <clang/AST/ASTContext.h>
 #include <clang/Tooling/Core/Diagnostic.h>
@@ -53,38 +53,50 @@ class KnightContext {
     /// \brief The reported diagnostic IDs and their corresponding checkers.
     std::unordered_map< unsigned, std::string > m_diag_id_to_checker_name;
 
-    /// \brief set the external diagnostic engine.
+    /// \brief Get the diagnostic engine.
+    clang::DiagnosticsEngine* get_diagnostic_engine() const {
+        return m_diag_engine;
+    }
+
+    /// \brief Get the external diagnostic engine.
     void set_diagnostic_engine(clang::DiagnosticsEngine* external_diag_engine);
 
-    /// \brief get the current file.
+    /// \brief Set the current file.
     llvm::StringRef get_current_file() const { return m_current_file; }
-    /// \brief set the current file when handle a new TU.
+    /// \brief Set the current file when handle a new TU.
     void set_current_file(llvm::StringRef file);
 
-    /// Gets the language options from the AST context.
+    /// \brief Get the language options from the AST context.
     const clang::LangOptions& get_lang_options() const {
         return m_current_ast_ctx->getLangOpts();
     }
 
+    /// \brief Get the current ast context.
     clang::ASTContext& get_ast_context() const { return *m_current_ast_ctx; }
 
+    /// \brief Get the current source manager.
     clang::SourceManager& get_source_manager() const {
         return m_current_ast_ctx->getSourceManager();
     }
 
-    /// \brief set the current clang AST context
+    /// \brief Get the current build directory.
+    const std::string& get_cuurent_build_dir() const {
+        return m_current_build_dir;
+    }
+
+    /// \brief Set the current clang AST context
     void set_current_ast_context(clang::ASTContext* ast_ctx);
 
-    /// \brief set the current build directory.
+    /// \brief Set the current build directory.
     void set_current_build_dir(llvm::StringRef build_dir) {
         m_current_build_dir = build_dir;
     }
 
-    /// \brief get the enabled status of checker.
+    /// \brief Get the enabled status of checker.
     /// \returns \c true if the checker is enabled, \c false otherwise.
     bool is_check_enabled(llvm::StringRef checker) const;
 
-    /// \brief get the directly enabled status of checker by the options.
+    /// \brief Get the directly enabled status of checker by the options.
     ///
     /// \returns \c true if the checker is enabled, \c false otherwise.
     bool is_analysis_directly_enabled(llvm::StringRef analysis) const;
@@ -93,10 +105,10 @@ class KnightContext {
     /// \returns The checker name if found, or an empty optional if not found.
     std::optional< std::string > get_check_name(unsigned diag_id);
 
-    /// \brief get the options for the given file.
+    /// \brief Get the options for the given file.
     KnightOptions get_options_for(llvm::StringRef file) const;
 
-    /// \brief diagnoser
+    /// \brief Diagnosing methods.
     /// @{
     clang::DiagnosticBuilder diagnose(
         llvm::StringRef checker,

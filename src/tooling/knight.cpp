@@ -13,12 +13,44 @@
 
 #include "tooling/knight.hpp"
 #include "dfa/analysis_manager.hpp"
+#include "tooling/diagnostic.hpp"
 #include "tooling/module.hpp"
 #include "tooling/factory.hpp"
+#include "util/vfs.hpp"
+
+#include <clang/Tooling/Tooling.h>
 
 LLVM_INSTANTIATE_REGISTRY(knight::KnightModuleRegistry);
 
 namespace knight {
+
+namespace {
+
+class KnightAction : public clang::ASTFrontendAction {
+  public:
+    KnightAction(KnightASTConsumerFactory* ast_factory)
+        : m_ast_factory(ast_factory) {}
+    std::unique_ptr< clang::ASTConsumer > CreateASTConsumer(
+        clang::CompilerInstance& ci, llvm::StringRef file) override {
+        return m_ast_factory->create_ast_consumer(ci, file);
+    }
+
+  private:
+    KnightASTConsumerFactory* m_ast_factory;
+}; // class KnightAction
+
+class KnightActionFactory : public clang::tooling::FrontendActionFactory {
+  public:
+    KnightActionFactory(KnightContext& ctx) : m_ast_factory(ctx) {}
+    std::unique_ptr< clang::FrontendAction > create() override {
+        return std::make_unique< KnightAction >(&m_ast_factory);
+    }
+
+  private:
+    KnightASTConsumerFactory m_ast_factory;
+}; // class KnightActionFactory
+
+} // anonymous namespace
 
 KnightASTConsumerFactory::KnightASTConsumerFactory(
     KnightContext& ctx,
@@ -97,6 +129,27 @@ KnightASTConsumerFactory::get_directly_enabled_analyses() const {
         }
     }
     return enabled_analyses;
+}
+
+std::vector< KnightDiagnostic > KnightDriver::run() {
+    using namespace clang;
+    using namespace clang::tooling;
+    ClangTool Tool(m_cdb,
+                   m_input_files,
+                   std::make_shared< PCHContainerOperations >(),
+                   m_base_fs);
+
+    KnightDiagnosticConsumer diag_consumer(m_ctx);
+    DiagnosticsEngine DE(new DiagnosticIDs(),
+                         new DiagnosticOptions(),
+                         &diag_consumer,
+                         false);
+    m_ctx.set_diagnostic_engine(&DE);
+    Tool.setDiagnosticConsumer(&diag_consumer);
+
+    KnightActionFactory Factory(m_ctx);
+    Tool.run(&Factory);
+    return diag_consumer.take_diags();
 }
 
 } // namespace knight
