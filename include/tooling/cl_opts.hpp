@@ -84,4 +84,11 @@ Use colors in output.
                                  cl::init(true),
                                  cl::cat(knight_category));
 
+inline cl::opt< bool > try_fix("fix",
+                               desc(R"(
+Try to apply suggested fixes.
+)"),
+                               cl::init(false),
+                               cl::cat(knight_category));
+
 } // namespace knight::cl_opts

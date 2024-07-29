@@ -30,7 +30,20 @@ class DemoChecker : public Checker< DemoChecker, check::BeginFunction > {
     static CheckerKind get_kind() { return CheckerKind::DemoChecker; }
 
     void check_begin_function(CheckerContext& C) const {
-        llvm::outs() << "DemoChecker::check_begin_function()\n";
+        auto* func =
+            dyn_cast_or_null< clang::FunctionDecl >(C.get_current_decl());
+        if (func == nullptr || !func->getDeclName().isIdentifier()) {
+            return;
+        }
+
+        if (func->getName().starts_with("_")) {
+            diagnose(func->getNameInfo().getLoc(),
+                     "bad function name `" + func->getName().str() + "`");
+        }
+        if (!func->isUsed() && !func->isReferenced()) {
+            diagnose(func->getBeginLoc(),
+                     "unused function `" + func->getName().str() + "`");
+        }
     }
 
     static void add_dependencies(CheckerManager& mgr) {

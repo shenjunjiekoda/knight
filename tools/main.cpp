@@ -17,12 +17,14 @@
 #include <llvm/Support/WithColor.h>
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/Support/CommandLine.h>
+#include <llvm/Support/Process.h>
 
 #include <clang/Tooling/CommonOptionsParser.h>
 #include <string>
 
 #include "tooling/cl_opts.hpp"
 #include "tooling/context.hpp"
+#include "tooling/diagnostic.hpp"
 #include "tooling/knight.hpp"
 #include "tooling/options.hpp"
 #include "util/vfs.hpp"
@@ -39,6 +41,7 @@ constexpr ErrCode OPT_PARSE_FAILURE = 1;
 constexpr ErrCode BASE_VFS_CREATE_FAILURE = 2;
 constexpr ErrCode VFS_FILE_FAILURE = 3;
 constexpr ErrCode NO_INPUT_FILES = 4;
+constexpr ErrCode COMPILE_ERROR_FOUND = 5;
 
 llvm::IntrusiveRefCntPtr< llvm::vfs::OverlayFileSystem > get_vfs(
     ErrCode& code) {
@@ -70,6 +73,9 @@ std::unique_ptr< KnightOptionsProvider > get_opts_provider() {
     }
     if (use_color.getNumOccurrences() > 0) {
         opts_provider->options.use_color = use_color;
+    } else {
+        opts_provider->options.use_color =
+            llvm::sys::Process::StandardOutHasColors();
     }
     return std::move(opts_provider);
 }
@@ -179,8 +185,17 @@ int main(int argc, const char** argv) {
                         opts_parser->getCompilations(),
                         src_path_lst,
                         base_vfs);
-    auto diags = driver.run();
-    // TODO: handle diags
+    const auto& diags = driver.run();
+    driver.handle_diagnostics(diags, try_fix);
+
+    bool compile_error_found = llvm::any_of(diags, [](const auto& diag) {
+        return diag.DiagLevel == KnightDiagnostic::Error;
+    });
+
+    if (compile_error_found) {
+        llvm::errs() << "Error: compilation failed.\n";
+        return COMPILE_ERROR_FOUND;
+    }
 
     return NORMAL_EXIT;
 }

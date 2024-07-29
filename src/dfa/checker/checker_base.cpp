@@ -24,17 +24,17 @@ CheckerBase::CheckerBase(KnightContext& ctx, CheckerKind k)
 clang::DiagnosticBuilder CheckerBase::diagnose(
     clang::SourceLocation loc,
     llvm::StringRef info,
-    clang::DiagnosticIDs::Level diag_level) {
+    clang::DiagnosticIDs::Level diag_level) const {
     return m_ctx.diagnose(get_checker_name(kind), loc, info, diag_level);
 }
 
 clang::DiagnosticBuilder CheckerBase::diagnose(
-    llvm::StringRef info, clang::DiagnosticIDs::Level diag_level) {
+    llvm::StringRef info, clang::DiagnosticIDs::Level diag_level) const {
     return m_ctx.diagnose(get_checker_name(kind), info, diag_level);
 }
 
 clang::DiagnosticBuilder CheckerBase::diagnose(
-    clang::DiagnosticIDs::Level diag_level) {
+    clang::DiagnosticIDs::Level diag_level) const {
     return m_ctx.diagnose(get_checker_name(kind),
                           get_checker_desc(kind),
                           diag_level);

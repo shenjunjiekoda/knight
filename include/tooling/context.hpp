@@ -84,6 +84,11 @@ class KnightContext {
         return m_current_build_dir;
     }
 
+    /// \breif Get the current options
+    const KnightOptions& get_current_options() const {
+        return m_current_options;
+    }
+
     /// \brief Set the current clang AST context
     void set_current_ast_context(clang::ASTContext* ast_ctx);
 

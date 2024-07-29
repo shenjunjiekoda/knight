@@ -16,6 +16,7 @@
 #include "tooling/diagnostic.hpp"
 #include "tooling/module.hpp"
 #include "tooling/factory.hpp"
+#include "tooling/reporter.hpp"
 #include "util/vfs.hpp"
 
 #include <clang/Tooling/Tooling.h>
@@ -150,6 +151,27 @@ std::vector< KnightDiagnostic > KnightDriver::run() {
     KnightActionFactory Factory(m_ctx);
     Tool.run(&Factory);
     return diag_consumer.take_diags();
+}
+
+void KnightDriver::handle_diagnostics(
+    const std::vector< KnightDiagnostic >& diagnostics, bool try_fix) {
+    FixKind fix = try_fix ? FixKind::FixIt : FixKind::None;
+
+    DiagnosticReporter reporter(fix, m_ctx, std::move(m_base_fs));
+
+    auto& vfs =
+        reporter.get_source_manager().getFileManager().getVirtualFileSystem();
+    auto origin_cwd = vfs.getCurrentWorkingDirectory();
+    knight_assert_msg(origin_cwd, "failed to get current working directory");
+
+    for (const auto& diagnostic : diagnostics) {
+        if (!diagnostic.BuildDirectory.empty()) {
+            (void)vfs.setCurrentWorkingDirectory(diagnostic.BuildDirectory);
+        }
+        reporter.report(diagnostic);
+        vfs.setCurrentWorkingDirectory(*origin_cwd);
+    }
+    reporter.apply_fixes();
 }
 
 } // namespace knight

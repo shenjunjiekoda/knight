@@ -1,3 +1,4 @@
-int foo(int a, int b) {
+
+int _foo(int a, int b) {
     return a + b;
 }

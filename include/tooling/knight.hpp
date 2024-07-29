@@ -43,30 +43,30 @@ class KnightASTConsumer : public clang::ASTConsumer {
           m_checker_manager(checker_manager), m_checkers(std::move(checkers)),
           m_analysis(std::move(analysis)) {}
 
-    // TODO: add engine to run analysis and checkers here? on the decl_group or tu?
+    // TODO: add datadflow engine to run analysis and checkers here? on the decl_group or tu?
     bool HandleTopLevelDecl(clang::DeclGroupRef decl_group) override {
-        llvm::outs() << "KnightASTConsumer::HandleTopLevelDecl\n";
         for (auto* D : decl_group) {
             if (!D->hasBody()) {
                 continue;
             }
 
-            llvm::outs() << "Handle decl: ";
-            D->dumpColor();
-            llvm::outs() << "\n";
+            auto& m_analysis_ctx = m_analysis_manager.get_analysis_context();
+            auto& m_checker_ctx = m_checker_manager.get_checker_context();
+            m_analysis_ctx.set_current_decl(D);
+            m_checker_ctx.set_current_decl(D);
 
             for (const auto& fn :
                  m_analysis_manager.begin_function_analyses()) {
-                fn(m_analysis_manager.get_analysis_context());
+                fn(m_analysis_ctx);
             }
             for (const auto& fn : m_checker_manager.begin_function_checks()) {
-                fn(m_checker_manager.get_checker_context());
+                fn(m_checker_ctx);
             }
             for (const auto& fn : m_analysis_manager.end_function_analyses()) {
-                fn(nullptr, m_analysis_manager.get_analysis_context());
+                fn(nullptr, m_analysis_ctx);
             }
             for (const auto& fn : m_checker_manager.end_function_checks()) {
-                fn(nullptr, m_checker_manager.get_checker_context());
+                fn(nullptr, m_checker_ctx);
             }
         }
 
@@ -127,6 +127,9 @@ class KnightDriver {
 
   public:
     std::vector< KnightDiagnostic > run();
+
+    void handle_diagnostics(const std::vector< KnightDiagnostic >& diagnostics,
+                            bool try_fix);
 
 }; // class KnightDriver
 

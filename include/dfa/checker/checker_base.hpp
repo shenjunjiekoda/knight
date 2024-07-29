@@ -80,17 +80,17 @@ class CheckerBase {
     }
 
   protected:
-    clang::DiagnosticBuilder diagnose(
-        clang::SourceLocation loc,
-        llvm::StringRef info,
-        clang::DiagnosticIDs::Level diag_level = clang::DiagnosticIDs::Warning);
+    clang::DiagnosticBuilder diagnose(clang::SourceLocation loc,
+                                      llvm::StringRef info,
+                                      clang::DiagnosticIDs::Level diag_level =
+                                          clang::DiagnosticIDs::Warning) const;
 
-    clang::DiagnosticBuilder diagnose(
-        llvm::StringRef info,
-        clang::DiagnosticIDs::Level diag_level = clang::DiagnosticIDs::Warning);
+    clang::DiagnosticBuilder diagnose(llvm::StringRef info,
+                                      clang::DiagnosticIDs::Level diag_level =
+                                          clang::DiagnosticIDs::Warning) const;
 
-    clang::DiagnosticBuilder diagnose(
-        clang::DiagnosticIDs::Level diag_level = clang::DiagnosticIDs::Warning);
+    clang::DiagnosticBuilder diagnose(clang::DiagnosticIDs::Level diag_level =
+                                          clang::DiagnosticIDs::Warning) const;
 
     KnightContext& get_knight_context() { return m_ctx; }
 
