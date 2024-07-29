@@ -22,17 +22,47 @@ namespace knight::dfa {
 
 /// \brief Base class for all data flow checkers.
 ///
-/// derived checker can add analysis dependencies by implementing
-/// the following function:
+/// Derived class can inherit like this:
 /// \code
-///     static void add_dependencies(CheckerManager& mgr) {}
+/// class MyCheckerImpl :
+///    public Checker<MyCheckerImpl,
+///        analyze::BeginFunction, analyze::EndFunction, ...callbacks > {
+///
+///    /// \brief delegate to the Checker constructor
+///    MyCheckerImpl(KnightContext& ctx) : Checker(ctx) {}
+///
+///    /// \brief tell us the kind of checker.
+///    static CheckerKind get_kind() {
+///        return CheckerKind::MyChecker;
+///    }
+///
+///    /// \brief Derived checker can add checker dependencies by
+///    /// implementing the following function:
+///    static void add_dependencies(CheckerManager& mgr) {
+///        // add dependencies here
+///    }
+///
+///    /// \brief BeginFunction callback.
+///    void analyze_begin_function(CheckerContext& C) {
+///        // analyze begin function here.
+///    }
+///
+///    /// \brief EndFunction callback.
+///    void analyze_end_function(CheckerContext& C) {
+///        // analyze end function here.
+///    }
+///
+///    // add more checker callbacks functions here.
+/// }; // class MyCheckerImpl
 /// \endcode
+
 class CheckerBase {
   public:
-    CheckerBase(KnightContext& ctx);
-    virtual ~CheckerBase() = default;
+    CheckerKind kind;
 
-    virtual CheckerKind get_kind() const = 0;
+  public:
+    CheckerBase(KnightContext& ctx, CheckerKind k);
+    virtual ~CheckerBase() = default;
     virtual bool is_language_supported(
         const clang::LangOptions& lang_opts) const {
         return true;
@@ -57,26 +87,25 @@ class CheckerBase {
     KnightContext& m_ctx;
 }; // class CheckerBase
 
-template < typename CHECKER1, typename... CHECKERS >
+template < typename Impl, typename CHECKER1, typename... CHECKERS >
 class Checker : public CHECKER1, public CHECKERS..., public CheckerBase {
   public:
-    Checker< CheckerBase, CHECKER1, CHECKERS... >(KnightContext& ctx)
-        : CheckerBase(ctx) {}
+    Checker< Impl, CheckerBase, CHECKER1, CHECKERS... >(KnightContext& ctx)
+        : CheckerBase(ctx, Impl::get_kind()) {}
 
-    template < typename CHECKER >
-    static void register_callback(CHECKER* checker, CheckerManager& mgr) {
+    static void register_callback(Impl* checker, CheckerManager& mgr) {
         CHECKER1::register_callback(checker, mgr);
-        Checker< CHECKERS... >::register_callback(checker, mgr);
+        Checker< Impl, CHECKERS... >::register_callback(checker, mgr);
     }
 };
 
-template < typename CHECKER1 >
-class Checker< CHECKER1 > : public CHECKER1, public CheckerBase {
+template < typename Impl, typename CHECKER1 >
+class Checker< Impl, CHECKER1 > : public CHECKER1, public CheckerBase {
   public:
-    Checker< CheckerBase, CHECKER1 >(KnightContext& ctx) : CheckerBase(ctx) {}
+    Checker< Impl, CheckerBase, CHECKER1 >(KnightContext& ctx)
+        : CheckerBase(ctx, Impl::get_kind()) {}
 
-    template < typename CHECKER >
-    static void register_callback(CHECKER* checker, CheckerManager& mgr) {
+    static void register_callback(Impl* checker, CheckerManager& mgr) {
         CHECKER1::register_callback(checker, mgr);
     }
 };

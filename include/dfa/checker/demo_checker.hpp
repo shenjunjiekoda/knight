@@ -13,6 +13,7 @@
 
 #pragma once
 
+#include "dfa/analysis/demo_analysis.hpp"
 #include "dfa/checker/checker_base.hpp"
 #include "dfa/checker_context.hpp"
 #include "tooling/context.hpp"
@@ -21,16 +22,20 @@
 
 namespace knight::dfa {
 
-class DemoChecker : public Checker< check::BeginFunction > {
+class DemoChecker : public Checker< DemoChecker, check::BeginFunction > {
   public:
     DemoChecker(KnightContext& C) : Checker(C) {}
 
-    CheckerKind get_kind() const override { return CheckerKind::DemoChecker; }
+    static CheckerKind get_kind() { return CheckerKind::DemoChecker; }
 
     void check_begin_function(CheckerContext& C) {
         llvm::outs() << "DemoChecker::check_begin_function()\n";
     }
 
+    static void add_dependencies(CheckerManager& mgr) {
+        // add dependencies here
+        mgr.add_checker_dependency< DemoChecker, DemoAnalysis >();
+    }
 }; // class DemoChecker
 
 } // namespace knight::dfa

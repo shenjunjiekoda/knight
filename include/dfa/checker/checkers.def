@@ -21,4 +21,4 @@
 #define CHECKER_DEF(KIND, NAME, ID, DESC)
 #endif
 
-CHECKER_DEF(DemoChecker, "DemoChecker", 0, "A demo checker.")
+CHECKER_DEF(DemoChecker, "demo-checker", 0, "A demo checker.")

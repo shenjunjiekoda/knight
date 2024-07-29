@@ -91,6 +91,8 @@ class AnalysisManager {
 
     /// \brief registered domains
     std::unordered_map< DomID, AnalysisID > m_domains;
+    using DomainDefaultValFn = std::function< UniqueVal() >;
+    std::unordered_map< DomID, DomainDefaultValFn > m_domain_default_fn;
     std::unordered_map< AnalysisID, std::unordered_set< DomID > >
         m_analysis_domains;
 
@@ -128,7 +130,13 @@ class AnalysisManager {
     /// Analysis shall be registered first.
     /// Domain dependencies shall be handled before the registration.
     /// @{
-    void register_domain(AnalysisID analysis_id, DomID dom_id);
+    template < typename Analysis, typename Dom > void add_domain_dependency() {
+        auto analysis_id = get_analysis_id(Analysis::get_kind());
+        auto dom_id = get_domain_id(Dom::get_kind());
+        m_domains[dom_id] = analysis_id;
+        m_domain_default_fn[dom_id] = Dom::default_val;
+        m_analysis_domains[analysis_id].insert(dom_id);
+    }
     std::unordered_set< DomID > get_registered_domains_in(AnalysisID id) const;
     /// @}
 

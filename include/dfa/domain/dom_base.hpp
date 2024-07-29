@@ -19,22 +19,30 @@
 #include "dfa/domain/domains.hpp"
 #include "support/dom.hpp"
 
+#include <memory>
 #include <unordered_set>
 
 namespace knight::dfa {
 
-using DomID = uint8_t;
+class AbsDomBase;
+
+using DomIDs = std::unordered_set< DomID >;
+using AbsValRef = AbsDomBase*;
+using UniqueVal = std::unique_ptr< AbsDomBase >;
 
 /// \brief Base for all abstract domains
 ///
 /// Abstract domain should be thread-safe on copy and `const` methods
-class AbsDomBase {
-  public:
-    /// \brief Create the top abstract value
-    AbsDomBase() = default;
+struct AbsDomBase {
+    DomainKind kind;
 
-    /// \brief Get the kind of the domain
-    virtual DomainKind get_kind() const = 0;
+    /// \brief Create the top abstract value
+    AbsDomBase(DomainKind k) : kind(k) {}
+
+    virtual ~AbsDomBase() {}
+
+    /// \brief Clone the abstract value
+    virtual UniqueVal clone() const = 0;
 
     /// \brief Normalize the abstract value
     ///
@@ -104,36 +112,37 @@ class AbsDomBase {
     ///
     /// default impl is dump nothing
     virtual void dump(llvm::raw_ostream& os) const {}
-}; // class AbsDomBase
 
-using DomIDs = std::unordered_set< DomID >;
-using DomRef = AbsDomBase*;
-using DomSharedRef = std::shared_ptr< AbsDomBase >;
+}; // class AbsDomBase
 
 /// \brief Base wrapper class for all domains
 ///
-/// Derived domain shall be final and requires the following methods:
-/// - `get_kind() const`
+/// `Derived` domain shall be final and *requires* the following methods:
+/// - `static get_kind()`
+/// - `Derived()` ctor
+/// - `clone() const`
 /// - `is_bottom() const`
 /// - `is_top() const`
 /// - `set_to_bottom()`
 /// - `set_to_top()`
 /// - `join_with(const Derived& other)`
 /// - `leq(const Derived& other) const`
-/// Derived domain can also implement the following optional methods:
-/// - `normalize()` [optional]
-/// - `join_with_at_loop_head(const Derived& other)` [optional]
-/// - `join_consecutive_iter_with(const Derived& other)` [optional]
-/// - `widen_with(const Derived& other)` [optional]
-/// - `meet_with(const Derived& other)` [optional]
-/// - `narrow_with(const Derived& other)` [optional]
-/// - `equals(const Derived& other) const` [optional]
-/// - `dump(llvm::Derived& os) const` [optional]
+///
+/// `Derived` domain may also implement the following *optional* methods:
+/// - `static UniqueVal default_val()`
+/// - `normalize()`
+/// - `join_with_at_loop_head(const Derived& other)`
+/// - `join_consecutive_iter_with(const Derived& other)`
+/// - `widen_with(const Derived& other)`
+/// - `meet_with(const Derived& other)`
+/// - `narrow_with(const Derived& other)`
+/// - `equals(const Derived& other) const`
+/// - `dump(llvm::Derived& os) const`
 template < typename Derived > class AbsDom : public AbsDomBase {
   public:
+    AbsDom< Derived >() : AbsDomBase(Derived::get_kind()) {}
+
     void join_with(const AbsDomBase& other) override {
-        knight_assert_msg(get_kind() == other.get_kind(),
-                          "Incompatible domains");
         static_assert(does_derived_dom_can_join_with< Derived >::value,
                       "derived domain needs to implement `join_with` method");
         static_cast< Derived* >(this)->join_with(
@@ -141,8 +150,6 @@ template < typename Derived > class AbsDom : public AbsDomBase {
     }
 
     void join_with_at_loop_head(const AbsDomBase& other) override {
-        knight_assert_msg(get_kind() == other.get_kind(),
-                          "Incompatible domains");
         if constexpr (does_derived_dom_can_join_with_at_loop_head<
                           Derived >::value) {
             static_cast< Derived* >(this)->join_with_at_loop_head(
@@ -153,8 +160,6 @@ template < typename Derived > class AbsDom : public AbsDomBase {
     }
 
     void join_consecutive_iter_with(const AbsDomBase& other) override {
-        knight_assert_msg(get_kind() == other.get_kind(),
-                          "Incompatible domains");
         if constexpr (does_derived_dom_can_join_consecutive_iter_with<
                           Derived >::value) {
             static_cast< Derived* >(this)->join_consecutive_iter_with(
@@ -165,8 +170,6 @@ template < typename Derived > class AbsDom : public AbsDomBase {
     }
 
     void widen_with(const AbsDomBase& other) override {
-        knight_assert_msg(get_kind() == other.get_kind(),
-                          "Incompatible domains");
         if constexpr (does_derived_dom_can_widen_with< Derived >::value) {
             static_cast< Derived* >(this)->widen_with(
                 static_cast< const Derived& >(other));
@@ -176,8 +179,6 @@ template < typename Derived > class AbsDom : public AbsDomBase {
     }
 
     void meet_with(const AbsDomBase& other) override {
-        knight_assert_msg(get_kind() == other.get_kind(),
-                          "Incompatible domains");
         if constexpr (does_derived_dom_can_meet_with< Derived >::value) {
             static_cast< Derived* >(this)->meet_with(
                 static_cast< const Derived& >(other));
@@ -187,8 +188,6 @@ template < typename Derived > class AbsDom : public AbsDomBase {
     }
 
     void narrow_with(const AbsDomBase& other) override {
-        knight_assert_msg(get_kind() == other.get_kind(),
-                          "Incompatible domains");
         if constexpr (does_derived_dom_can_narrow_with< Derived >::value) {
             static_cast< Derived* >(this)->narrow_with(
                 static_cast< const Derived& >(other));
@@ -198,8 +197,6 @@ template < typename Derived > class AbsDom : public AbsDomBase {
     }
 
     virtual bool leq(const AbsDomBase& other) const override {
-        knight_assert_msg(get_kind() == other.get_kind(),
-                          "Incompatible domains");
         static_assert(does_derived_dom_can_leq< Derived >::value,
                       "derived domain needs to implement `leq` method");
         return static_cast< const Derived& >(other).leq(
@@ -207,8 +204,6 @@ template < typename Derived > class AbsDom : public AbsDomBase {
     }
 
     virtual bool equals(const AbsDomBase& other) const override {
-        knight_assert_msg(get_kind() == other.get_kind(),
-                          "Incompatible domains");
         if constexpr (does_derived_dom_can_equals< Derived >::value) {
             return static_cast< const Derived& >(other).equals(
                 static_cast< const Derived& >(*this));

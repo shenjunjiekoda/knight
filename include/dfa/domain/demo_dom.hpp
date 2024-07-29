@@ -26,9 +26,17 @@ class DemoItvDom : public AbsDom< DemoItvDom > {
     DemoItvDom(int l, int u) : lower(l), upper(u) {}
 
     /// \brief specify the domain kind
-    DomainKind get_kind() const override { return DomainKind::DemoItvDom; }
+    static DomainKind get_kind() { return DomainKind::DemoItvDom; }
 
   public:
+    static UniqueVal default_val() {
+        return std::make_unique< DemoItvDom >(INT_MIN, INT_MAX);
+    }
+
+    UniqueVal clone() const override {
+        return std::make_unique< DemoItvDom >(lower, upper);
+    }
+
     void normalize() override {}
 
     bool is_bottom() const override { return lower > upper; }

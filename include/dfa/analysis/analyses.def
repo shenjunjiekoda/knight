@@ -21,4 +21,4 @@
 #define ANALYSIS_DEF(KIND, NAME, ID, DESC)
 #endif
 
-ANALYSIS_DEF(DemoAnalysis, "DemoAnalysis", 0, "A demo analysis.")
+ANALYSIS_DEF(DemoAnalysis, "demo-analysis", 0, "A demo analysis.")

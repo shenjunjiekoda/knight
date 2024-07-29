@@ -110,7 +110,12 @@ class CheckerManager {
     void enable_checker(std::unique_ptr< CheckerBase > checker);
     std::optional< CheckerBase* > get_checker(CheckerID id);
 
-    void add_checker_dependency(CheckerID id, AnalysisID required_analysis_id);
+    template < typename Checker, typename Analysis >
+    void add_checker_dependency() {
+        CheckerID id = get_checker_id(Checker::get_kind());
+        AnalysisID required_analysis_id = get_analysis_id(Analysis::get_kind());
+        m_analysis_mgr.add_required_analysis(required_analysis_id);
+    }
     /// @}
 
     /// \brief callback registrations

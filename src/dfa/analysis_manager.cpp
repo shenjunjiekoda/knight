@@ -14,6 +14,7 @@
 #include "dfa/analysis_manager.hpp"
 #include "dfa/analysis/analyses.hpp"
 #include "dfa/analysis/analysis_base.hpp"
+#include "dfa/domain/domains.hpp"
 #include "util/assert.hpp"
 
 #include <memory>
@@ -70,7 +71,7 @@ void AnalysisManager::compute_all_required_analyses_by_dependencies() {
 void AnalysisManager::enable_analysis(
     std::unique_ptr< AnalysisBase > analysis) {
     // TODO: add enabling logic for analyses (check filter and required checkers)
-    auto id = get_analysis_id(analysis->get_kind());
+    auto id = get_analysis_id(analysis->kind);
     m_enabled_analyses.emplace(id, std::move(analysis));
 }
 
@@ -89,11 +90,6 @@ std::unordered_set< AnalysisID > AnalysisManager::get_analysis_dependencies(
         return {};
     }
     return it->second;
-}
-
-void AnalysisManager::register_domain(AnalysisID analysis_id, DomID dom_id) {
-    m_analysis_domains[analysis_id].insert(dom_id);
-    m_analysis_domains[analysis_id].insert(dom_id);
 }
 
 std::unordered_set< DomID > AnalysisManager::get_registered_domains_in(

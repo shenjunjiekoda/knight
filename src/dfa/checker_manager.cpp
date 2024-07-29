@@ -12,8 +12,10 @@
 //===------------------------------------------------------------------===//
 
 #include "dfa/checker_manager.hpp"
+#include "dfa/analysis/analyses.hpp"
 #include "dfa/analysis/analysis_base.hpp"
 #include "dfa/checker/checker_base.hpp"
+#include "dfa/checker/checkers.hpp"
 #include "util/assert.hpp"
 #include <memory>
 
@@ -28,7 +30,7 @@ bool CheckerManager::is_checker_required(CheckerID id) const {
 }
 
 void CheckerManager::enable_checker(std::unique_ptr< CheckerBase > checker) {
-    auto id = get_checker_id(checker->get_kind());
+    auto id = get_checker_id(checker->kind);
     m_enabled_checkers.emplace(id, std::move(checker));
 }
 
@@ -38,11 +40,6 @@ std::optional< CheckerBase* > CheckerManager::get_checker(CheckerID id) {
         return std::nullopt;
     }
     return it->second.get();
-}
-
-void CheckerManager::add_checker_dependency(CheckerID id,
-                                            AnalysisID required_analysis_id) {
-    m_analysis_mgr.add_required_analysis(required_analysis_id);
 }
 
 void CheckerManager::register_for_stmt(internal::CheckStmtCallBack anz_fn,

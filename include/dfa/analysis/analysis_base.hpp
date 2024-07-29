@@ -22,17 +22,46 @@ namespace knight::dfa {
 
 /// \brief Base class for all data flow analyses.
 ///
-/// derived checker can add analysis dependencies by implementing
-/// the following function:
+/// Derived class can inherit like this:
 /// \code
-///     static void add_dependencies(AnalysisManager& mgr) {}
+/// class MyAnalysisImpl :
+///    public Analysis<MyAnalysisImpl,
+///        analyze::BeginFunction, analyze::EndFunction, ...callbacks > {
+///
+///    /// \brief delegate to the Analysis constructor
+///    MyAnalysisImpl(KnightContext& ctx) : Analysis(ctx) {}
+///
+///    /// \brief tell us the kind of analysis.
+///    static AnalysisKind get_kind() {
+///        return AnalysisKind::MyAnalysis;
+///    }
+///
+///    /// \brief Derived analysis can add analysis dependencies by
+///    /// implementing the following function:
+///    static void add_dependencies(AnalysisManager& mgr) {
+///        // add dependencies here
+///    }
+///
+///    /// \brief BeginFunction callback.
+///    void analyze_begin_function(AnalysisContext& C) {
+///        // analyze begin function here.
+///    }
+///
+///    /// \brief EndFunction callback.
+///    void analyze_end_function(AnalysisContext& C) {
+///        // analyze end function here.
+///    }
+///
+///    // add more analysis callbacks functions here.
+/// }; // class MyAnalysisImpl
 /// \endcode
 class AnalysisBase {
   public:
-    AnalysisBase(KnightContext& ctx);
-    virtual ~AnalysisBase() = default;
+    AnalysisKind kind;
 
-    virtual AnalysisKind get_kind() const = 0;
+  public:
+    AnalysisBase(KnightContext& ctx, AnalysisKind k);
+    virtual ~AnalysisBase() = default;
     virtual bool is_language_supported(
         const clang::LangOptions& lang_opts) const {
         return true;
@@ -57,26 +86,25 @@ class AnalysisBase {
     KnightContext& m_ctx;
 }; // class AnalysisBase
 
-template < typename ANALYSIS1, typename... ANALYSES >
+template < typename Impl, typename ANALYSIS1, typename... ANALYSES >
 class Analysis : public ANALYSIS1, public ANALYSES..., public AnalysisBase {
   public:
-    Analysis< ANALYSIS1, ANALYSES... >(KnightContext& ctx)
-        : AnalysisBase(ctx) {}
+    Analysis< Impl, ANALYSIS1, ANALYSES... >(KnightContext& ctx)
+        : AnalysisBase(ctx, Impl::get_kind()) {}
 
-    template < typename ANALYSIS >
-    static void register_callback(ANALYSIS* checker, AnalysisManager& mgr) {
+    static void register_callback(Impl* checker, AnalysisManager& mgr) {
         ANALYSIS1::register_callback(checker, mgr);
-        Analysis< ANALYSES... >::register_callback(checker, mgr);
+        Analysis< Impl, ANALYSES... >::register_callback(checker, mgr);
     }
 };
 
-template < typename ANALYSIS1 >
-class Analysis< ANALYSIS1 > : public ANALYSIS1, public AnalysisBase {
+template < typename Impl, typename ANALYSIS1 >
+class Analysis< Impl, ANALYSIS1 > : public ANALYSIS1, public AnalysisBase {
   public:
-    Analysis< ANALYSIS1 >(KnightContext& ctx) : AnalysisBase(ctx) {}
+    Analysis< ANALYSIS1 >(KnightContext& ctx)
+        : AnalysisBase(ctx, Impl::get_kind()) {}
 
-    template < typename ANALYSIS >
-    static void register_callback(ANALYSIS* checker, AnalysisManager& mgr) {
+    static void register_callback(Impl* checker, AnalysisManager& mgr) {
         ANALYSIS1::register_callback(checker, mgr);
     }
 };

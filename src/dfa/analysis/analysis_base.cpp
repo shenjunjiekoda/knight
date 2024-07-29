@@ -17,24 +17,25 @@
 
 namespace knight::dfa {
 
-AnalysisBase::AnalysisBase(KnightContext& ctx) : m_ctx(ctx) {}
+AnalysisBase::AnalysisBase(KnightContext& ctx, AnalysisKind k)
+    : m_ctx(ctx), kind(k) {}
 
 clang::DiagnosticBuilder AnalysisBase::diagnose(
     clang::SourceLocation loc,
     llvm::StringRef info,
     clang::DiagnosticIDs::Level diag_level) {
-    return m_ctx.diagnose(get_analysis_name(get_kind()), loc, info, diag_level);
+    return m_ctx.diagnose(get_analysis_name(kind), loc, info, diag_level);
 }
 
 clang::DiagnosticBuilder AnalysisBase::diagnose(
     llvm::StringRef info, clang::DiagnosticIDs::Level diag_level) {
-    return m_ctx.diagnose(get_analysis_name(get_kind()), info, diag_level);
+    return m_ctx.diagnose(get_analysis_name(kind), info, diag_level);
 }
 
 clang::DiagnosticBuilder AnalysisBase::diagnose(
     clang::DiagnosticIDs::Level diag_level) {
-    return m_ctx.diagnose(get_analysis_name(get_kind()),
-                          get_analysis_desc(get_kind()),
+    return m_ctx.diagnose(get_analysis_name(kind),
+                          get_analysis_desc(kind),
                           diag_level);
 }
 
