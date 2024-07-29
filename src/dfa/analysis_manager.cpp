@@ -101,6 +101,15 @@ std::unordered_set< DomID > AnalysisManager::get_registered_domains_in(
     return it->second;
 }
 
+std::optional< AnalysisManager::DomainDefaultValFn > AnalysisManager::
+    get_domain_default_val_fn(DomID id) const {
+    auto it = m_domain_default_fn.find(id);
+    if (it == m_domain_default_fn.end()) {
+        return std::nullopt;
+    }
+    return it->second;
+}
+
 void AnalysisManager::register_for_stmt(internal::AnalyzeStmtCallBack anz_fn,
                                         internal::MatchStmtCallBack match_fn,
                                         internal::VisitStmtKind kind) {

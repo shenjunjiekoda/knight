@@ -226,7 +226,10 @@ ProgramStateRef ProgramStateManager::get_default_state(
     for (auto analysis_id : analysis_ids) {
         for (auto dom_id :
              m_analysis_mgr.get_registered_domains_in(analysis_id)) {
-            // ...
+            if (auto default_fn =
+                    m_analysis_mgr.get_domain_default_val_fn(dom_id)) {
+                dom_val[dom_id] = std::move((*default_fn)());
+            }
         }
     }
     ProgramState State(this, std::move(dom_val));

@@ -164,6 +164,8 @@ class AnalysisManager {
         m_analysis_domains[analysis_id].insert(dom_id);
     }
     std::unordered_set< DomID > get_registered_domains_in(AnalysisID id) const;
+    std::optional< DomainDefaultValFn > get_domain_default_val_fn(
+        DomID id) const;
     /// @}
 
     /// \brief callback registrations
