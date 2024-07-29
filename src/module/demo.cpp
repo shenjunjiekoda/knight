@@ -25,12 +25,10 @@ class DemoModule : public KnightModule {
     void add_to_factory(KnightFactory& factory) override {
 
         // Register analyses.
-        factory.register_analysis< dfa::DemoAnalysis >(
-            dfa::AnalysisKind::DemoAnalysis);
+        factory.register_analysis< dfa::DemoAnalysis >();
 
         // Register checkers.
-        factory.register_checker< dfa::DemoChecker >(
-            dfa::CheckerKind::DemoChecker);
+        factory.register_checker< dfa::DemoChecker >();
     }
 }; // class DemoModule
 

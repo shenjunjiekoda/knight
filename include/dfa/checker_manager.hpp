@@ -14,6 +14,7 @@
 #pragma once
 
 #include "dfa/analysis_manager.hpp"
+#include "dfa/checker/checkers.hpp"
 #include "dfa/checker_context.hpp"
 #include "dfa/domain/dom_base.hpp"
 #include "dfa/proc_cfg.hpp"
@@ -26,7 +27,10 @@ namespace knight::dfa {
 
 class CheckerBase;
 
-using CheckerID = uint8_t;
+using UniqueCheckerRef = std::unique_ptr< CheckerBase >;
+using CheckerRef = CheckerBase*;
+using CheckerRefs = std::vector< CheckerRef >;
+
 using CheckerIDSet = std::unordered_set< CheckerID >;
 using CheckerNameRef = llvm::StringRef;
 
@@ -35,16 +39,18 @@ template < typename T > class CheckerCallBack;
 template < typename RET, typename... Args >
 class CheckerCallBack< RET(Args...) > {
   public:
-    using CallBack = RET (*)(CheckerID, Args...);
+    using CallBack = RET (*)(void*, Args...);
 
   private:
     CallBack m_callback;
-    CheckerID m_id;
+    CheckerBase* m_checker;
 
   public:
-    CheckerCallBack(CheckerID id, CallBack callback)
-        : m_id(id), m_callback(callback) {}
-    RET operator()(Args... args) const { return m_callback(m_id, args...); }
+    CheckerCallBack(CheckerBase* checker, CallBack callback)
+        : m_checker(checker), m_callback(callback) {}
+    RET operator()(Args... args) const {
+        return m_callback(m_checker, args...);
+    }
 }; // class CheckerCallBack
 
 namespace internal {
@@ -82,6 +88,7 @@ class CheckerManager {
     AnalysisManager& m_analysis_mgr;
 
     /// \brief checkers
+    CheckerIDSet m_checkers; // all checkers
     std::unordered_map< CheckerID, std::unique_ptr< CheckerBase > >
         m_enabled_checkers;
     CheckerIDSet m_required_checkers;
@@ -98,12 +105,30 @@ class CheckerManager {
         : m_ctx(ctx), m_checker_ctx(std::make_unique< CheckerContext >(ctx)),
           m_analysis_mgr(analysis_mgr) {}
 
+    CheckerContext& get_checker_context() const { return *m_checker_ctx; }
+
   public:
     /// \brief specialized checker management
     ///
     /// Each checker may depend on some analyses.
     /// Dependencies shall be handled before the registration.
     /// @{
+    template < typename CHECKER, typename... AT >
+    UniqueCheckerRef register_checker(KnightContext& ctx, AT&&... Args) {
+        CheckerID id = get_checker_id(CHECKER::get_kind());
+        if (m_checkers.count(id)) {
+            llvm::errs() << get_checker_name_by_id(id)
+                         << " checker is already registered.\n";
+        } else {
+            m_checkers.insert(id);
+        }
+
+        auto checker =
+            std::make_unique< CHECKER >(ctx, std::forward< AT >(Args)...);
+        CHECKER::register_callback(checker.get(), *this);
+        return std::move(checker);
+    }
+
     void add_required_checker(CheckerID id);
     bool is_checker_required(CheckerID id) const;
 
@@ -126,6 +151,20 @@ class CheckerManager {
                            internal::MatchStmtCallBack match_cb,
                            internal::CheckStmtKind kind);
     /// @}
+
+    const std::vector< internal::CheckBeginFunctionCallBack >&
+    begin_function_checks() const {
+        return m_begin_function_checks;
+    }
+
+    const std::vector< internal::CheckEndFunctionCallBack >&
+    end_function_checks() const {
+        return m_end_function_checks;
+    }
+
+    const std::vector< internal::StmtCheckerInfo >& stmt_checks() const {
+        return m_stmt_checks;
+    }
 
 }; // class CheckerManager
 

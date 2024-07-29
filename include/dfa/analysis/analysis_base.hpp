@@ -20,16 +20,23 @@
 
 namespace knight::dfa {
 
+class AnalysisBase;
+
 /// \brief Base class for all data flow analyses.
 ///
 /// Derived class can inherit like this:
 /// \code
 /// class MyAnalysisImpl :
 ///    public Analysis<MyAnalysisImpl,
-///        analyze::BeginFunction, analyze::EndFunction, ...callbacks > {
+///        analyze::BeginFunction,
+///        analyze::EndFunction,
+///        (more callbacks accpeted...) > {
 ///
 ///    /// \brief delegate to the Analysis constructor
-///    MyAnalysisImpl(KnightContext& ctx) : Analysis(ctx) {}
+///    MyAnalysisImpl(KnightContext& ctx, (more args...))
+///         : Analysis(ctx) {
+///       // ...
+///    }
 ///
 ///    /// \brief tell us the kind of analysis.
 ///    static AnalysisKind get_kind() {
@@ -43,16 +50,23 @@ namespace knight::dfa {
 ///    }
 ///
 ///    /// \brief BeginFunction callback.
-///    void analyze_begin_function(AnalysisContext& C) {
+///    void analyze_begin_function(AnalysisContext& C) const {
 ///        // analyze begin function here.
 ///    }
 ///
 ///    /// \brief EndFunction callback.
-///    void analyze_end_function(AnalysisContext& C) {
+///    void analyze_end_function(AnalysisContext& C) const {
 ///        // analyze end function here.
 ///    }
 ///
 ///    // add more analysis callbacks functions here.
+///
+///    /// \brief register your analysis to manager here.
+///    static UniqueAnalysisRef register_analysis(AnalysisManager& mgr,
+///                                             KnightContext& ctx) {
+///        return mgr.register_analysis< MyAnalysisImpl >(ctx, (more ctor args...));
+///    }
+///
 /// }; // class MyAnalysisImpl
 /// \endcode
 class AnalysisBase {

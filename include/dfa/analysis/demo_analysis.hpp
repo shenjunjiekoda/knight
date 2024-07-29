@@ -28,13 +28,18 @@ class DemoAnalysis : public Analysis< DemoAnalysis, analyze::BeginFunction > {
 
     static AnalysisKind get_kind() { return AnalysisKind::DemoAnalysis; }
 
-    void analyze_begin_function(AnalysisContext& C) {
+    void analyze_begin_function(AnalysisContext& C) const {
         llvm::outs() << "DemoAnalysis::analyze_begin_function()\n";
     }
 
     static void add_dependencies(AnalysisManager& mgr) {
         // add dependencies here
         mgr.add_domain_dependency< DemoAnalysis, DemoItvDom >();
+    }
+
+    static UniqueAnalysisRef register_analysis(AnalysisManager& mgr,
+                                               KnightContext& ctx) {
+        return mgr.register_analysis< DemoAnalysis >(ctx);
     }
 
 }; // class DemoAnalysis

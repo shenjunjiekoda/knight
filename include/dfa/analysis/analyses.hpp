@@ -21,6 +21,8 @@
 
 namespace knight::dfa {
 
+using AnalysisID = uint8_t;
+
 enum class AnalysisKind {
     None,
 #define ANALYSIS_DEF(KIND, NAME, ID, DESC) KIND,
@@ -51,7 +53,7 @@ inline llvm::StringRef get_analysis_desc(AnalysisKind kind) {
     }
 }
 
-inline uint8_t get_analysis_id(AnalysisKind kind) {
+inline AnalysisID get_analysis_id(AnalysisKind kind) {
     switch (kind) {
 #undef ANALYSIS_DEF
 #define ANALYSIS_DEF(KIND, NAME, ID, DESC)                                     \
@@ -63,7 +65,7 @@ inline uint8_t get_analysis_id(AnalysisKind kind) {
     }
 }
 
-inline AnalysisKind get_analysis_kind(uint8_t id) {
+inline AnalysisKind get_analysis_kind(AnalysisID id) {
     switch (id) {
 #undef ANALYSIS_DEF
 #define ANALYSIS_DEF(KIND, NAME, ID, DESC)                                     \
@@ -75,7 +77,7 @@ inline AnalysisKind get_analysis_kind(uint8_t id) {
     }
 }
 
-inline llvm::StringRef get_analysis_name_by_id(uint8_t id) {
+inline llvm::StringRef get_analysis_name_by_id(AnalysisID id) {
     return get_analysis_name(get_analysis_kind(id));
 }
 

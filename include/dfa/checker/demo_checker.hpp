@@ -16,6 +16,7 @@
 #include "dfa/analysis/demo_analysis.hpp"
 #include "dfa/checker/checker_base.hpp"
 #include "dfa/checker_context.hpp"
+#include "dfa/checker_manager.hpp"
 #include "tooling/context.hpp"
 
 #include <llvm/Support/raw_ostream.h>
@@ -28,13 +29,18 @@ class DemoChecker : public Checker< DemoChecker, check::BeginFunction > {
 
     static CheckerKind get_kind() { return CheckerKind::DemoChecker; }
 
-    void check_begin_function(CheckerContext& C) {
+    void check_begin_function(CheckerContext& C) const {
         llvm::outs() << "DemoChecker::check_begin_function()\n";
     }
 
     static void add_dependencies(CheckerManager& mgr) {
         // add dependencies here
         mgr.add_checker_dependency< DemoChecker, DemoAnalysis >();
+    }
+
+    static UniqueCheckerRef register_checker(CheckerManager& mgr,
+                                             KnightContext& ctx) {
+        return mgr.register_checker< DemoChecker >(ctx);
     }
 }; // class DemoChecker
 

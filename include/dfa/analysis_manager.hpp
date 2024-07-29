@@ -13,10 +13,13 @@
 
 #pragma once
 
+#include "dfa/analysis/analyses.hpp"
 #include "dfa/analysis_context.hpp"
 #include "dfa/domain/dom_base.hpp"
 #include "dfa/proc_cfg.hpp"
 #include "tooling/context.hpp"
+#include "util/assert.hpp"
+#include "llvm/Support/raw_ostream.h"
 
 #include <memory>
 #include <unordered_set>
@@ -25,7 +28,10 @@ namespace knight::dfa {
 
 class AnalysisBase;
 
-using AnalysisID = uint8_t;
+using UniqueAnalysisRef = std::unique_ptr< AnalysisBase >;
+using AnalysisRef = AnalysisBase*;
+using AnalysisRefs = std::vector< AnalysisRef >;
+
 using AnalysisIDSet = std::unordered_set< AnalysisID >;
 using AnalysisNameRef = llvm::StringRef;
 
@@ -34,16 +40,18 @@ template < typename T > class AnalysisCallBack;
 template < typename RET, typename... Args >
 class AnalysisCallBack< RET(Args...) > {
   public:
-    using CallBack = RET (*)(AnalysisID, Args...);
+    using CallBack = RET (*)(void*, Args...);
 
   private:
     CallBack m_callback;
-    AnalysisID m_id;
+    AnalysisBase* m_analysis;
 
   public:
-    AnalysisCallBack(AnalysisID id, CallBack callback)
-        : m_id(id), m_callback(callback) {}
-    RET operator()(Args... args) const { return m_callback(m_id, args...); }
+    AnalysisCallBack(AnalysisBase* analysis, CallBack callback)
+        : m_analysis(analysis), m_callback(callback) {}
+    RET operator()(Args... args) const {
+        return m_callback(m_analysis, args...);
+    }
 }; // class AnalysisCallBack
 
 namespace internal {
@@ -109,11 +117,29 @@ class AnalysisManager {
         : m_ctx(ctx), m_analysis_ctx(std::make_unique< AnalysisContext >(ctx)) {
     }
 
+    AnalysisContext& get_analysis_context() const { return *m_analysis_ctx; }
+
   public:
     /// \brief specialized analysis management
     ///
     /// Dependencies shall be handled before the registration.
     /// @{
+    template < typename ANALYSIS, typename... AT >
+    UniqueAnalysisRef register_analysis(KnightContext& ctx, AT&&... Args) {
+        AnalysisID id = get_analysis_id(ANALYSIS::get_kind());
+        if (m_analyses.count(id)) {
+            llvm::errs() << get_analysis_name_by_id(id)
+                         << " analysis is already registered.\n";
+        } else {
+            m_analyses.insert(id);
+        }
+
+        auto analysis =
+            std::make_unique< ANALYSIS >(ctx, std::forward< AT >(Args)...);
+        ANALYSIS::register_callback(analysis.get(), *this);
+        return std::move(analysis);
+    }
+
     void add_required_analysis(AnalysisID id);
     void add_analysis_dependency(AnalysisID id, AnalysisID required_id);
     std::unordered_set< AnalysisID > get_analysis_dependencies(
@@ -148,6 +174,20 @@ class AnalysisManager {
                            internal::MatchStmtCallBack match_cb,
                            internal::VisitStmtKind kind);
     /// @}
+
+    const std::vector< internal::AnalyzeBeginFunctionCallBack >&
+    begin_function_analyses() const {
+        return m_begin_function_analyses;
+    }
+
+    const std::vector< internal::AnalyzeEndFunctionCallBack >&
+    end_function_analyses() const {
+        return m_end_function_analyses;
+    }
+
+    const std::vector< internal::StmtAnalysisInfo >& stmt_analyses() const {
+        return m_stmt_analyses;
+    }
 
     void compute_all_required_analyses_by_dependencies();
 }; // class AnalysisManager

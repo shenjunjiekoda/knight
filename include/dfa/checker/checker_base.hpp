@@ -26,10 +26,15 @@ namespace knight::dfa {
 /// \code
 /// class MyCheckerImpl :
 ///    public Checker<MyCheckerImpl,
-///        analyze::BeginFunction, analyze::EndFunction, ...callbacks > {
+///        check::BeginFunction,
+///        check::EndFunction,
+///        (more callbacks accpeted...) > {
 ///
 ///    /// \brief delegate to the Checker constructor
-///    MyCheckerImpl(KnightContext& ctx) : Checker(ctx) {}
+///    MyCheckerImpl(KnightContext& ctx, (more args...))
+///         : Checker(ctx) {
+///       // ...
+///    }
 ///
 ///    /// \brief tell us the kind of checker.
 ///    static CheckerKind get_kind() {
@@ -43,18 +48,24 @@ namespace knight::dfa {
 ///    }
 ///
 ///    /// \brief BeginFunction callback.
-///    void analyze_begin_function(CheckerContext& C) {
-///        // analyze begin function here.
+///    void check_begin_function(CheckerContext& C) const {
+///        // check begin function here.
 ///    }
 ///
 ///    /// \brief EndFunction callback.
-///    void analyze_end_function(CheckerContext& C) {
-///        // analyze end function here.
+///    void check_end_function(CheckerContext& C) const {
+///        // check end function here.
 ///    }
 ///
 ///    // add more checker callbacks functions here.
+///
+///    /// \brief register your checker to manager here.
+///    static UniqueCheckerRef register_checker(CheckerManager& mgr,
+///                                             KnightContext& ctx) {
+///        return mgr.register_checker< MyCheckerImpl >(ctx, (more ctor args...));
+///    }
+///
 /// }; // class MyCheckerImpl
-/// \endcode
 
 class CheckerBase {
   public:
