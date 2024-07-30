@@ -103,8 +103,7 @@ class AnalysisBase {
 template < typename Impl, typename ANALYSIS1, typename... ANALYSES >
 class Analysis : public ANALYSIS1, public ANALYSES..., public AnalysisBase {
   public:
-    Analysis< Impl, ANALYSIS1, ANALYSES... >(KnightContext& ctx)
-        : AnalysisBase(ctx, Impl::get_kind()) {}
+    Analysis(KnightContext& ctx) : AnalysisBase(ctx, Impl::get_kind()) {}
 
     static void register_callback(Impl* checker, AnalysisManager& mgr) {
         ANALYSIS1::register_callback(checker, mgr);
@@ -115,8 +114,7 @@ class Analysis : public ANALYSIS1, public ANALYSES..., public AnalysisBase {
 template < typename Impl, typename ANALYSIS1 >
 class Analysis< Impl, ANALYSIS1 > : public ANALYSIS1, public AnalysisBase {
   public:
-    Analysis< ANALYSIS1 >(KnightContext& ctx)
-        : AnalysisBase(ctx, Impl::get_kind()) {}
+    Analysis(KnightContext& ctx) : AnalysisBase(ctx, Impl::get_kind()) {}
 
     static void register_callback(Impl* checker, AnalysisManager& mgr) {
         ANALYSIS1::register_callback(checker, mgr);

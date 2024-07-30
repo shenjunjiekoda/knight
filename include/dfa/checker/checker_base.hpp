@@ -101,8 +101,7 @@ class CheckerBase {
 template < typename Impl, typename CHECKER1, typename... CHECKERS >
 class Checker : public CHECKER1, public CHECKERS..., public CheckerBase {
   public:
-    Checker< Impl, CheckerBase, CHECKER1, CHECKERS... >(KnightContext& ctx)
-        : CheckerBase(ctx, Impl::get_kind()) {}
+    Checker(KnightContext& ctx) : CheckerBase(ctx, Impl::get_kind()) {}
 
     static void register_callback(Impl* checker, CheckerManager& mgr) {
         CHECKER1::register_callback(checker, mgr);
@@ -113,8 +112,7 @@ class Checker : public CHECKER1, public CHECKERS..., public CheckerBase {
 template < typename Impl, typename CHECKER1 >
 class Checker< Impl, CHECKER1 > : public CHECKER1, public CheckerBase {
   public:
-    Checker< Impl, CheckerBase, CHECKER1 >(KnightContext& ctx)
-        : CheckerBase(ctx, Impl::get_kind()) {}
+    Checker(KnightContext& ctx) : CheckerBase(ctx, Impl::get_kind()) {}
 
     static void register_callback(Impl* checker, CheckerManager& mgr) {
         CHECKER1::register_callback(checker, mgr);
