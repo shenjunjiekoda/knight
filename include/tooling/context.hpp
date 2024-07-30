@@ -46,6 +46,8 @@ class KnightContext {
     std::unique_ptr< Globs > m_current_analysis_matcher;
     std::string m_current_build_dir;
 
+    llvm::BumpPtrAllocator m_alloc;
+
   public:
     KnightContext(std::unique_ptr< KnightOptionsProvider > opts_provider);
     ~KnightContext();
@@ -60,6 +62,9 @@ class KnightContext {
 
     /// \brief Get the external diagnostic engine.
     void set_diagnostic_engine(clang::DiagnosticsEngine* external_diag_engine);
+
+    /// \brief Get the allocator.
+    llvm::BumpPtrAllocator& get_allocator() { return m_alloc; }
 
     /// \brief Set the current file.
     llvm::StringRef get_current_file() const { return m_current_file; }

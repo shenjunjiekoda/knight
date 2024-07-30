@@ -13,6 +13,7 @@
 
 #include "dfa/proc_cfg.hpp"
 #include "util/assert.hpp"
+#include "llvm/Support/raw_ostream.h"
 
 namespace knight::dfa {
 
@@ -114,12 +115,12 @@ ProcCFG::NodeRef ProcCFG::exit(GraphRef cfg) {
     return &(cfg->m_cfg->getExit());
 }
 
-ProcCFG::GraphRef ProcCFG::build(const clang::FunctionDecl* function) {
-    knight_assert_msg(function, "function provided is null");
-    knight_assert_msg(function->doesThisDeclarationHaveABody(),
-                      "function shall have body");
+ProcCFG::GraphRef ProcCFG::build(const clang::Decl* function) {
+    knight_assert_msg(function != nullptr, "function provided is null");
+    auto* body = function->getBody();
+    knight_assert_msg(body != nullptr, "function shall have body");
 
-    return build(function, function->getBody(), function->getASTContext());
+    return build(function, body, function->getASTContext());
 }
 
 ProcCFG::GraphRef ProcCFG::build(FunctionRef function,
@@ -145,6 +146,10 @@ ProcCFG::GraphRef ProcCFG::build(FunctionRef function,
 
 void ProcCFG::dump(llvm::raw_ostream& os, bool show_colors) const {
     m_cfg->print(os, m_proc->getLangOpts(), show_colors);
+}
+
+void ProcCFG::view() const {
+    m_cfg->viewCFG(m_proc->getLangOpts());
 }
 
 ProcCFG::ProcCFG(FunctionRef proc,

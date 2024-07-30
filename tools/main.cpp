@@ -77,6 +77,12 @@ std::unique_ptr< KnightOptionsProvider > get_opts_provider() {
         opts_provider->options.use_color =
             llvm::sys::Process::StandardOutHasColors();
     }
+    if (view_cfg.getNumOccurrences() > 0) {
+        opts_provider->options.view_cfg = view_cfg;
+    }
+    if (dump_cfg.getNumOccurrences() > 0) {
+        opts_provider->options.dump_cfg = dump_cfg;
+    }
     return std::move(opts_provider);
 }
 

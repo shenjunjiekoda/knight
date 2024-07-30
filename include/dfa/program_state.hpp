@@ -29,12 +29,29 @@ namespace knight::dfa {
 
 class ProgramState;
 class ProgramStateManager;
-
 using ProgramStateRawPtr = const ProgramState*;
-using ProgramStateRef = llvm::IntrusiveRefCntPtr< const ProgramState >;
 
 void retain_state(ProgramStateRawPtr state);
 void release_state(ProgramStateRawPtr state);
+
+} // namespace knight::dfa
+
+namespace llvm {
+
+template <> struct IntrusiveRefCntPtrInfo< knight::dfa::ProgramState > {
+    static void retain(knight::dfa::ProgramStateRawPtr state) {
+        knight::dfa::retain_state(state);
+    }
+    static void release(knight::dfa::ProgramStateRawPtr state) {
+        knight::dfa::release_state(state);
+    }
+}; // struct IntrusiveRefCntPtrInfo
+
+} // namespace llvm
+
+namespace knight::dfa {
+
+using ProgramStateRef = llvm::IntrusiveRefCntPtr< ProgramState >;
 
 class ProgramState : public llvm::FoldingSetNode {
     friend class ProgramStateManager;
@@ -157,7 +174,8 @@ class ProgramStateManager {
     llvm::BumpPtrAllocator& get_allocator() { return m_alloc; }
 
   public:
-    ProgramStateRef get_default_state(AnalysisIDSet analysis_ids);
+    ProgramStateRef get_default_state();
+    ProgramStateRef get_bottom_state();
 
     ProgramStateRef get_persistent_state(ProgramState& State);
 
@@ -170,14 +188,3 @@ class ProgramStateManager {
 }; // class ProgramStateManager
 
 } // namespace knight::dfa
-
-namespace llvm {
-template <> struct IntrusiveRefCntPtrInfo< const knight::dfa::ProgramState > {
-    static void retain(knight::dfa::ProgramStateRawPtr state) {
-        knight::dfa::retain_state(state);
-    }
-    static void release(knight::dfa::ProgramStateRawPtr state) {
-        knight::dfa::release_state(state);
-    }
-};
-} // namespace llvm

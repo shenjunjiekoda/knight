@@ -91,4 +91,18 @@ Try to apply suggested fixes.
                                cl::init(false),
                                cl::cat(knight_category));
 
+inline cl::opt< bool > view_cfg("view-cfg",
+                                desc(R"(
+View the control flow graph of the analyzed function.
+)"),
+                                cl::init(false),
+                                cl::cat(knight_category));
+
+inline cl::opt< bool > dump_cfg("dump-cfg",
+                                desc(R"(
+Dump the control flow graph of the analyzed function.
+)"),
+                                cl::init(false),
+                                cl::cat(knight_category));
+
 } // namespace knight::cl_opts

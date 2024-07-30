@@ -15,10 +15,12 @@
 
 #include "dfa/analysis_manager.hpp"
 #include "dfa/checker_manager.hpp"
+#include "dfa/proc_cfg.hpp"
 #include "tooling/context.hpp"
 #include "tooling/diagnostic.hpp"
 #include "tooling/factory.hpp"
 #include "util/vfs.hpp"
+#include "llvm/Support/Casting.h"
 
 #include <clang/AST/ASTConsumer.h>
 #include <clang/AST/DeclGroup.h>
@@ -46,14 +48,30 @@ class KnightASTConsumer : public clang::ASTConsumer {
     // TODO: add datadflow engine to run analysis and checkers here? on the decl_group or tu?
     bool HandleTopLevelDecl(clang::DeclGroupRef decl_group) override {
         for (auto* D : decl_group) {
-            if (!D->hasBody()) {
+            auto* FD = llvm::dyn_cast_or_null< clang::FunctionDecl >(D);
+            if (FD == nullptr || !FD->hasBody()) {
                 continue;
+            }
+
+            llvm::outs() << "Processing function: \n";
+            FD->dumpColor();
+            llvm::outs() << "\n";
+
+            auto cfg = dfa::ProcCFG::build(FD);
+            if (m_ctx.get_current_options().view_cfg) {
+                llvm::outs() << "viewing CFG:\n";
+                cfg->view();
+            }
+
+            if (m_ctx.get_current_options().dump_cfg) {
+                llvm::outs() << "dumping CFG:\n";
+                cfg->dump(llvm::outs(), m_ctx.get_current_options().use_color);
             }
 
             auto& m_analysis_ctx = m_analysis_manager.get_analysis_context();
             auto& m_checker_ctx = m_checker_manager.get_checker_context();
-            m_analysis_ctx.set_current_decl(D);
-            m_checker_ctx.set_current_decl(D);
+            m_analysis_ctx.set_current_decl(FD);
+            m_checker_ctx.set_current_decl(FD);
 
             for (const auto& fn :
                  m_analysis_manager.begin_function_analyses()) {

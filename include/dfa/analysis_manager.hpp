@@ -191,7 +191,12 @@ class AnalysisManager {
         return m_stmt_analyses;
     }
 
+    const std::unordered_set< AnalysisID >& get_required_analyses() const {
+        return m_required_analyses;
+    }
+
     void compute_all_required_analyses_by_dependencies();
+
 }; // class AnalysisManager
 
 } // namespace knight::dfa

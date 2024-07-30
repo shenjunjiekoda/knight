@@ -219,11 +219,9 @@ void ProgramState::dump(llvm::raw_ostream& os) const {
     os << "}\n";
 }
 
-ProgramStateRef ProgramStateManager::get_default_state(
-    AnalysisIDSet analysis_ids) {
-    // TODO: add impl
+ProgramStateRef ProgramStateManager::get_default_state() {
     DomValMap dom_val;
-    for (auto analysis_id : analysis_ids) {
+    for (auto analysis_id : m_analysis_mgr.get_required_analyses()) {
         for (auto dom_id :
              m_analysis_mgr.get_registered_domains_in(analysis_id)) {
             if (auto default_fn =

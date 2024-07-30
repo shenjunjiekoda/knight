@@ -48,7 +48,7 @@ class ProcCFG {
 
   public:
     /// \brief build a procedural CFG from a clang function declaration.
-    static GraphRef build(const clang::FunctionDecl* function);
+    static GraphRef build(const clang::Decl* function);
 
     /// \brief build a procedural CFG from a clang declaration and its body.
     static GraphRef build(FunctionRef function,
@@ -76,6 +76,7 @@ class ProcCFG {
 
     /// \brief dump the procedural CFG for debugging.
     void dump(llvm::raw_ostream& os, bool show_colors = false) const;
+    void view() const;
 
   private:
     /// \brief private constructor

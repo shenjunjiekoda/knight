@@ -51,6 +51,12 @@ struct KnightOptions {
 
     /// \brief use color in output
     bool use_color = false;
+
+    /// \brief view control flow graph
+    bool view_cfg = false;
+
+    /// \brief dump control flow graph
+    bool dump_cfg = false;
 }; // struct KnightOptions
 
 struct KnightOptionsProvider {

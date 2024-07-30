@@ -39,7 +39,7 @@ concept graph =
             *std::declval< typename T::PredNodeIterator >()
         } -> std::convertible_to< typename T::NodeRef >;
 
-        // T must have static member functions `entry`, `successor_begin`, `successor_end`, `predecessor_begin`, `predecessor_end`
+        // T must have static member functions `entry`, `succ_begin`, `succ_end`, `pred_begin`, `pred_end`
         { T::entry(graph) } -> std::convertible_to< typename T::NodeRef >;
         {
             T::succ_begin(nodeRef)
