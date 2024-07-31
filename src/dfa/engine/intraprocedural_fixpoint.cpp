@@ -17,6 +17,7 @@
 #include "dfa/program_state.hpp"
 #include "dfa/analysis/analysis_base.hpp"
 #include "dfa/checker/checker_base.hpp"
+#include "llvm/Support/raw_ostream.h"
 
 namespace knight::dfa {
 

@@ -58,8 +58,8 @@ class KnightASTConsumer : public clang::ASTConsumer {
                 continue;
             }
 
-            llvm::outs() << "Processing function: \n";
-            FD->dumpColor();
+            llvm::outs() << "[*] Processing function: \n";
+            FD->printName(llvm::outs());
             llvm::outs() << "\n";
 
             auto cfg = dfa::ProcCFG::build(FD);

@@ -131,7 +131,7 @@ class AnalysisManager {
     template < typename ANALYSIS, typename... AT >
     UniqueAnalysisRef register_analysis(KnightContext& ctx, AT&&... Args) {
         AnalysisID id = get_analysis_id(ANALYSIS::get_kind());
-        if (m_analyses.count(id)) {
+        if (m_analyses.count(id) > 0U) {
             llvm::errs() << get_analysis_name_by_id(id)
                          << " analysis is already registered.\n";
         } else {
@@ -202,6 +202,7 @@ class AnalysisManager {
     AnalysisContext& get_analysis_context() const;
 
     void compute_all_required_analyses_by_dependencies();
+    void compute_full_order_analyses_after_registry();
     std::vector< AnalysisID > get_ordered_analyses(AnalysisIDSet ids) const;
 
     void run_analyses_for_stmt(internal::StmtRef stmt,

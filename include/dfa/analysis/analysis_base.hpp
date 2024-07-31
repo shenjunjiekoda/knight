@@ -17,6 +17,7 @@
 #include "dfa/analysis_manager.hpp"
 #include "dfa/analysis/analyses.hpp"
 #include "support/clang_ast.hpp"
+#include "llvm/Support/raw_ostream.h"
 
 namespace knight::dfa {
 

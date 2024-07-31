@@ -17,6 +17,7 @@
 #include "dfa/analysis/analysis_base.hpp"
 #include "dfa/domain/domains.hpp"
 #include "util/assert.hpp"
+#include "llvm/Support/raw_ostream.h"
 
 #include <memory>
 #include <queue>
@@ -27,47 +28,48 @@ namespace {
 
 std::vector< AnalysisID > compute_topological_order(
     const std::unordered_map< AnalysisID, std::unordered_set< AnalysisID > >&
-        dependencies) {
+        dependencies,
+    const std::unordered_set< AnalysisID >& all_ids) {
 
     std::unordered_map< AnalysisID, int > in_degree;
     std::queue< AnalysisID > zero_in_degree;
-    std::vector< AnalysisID > sorted_order;
+    std::vector< AnalysisID > sorted_ids;
+
+    for (const auto& id : all_ids) {
+        in_degree[id] = 0;
+    }
 
     for (const auto& pair : dependencies) {
-        if (in_degree.find(pair.first) == in_degree.end()) {
-            in_degree[pair.first] = 0;
-        }
         for (const auto& dep : pair.second) {
-            ++in_degree[dep];
+            in_degree[dep]++;
         }
     }
 
-    for (const auto& pair : in_degree) {
-        if (pair.second == 0) {
-            zero_in_degree.push(pair.first);
+    for (const auto& id : all_ids) {
+        if (in_degree[id] == 0) {
+            zero_in_degree.push(id);
         }
     }
 
-    // Kahn algorithm
     while (!zero_in_degree.empty()) {
-        AnalysisID id = zero_in_degree.front();
+        AnalysisID current = zero_in_degree.front();
         zero_in_degree.pop();
-        sorted_order.push_back(id);
-
-        if (dependencies.count(id) > 0) {
-            for (AnalysisID neighbor : dependencies.at(id)) {
-                --in_degree[neighbor];
-                if (in_degree[neighbor] == 0) {
-                    zero_in_degree.push(neighbor);
-                }
+        sorted_ids.push_back(current);
+        auto it = dependencies.find(current);
+        if (it == dependencies.end()) {
+            continue;
+        }
+        for (const AnalysisID& neighbor : it->second) {
+            if (--in_degree[neighbor] == 0) {
+                zero_in_degree.push(neighbor);
             }
         }
     }
 
-    knight_assert_msg(sorted_order.size() == in_degree.size(),
-                      "Graph has a cycle or disconnected components");
+    knight_assert_msg(sorted_ids.size() == all_ids.size(),
+                      "Cycle detected in the graph");
 
-    return sorted_order;
+    return sorted_ids;
 }
 
 std::vector< AnalysisID > get_subset_order(
@@ -135,8 +137,11 @@ void AnalysisManager::compute_all_required_analyses_by_dependencies() {
             q.push(dep_id);
         }
     }
+}
 
-    m_analysis_full_order = compute_topological_order(m_analysis_dependencies);
+void AnalysisManager::compute_full_order_analyses_after_registry() {
+    m_analysis_full_order =
+        compute_topological_order(m_analysis_dependencies, m_analyses);
 }
 
 void AnalysisManager::enable_analysis(
@@ -212,6 +217,7 @@ void AnalysisManager::run_analyses_for_stmt(
             callbacks.emplace(id, &callback);
         }
     }
+
     for (auto id : get_subset_order(m_analysis_full_order, tgt_ids)) {
         (*callbacks[id])(stmt, *m_analysis_ctx);
     }
@@ -254,6 +260,9 @@ void AnalysisManager::run_analyses_for_end_function(ProcCFG::NodeRef node) {
         }
     }
     for (auto id : get_subset_order(m_analysis_full_order, tgt_ids)) {
+        llvm::outs() << "run analysis for end function: "
+                     << get_analysis_name_by_id(id) << "\n";
+
         (*callbacks[id])(node, *m_analysis_ctx);
     }
 }

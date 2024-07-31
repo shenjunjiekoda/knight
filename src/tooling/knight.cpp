@@ -101,6 +101,7 @@ std::unique_ptr< clang::ASTConsumer > KnightASTConsumerFactory::
     }
     m_analysis_manager->compute_all_required_analyses_by_dependencies();
     auto analyses = m_factory->create_analyses(*m_analysis_manager, &m_ctx);
+    m_analysis_manager->compute_full_order_analyses_after_registry();
 
     return std::make_unique< KnightASTConsumer >(m_ctx,
                                                  *m_analysis_manager,
