@@ -58,4 +58,46 @@ void CheckerManager::register_for_end_function(
     m_end_function_checks.emplace_back(anz_fn);
 }
 
+void CheckerManager::run_checkers_for_stmt(internal::StmtRef stmt,
+                                           internal::CheckStmtKind check_kind) {
+    CheckerIDSet tgt_ids;
+    std::unordered_map< AnalysisID, internal::AnalyzeStmtCallBack* > callbacks;
+    for (auto& info : m_stmt_checks) {
+        if (info.kind != check_kind || !info.match_cb(stmt)) {
+            continue;
+        }
+        auto& callback = info.anz_cb;
+        auto id = callback.get_id();
+        if (is_checker_required(id)) {
+            callback(stmt, *m_checker_ctx);
+        }
+    }
+}
+
+void CheckerManager::run_checkers_for_pre_stmt(internal::StmtRef stmt) {
+    run_checkers_for_stmt(stmt, internal::CheckStmtKind::Pre);
+}
+
+void CheckerManager::run_checkers_for_post_stmt(internal::StmtRef stmt) {
+    run_checkers_for_stmt(stmt, internal::CheckStmtKind::Post);
+}
+
+void CheckerManager::run_checkers_for_begin_function() {
+    for (auto& callback : m_begin_function_checks) {
+        auto id = callback.get_id();
+        if (is_checker_required(id)) {
+            callback(*m_checker_ctx);
+        }
+    }
+}
+
+void CheckerManager::run_checkers_for_end_function(ProcCFG::NodeRef node) {
+    for (auto& callback : m_end_function_checks) {
+        auto id = callback.get_id();
+        if (is_checker_required(id)) {
+            callback(node, *m_checker_ctx);
+        }
+    }
+}
+
 } // namespace knight::dfa

@@ -260,9 +260,6 @@ void AnalysisManager::run_analyses_for_end_function(ProcCFG::NodeRef node) {
         }
     }
     for (auto id : get_subset_order(m_analysis_full_order, tgt_ids)) {
-        llvm::outs() << "run analysis for end function: "
-                     << get_analysis_name_by_id(id) << "\n";
-
         (*callbacks[id])(node, *m_analysis_ctx);
     }
 }

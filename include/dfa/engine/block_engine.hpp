@@ -23,7 +23,7 @@
 
 namespace knight::dfa {
 
-class BlockEngine {
+class BlockExecutionEngine {
   public:
     using GraphRef = typename ProcCFG::GraphRef;
     using NodeRef = typename ProcCFG::NodeRef;
@@ -39,16 +39,19 @@ class BlockEngine {
     AnalysisManager& m_analysis_manager;
 
     ProgramStateRef m_state;
-    StmtResultCache m_stmt_pre;
-    StmtResultCache m_stmt_post;
+    StmtResultCache& m_stmt_pre;
+    StmtResultCache& m_stmt_post;
 
   public:
-    BlockEngine(GraphRef cfg,
-                NodeRef node,
-                AnalysisManager& analysis_manager,
-                ProgramStateRef in_state)
+    BlockExecutionEngine(GraphRef cfg,
+                         NodeRef node,
+                         AnalysisManager& analysis_manager,
+                         ProgramStateRef in_state,
+                         StmtResultCache& stmt_pre,
+                         StmtResultCache& stmt_post)
         : m_cfg(cfg), m_node(node), m_analysis_manager(analysis_manager),
-          m_state(std::move(in_state)) {}
+          m_state(std::move(in_state)), m_stmt_pre(stmt_pre),
+          m_stmt_post(stmt_post) {}
 
   public:
     /// \brief General transformer for all nodes.
@@ -83,6 +86,6 @@ class BlockEngine {
     /// \brief Transfer the stmt
     ProgramStateRef exec_cfg_stmt(StmtRef stmt, ProgramStateRef state);
 
-}; // class BlockEngine
+}; // class BlockExecutionEngine
 
 } // namespace knight::dfa

@@ -170,6 +170,13 @@ class CheckerManager {
         return m_stmt_checks;
     }
 
+    void run_checkers_for_stmt(internal::StmtRef stmt,
+                               internal::CheckStmtKind check_kind);
+    void run_checkers_for_pre_stmt(internal::StmtRef stmt);
+    void run_checkers_for_post_stmt(internal::StmtRef stmt);
+    void run_checkers_for_begin_function();
+    void run_checkers_for_end_function(ProcCFG::NodeRef node);
+
 }; // class CheckerManager
 
 } // namespace knight::dfa

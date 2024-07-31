@@ -28,8 +28,10 @@ class IntraProceduralFixpointIterator final
     using GraphTrait = GraphTrait< ProcCFG >;
     using FixPointIterator = WtoBasedFixPointIterator< ProcCFG, GraphTrait >;
     using GraphRef = typename FixPointIterator::GraphRef;
-    using NodeRef = typename FixPointIterator::NodeRef;
     using FunctionRef = ProcCFG::FunctionRef;
+    using NodeRef = typename FixPointIterator::NodeRef;
+    using StmtRef = ProcCFG::StmtRef;
+    using StmtResultCache = std::unordered_map< StmtRef, ProgramStateRef >;
 
   private:
     KnightContext& m_ctx;
@@ -37,6 +39,9 @@ class IntraProceduralFixpointIterator final
     AnalysisManager& m_analysis_mgr;
     ProgramStateManager& m_state_mgr;
     FunctionRef m_func;
+
+    StmtResultCache m_stmt_pre;
+    StmtResultCache m_stmt_post;
 
   public:
     IntraProceduralFixpointIterator(knight::KnightContext& ctx,
