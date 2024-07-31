@@ -17,12 +17,15 @@
 #include "dfa/analysis_context.hpp"
 #include "dfa/domain/demo_dom.hpp"
 #include "tooling/context.hpp"
+#include "clang/AST/Stmt.h"
 
 #include <llvm/Support/raw_ostream.h>
 
 namespace knight::dfa {
 
-class DemoAnalysis : public Analysis< DemoAnalysis, analyze::BeginFunction > {
+class DemoAnalysis : public Analysis< DemoAnalysis,
+                                      analyze::BeginFunction,
+                                      analyze::PreStmt< clang::ReturnStmt > > {
   public:
     DemoAnalysis(KnightContext& ctx) : Analysis(ctx) {}
 
@@ -30,6 +33,13 @@ class DemoAnalysis : public Analysis< DemoAnalysis, analyze::BeginFunction > {
 
     void analyze_begin_function(AnalysisContext& C) const {
         llvm::outs() << "DemoAnalysis::analyze_begin_function()\n";
+    }
+
+    void pre_analyze_stmt(const clang::ReturnStmt* S,
+                          AnalysisContext& C) const {
+        llvm::outs() << "DemoAnalysis::pre_analyze ReturnStmt: \n";
+        S->dumpColor();
+        llvm::outs() << "\n";
     }
 
     static void add_dependencies(AnalysisManager& mgr) {

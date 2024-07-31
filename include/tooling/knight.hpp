@@ -17,6 +17,7 @@
 #include "dfa/checker_manager.hpp"
 #include "dfa/engine/intraprocedural_fixpoint.hpp"
 #include "dfa/proc_cfg.hpp"
+#include "dfa/program_state.hpp"
 #include "tooling/context.hpp"
 #include "tooling/diagnostic.hpp"
 #include "tooling/factory.hpp"
@@ -48,6 +49,9 @@ class KnightASTConsumer : public clang::ASTConsumer {
 
     // TODO: add datadflow engine to run analysis and checkers here? on the decl_group or tu?
     bool HandleTopLevelDecl(clang::DeclGroupRef decl_group) override {
+        auto state_mgr =
+            std::make_unique< dfa::ProgramStateManager >(m_analysis_manager,
+                                                         m_ctx.get_allocator());
         for (auto* D : decl_group) {
             auto* FD = llvm::dyn_cast_or_null< clang::FunctionDecl >(D);
             if (FD == nullptr || !FD->hasBody()) {
@@ -74,24 +78,25 @@ class KnightASTConsumer : public clang::ASTConsumer {
             m_analysis_ctx.set_current_decl(FD);
             m_checker_ctx.set_current_decl(FD);
 
-            // dfa::IntraProceduralFixpointIterator engine(m_ctx,
-            //                                             m_analysis_manager,
-            //                                             m_checker_manager,
-            //                                             FD);
-            // engine.run();
-            for (const auto& fn :
-                 m_analysis_manager.begin_function_analyses()) {
-                fn(m_analysis_ctx);
-            }
-            for (const auto& fn : m_checker_manager.begin_function_checks()) {
-                fn(m_checker_ctx);
-            }
-            for (const auto& fn : m_analysis_manager.end_function_analyses()) {
-                fn(nullptr, m_analysis_ctx);
-            }
-            for (const auto& fn : m_checker_manager.end_function_checks()) {
-                fn(nullptr, m_checker_ctx);
-            }
+            dfa::IntraProceduralFixpointIterator engine(m_ctx,
+                                                        m_analysis_manager,
+                                                        m_checker_manager,
+                                                        *state_mgr,
+                                                        FD);
+            engine.run();
+            // for (const auto& fn :
+            //      m_analysis_manager.begin_function_analyses()) {
+            //     fn(m_analysis_ctx);
+            // }
+            // for (const auto& fn : m_checker_manager.begin_function_checks()) {
+            //     fn(m_checker_ctx);
+            // }
+            // for (const auto& fn : m_analysis_manager.end_function_analyses()) {
+            //     fn(nullptr, m_analysis_ctx);
+            // }
+            // for (const auto& fn : m_checker_manager.end_function_checks()) {
+            //     fn(nullptr, m_checker_ctx);
+            // }
         }
 
         return true;

@@ -175,7 +175,6 @@ class ProgramStateManager {
 
   public:
     ProgramStateRef get_default_state();
-    ProgramStateRef get_bottom_state();
 
     ProgramStateRef get_persistent_state(ProgramState& State);
 

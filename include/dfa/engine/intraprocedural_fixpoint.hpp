@@ -35,13 +35,14 @@ class IntraProceduralFixpointIterator final
     KnightContext& m_ctx;
     CheckerManager& m_checker_mgr;
     AnalysisManager& m_analysis_mgr;
-    std::unique_ptr< ProgramStateManager > m_state_mgr;
+    ProgramStateManager& m_state_mgr;
     FunctionRef m_func;
 
   public:
     IntraProceduralFixpointIterator(knight::KnightContext& ctx,
                                     AnalysisManager& analysis_mgr,
                                     CheckerManager& checker_mgr,
+                                    ProgramStateManager& state_mgr,
                                     FunctionRef func);
 
     /// \brief transfer function for a graph node.
@@ -65,10 +66,6 @@ class IntraProceduralFixpointIterator final
     void check_post(NodeRef, const ProgramStateRef&) override;
 
     void run();
-
-  private:
-    ProgramStateManager* create_and_set_state_manager(
-        knight::KnightContext& ctx, AnalysisManager& analysis_mgr);
 
 }; // class IntraProceduralFixpointIterator
 

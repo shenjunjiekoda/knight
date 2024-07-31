@@ -165,7 +165,7 @@ template < clang_stmt STMT > class PreStmt {
     static void run_pre_stmt(void* analysis,
                              internal::StmtRef S,
                              AnalysisContext& C) {
-        ((const ANALYSIS*)analysis)->pre_analyze_stmt(S, C);
+        ((const ANALYSIS*)analysis)->pre_analyze_stmt(dyn_cast< STMT >(S), C);
     }
 
     static bool is_interesting_stmt(internal::StmtRef S) {
@@ -174,7 +174,7 @@ template < clang_stmt STMT > class PreStmt {
 
   public:
     template < typename ANALYSIS >
-    void register_callback(ANALYSIS* analysis, AnalysisManager& mgr) {
+    static void register_callback(ANALYSIS* analysis, AnalysisManager& mgr) {
         mgr.register_for_stmt(internal::
                                   AnalyzeStmtCallBack(ANALYSIS::get_kind(),
                                                       analysis,
@@ -190,7 +190,7 @@ template < clang_stmt STMT > class EvalStmt {
     static void run_eval_stmt(void* analysis,
                               internal::StmtRef S,
                               AnalysisContext& C) {
-        ((const ANALYSIS*)analysis)->analyze_stmt(S, C);
+        ((const ANALYSIS*)analysis)->analyze_stmt(dyn_cast< STMT >(S), C);
     }
 
     static bool is_interesting_stmt(internal::StmtRef S) {
@@ -199,7 +199,7 @@ template < clang_stmt STMT > class EvalStmt {
 
   public:
     template < typename ANALYSIS >
-    void register_callback(ANALYSIS* analysis, AnalysisManager& mgr) {
+    static void register_callback(ANALYSIS* analysis, AnalysisManager& mgr) {
         mgr.register_for_stmt(internal::
                                   AnalyzeStmtCallBack(ANALYSIS::get_kind(),
                                                       analysis,
@@ -215,7 +215,7 @@ template < clang_stmt STMT > class PostStmt {
     static void run_post_stmt(void* analysis,
                               internal::StmtRef S,
                               AnalysisContext& C) {
-        ((const ANALYSIS*)analysis)->post_analyze_stmt(S, C);
+        ((const ANALYSIS*)analysis)->post_analyze_stmt(dyn_cast< STMT >(S), C);
     }
 
     static bool is_interesting_stmt(internal::StmtRef S) {
@@ -224,7 +224,7 @@ template < clang_stmt STMT > class PostStmt {
 
   public:
     template < typename ANALYSIS >
-    void register_callback(ANALYSIS* analysis, AnalysisManager& mgr) {
+    static void register_callback(ANALYSIS* analysis, AnalysisManager& mgr) {
         mgr.register_for_stmt(internal::
                                   AnalyzeStmtCallBack(ANALYSIS::get_kind(),
                                                       analysis,

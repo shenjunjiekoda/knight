@@ -163,7 +163,7 @@ template < clang_stmt STMT > class PreStmt {
     static void run_pre_stmt(void* checker,
                              internal::StmtRef S,
                              CheckerContext& C) {
-        ((const CHECKER*)checker)->pre_check_stmt(S, C);
+        ((const CHECKER*)checker)->pre_check_stmt(dyn_cast< STMT >(S), C);
     }
 
     static bool is_interesting_stmt(internal::StmtRef S) {
@@ -172,7 +172,7 @@ template < clang_stmt STMT > class PreStmt {
 
   public:
     template < typename CHECKER >
-    void register_callback(CHECKER* checker, CheckerManager& mgr) {
+    static void register_callback(CHECKER* checker, CheckerManager& mgr) {
         mgr.register_for_stmt(internal::CheckStmtCallBack(CHECKER::get_kind(),
                                                           checker,
                                                           run_pre_stmt<
@@ -188,7 +188,7 @@ template < clang_stmt STMT > class PostStmt {
     static void run_post_stmt(void* checker,
                               internal::StmtRef S,
                               CheckerContext& C) {
-        ((const CHECKER*)checker)->post_check_stmt(S, C);
+        ((const CHECKER*)checker)->post_check_stmt(dyn_cast< STMT >(S), C);
     }
 
     static bool is_interesting_stmt(internal::StmtRef S) {
@@ -197,7 +197,7 @@ template < clang_stmt STMT > class PostStmt {
 
   public:
     template < typename CHECKER >
-    void register_callback(CHECKER* checker, CheckerManager& mgr) {
+    static void register_callback(CHECKER* checker, CheckerManager& mgr) {
         mgr.register_for_stmt(internal::CheckStmtCallBack(CHECKER::get_kind(),
                                                           checker,
                                                           run_post_stmt<
