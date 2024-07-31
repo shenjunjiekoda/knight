@@ -15,6 +15,7 @@
 
 #include "dfa/analysis_manager.hpp"
 #include "dfa/checker_manager.hpp"
+#include "dfa/engine/intraprocedural_fixpoint.hpp"
 #include "dfa/proc_cfg.hpp"
 #include "tooling/context.hpp"
 #include "tooling/diagnostic.hpp"
@@ -73,6 +74,11 @@ class KnightASTConsumer : public clang::ASTConsumer {
             m_analysis_ctx.set_current_decl(FD);
             m_checker_ctx.set_current_decl(FD);
 
+            // dfa::IntraProceduralFixpointIterator engine(m_ctx,
+            //                                             m_analysis_manager,
+            //                                             m_checker_manager,
+            //                                             FD);
+            // engine.run();
             for (const auto& fn :
                  m_analysis_manager.begin_function_analyses()) {
                 fn(m_analysis_ctx);

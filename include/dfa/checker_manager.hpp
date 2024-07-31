@@ -44,10 +44,14 @@ class CheckerCallBack< RET(Args...) > {
   private:
     CallBack m_callback;
     CheckerBase* m_checker;
+    CheckerKind m_kind;
 
   public:
-    CheckerCallBack(CheckerBase* checker, CallBack callback)
-        : m_checker(checker), m_callback(callback) {}
+    CheckerCallBack(CheckerKind kind, CheckerBase* checker, CallBack callback)
+        : m_kind(kind), m_checker(checker), m_callback(callback) {}
+
+    CheckerID get_id() const { return get_checker_id(m_kind); }
+
     RET operator()(Args... args) const {
         return m_callback(m_checker, args...);
     }

@@ -13,6 +13,7 @@
 //===------------------------------------------------------------------===//
 
 #include "dfa/engine/intraprocedural_fixpoint.hpp"
+#include "dfa/engine/block_engine.hpp"
 #include "dfa/program_state.hpp"
 #include "dfa/analysis/analysis_base.hpp"
 #include "dfa/checker/checker_base.hpp"
@@ -24,7 +25,8 @@ IntraProceduralFixpointIterator::IntraProceduralFixpointIterator(
     AnalysisManager& analysis_mgr,
     CheckerManager& checker_mgr,
     FunctionRef func)
-    : m_ctx(ctx), m_analysis_mgr(analysis_mgr), m_checker_mgr(checker_mgr),
+    : m_func(func), m_ctx(ctx), m_analysis_mgr(analysis_mgr),
+      m_checker_mgr(checker_mgr),
       WtoBasedFixPointIterator(ProcCFG::build(func),
                                create_and_set_state_manager(ctx, analysis_mgr)
                                    ->get_default_state()) {}
@@ -40,8 +42,8 @@ ProgramStateManager* IntraProceduralFixpointIterator::
 
 ProgramStateRef IntraProceduralFixpointIterator::transfer_node(
     NodeRef node, ProgramStateRef pre_state) {
-    // TODO: add expr engine to transfer expr here?
-    // TODO: add stmt level cache to enable visitor
+    BlockEngine engine(get_cfg(), node, m_analysis_mgr, pre_state);
+    engine.exec();
     return pre_state;
 }
 
@@ -55,5 +57,11 @@ void IntraProceduralFixpointIterator::check_pre(NodeRef,
 
 void IntraProceduralFixpointIterator::check_post(NodeRef,
                                                  const ProgramStateRef&) {}
+
+void IntraProceduralFixpointIterator::run() {
+    m_analysis_mgr.run_analyses_for_begin_function();
+    FixPointIterator::run(m_state_mgr->get_default_state());
+    m_analysis_mgr.run_analyses_for_end_function(ProcCFG::exit(get_cfg()));
+}
 
 } // namespace knight::dfa

@@ -105,9 +105,9 @@ class Analysis : public ANALYSIS1, public ANALYSES..., public AnalysisBase {
   public:
     Analysis(KnightContext& ctx) : AnalysisBase(ctx, Impl::get_kind()) {}
 
-    static void register_callback(Impl* checker, AnalysisManager& mgr) {
-        ANALYSIS1::register_callback(checker, mgr);
-        Analysis< Impl, ANALYSES... >::register_callback(checker, mgr);
+    static void register_callback(Impl* analysis, AnalysisManager& mgr) {
+        ANALYSIS1::register_callback(analysis, mgr);
+        Analysis< Impl, ANALYSES... >::register_callback(analysis, mgr);
     }
 };
 
@@ -116,8 +116,8 @@ class Analysis< Impl, ANALYSIS1 > : public ANALYSIS1, public AnalysisBase {
   public:
     Analysis(KnightContext& ctx) : AnalysisBase(ctx, Impl::get_kind()) {}
 
-    static void register_callback(Impl* checker, AnalysisManager& mgr) {
-        ANALYSIS1::register_callback(checker, mgr);
+    static void register_callback(Impl* analysis, AnalysisManager& mgr) {
+        ANALYSIS1::register_callback(analysis, mgr);
     }
 };
 
@@ -135,7 +135,8 @@ class BeginFunction {
     template < typename ANALYSIS >
     static void register_callback(ANALYSIS* analysis, AnalysisManager& mgr) {
         mgr.register_for_begin_function(
-            internal::AnalyzeBeginFunctionCallBack(analysis,
+            internal::AnalyzeBeginFunctionCallBack(ANALYSIS::get_kind(),
+                                                   analysis,
                                                    run_begin_function<
                                                        ANALYSIS >));
     }
@@ -152,7 +153,8 @@ class EndFunction {
     template < typename ANALYSIS >
     static void register_callback(ANALYSIS* analysis, AnalysisManager& mgr) {
         mgr.register_for_end_function(
-            internal::AnalyzeEndFunctionCallBack(analysis,
+            internal::AnalyzeEndFunctionCallBack(ANALYSIS::get_kind(),
+                                                 analysis,
                                                  run_end_function< ANALYSIS >));
     }
 
@@ -173,9 +175,10 @@ template < clang_stmt STMT > class PreStmt {
   public:
     template < typename ANALYSIS >
     void register_callback(ANALYSIS* analysis, AnalysisManager& mgr) {
-        mgr.register_for_stmt(internal::AnalyzeStmtCallBack(analysis,
-                                                            run_pre_stmt<
-                                                                ANALYSIS >),
+        mgr.register_for_stmt(internal::
+                                  AnalyzeStmtCallBack(ANALYSIS::get_kind(),
+                                                      analysis,
+                                                      run_pre_stmt< ANALYSIS >),
                               is_interesting_stmt,
                               internal::VisitStmtKind::Pre);
     }
@@ -197,9 +200,11 @@ template < clang_stmt STMT > class EvalStmt {
   public:
     template < typename ANALYSIS >
     void register_callback(ANALYSIS* analysis, AnalysisManager& mgr) {
-        mgr.register_for_stmt(internal::AnalyzeStmtCallBack(analysis,
-                                                            run_eval_stmt<
-                                                                ANALYSIS >),
+        mgr.register_for_stmt(internal::
+                                  AnalyzeStmtCallBack(ANALYSIS::get_kind(),
+                                                      analysis,
+                                                      run_eval_stmt<
+                                                          ANALYSIS >),
                               is_interesting_stmt,
                               internal::VisitStmtKind::Eval);
     }
@@ -220,9 +225,11 @@ template < clang_stmt STMT > class PostStmt {
   public:
     template < typename ANALYSIS >
     void register_callback(ANALYSIS* analysis, AnalysisManager& mgr) {
-        mgr.register_for_stmt(internal::AnalyzeStmtCallBack(analysis,
-                                                            run_post_stmt<
-                                                                ANALYSIS >),
+        mgr.register_for_stmt(internal::
+                                  AnalyzeStmtCallBack(ANALYSIS::get_kind(),
+                                                      analysis,
+                                                      run_post_stmt<
+                                                          ANALYSIS >),
                               is_interesting_stmt,
                               internal::VisitStmtKind::Post);
     }

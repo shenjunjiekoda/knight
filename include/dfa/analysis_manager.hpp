@@ -14,7 +14,6 @@
 #pragma once
 
 #include "dfa/analysis/analyses.hpp"
-#include "dfa/analysis_context.hpp"
 #include "dfa/domain/dom_base.hpp"
 #include "dfa/proc_cfg.hpp"
 #include "tooling/context.hpp"
@@ -27,6 +26,7 @@
 namespace knight::dfa {
 
 class AnalysisBase;
+class AnalysisContext;
 
 using UniqueAnalysisRef = std::unique_ptr< AnalysisBase >;
 using AnalysisRef = AnalysisBase*;
@@ -45,10 +45,16 @@ class AnalysisCallBack< RET(Args...) > {
   private:
     CallBack m_callback;
     AnalysisBase* m_analysis;
+    AnalysisKind m_kind;
 
   public:
-    AnalysisCallBack(AnalysisBase* analysis, CallBack callback)
-        : m_analysis(analysis), m_callback(callback) {}
+    AnalysisCallBack(AnalysisKind kind,
+                     AnalysisBase* analysis,
+                     CallBack callback)
+        : m_kind(kind), m_analysis(analysis), m_callback(callback) {}
+
+    AnalysisID get_id() const { return get_analysis_id(m_kind); }
+
     RET operator()(Args... args) const {
         return m_callback(m_analysis, args...);
     }
@@ -88,6 +94,8 @@ class AnalysisManager {
 
     /// \brief analyses
     std::unordered_set< AnalysisID > m_analyses; // all analyses
+    std::vector< AnalysisID >
+        m_analysis_full_order; // subject to analysis dependencies
     std::unordered_map< AnalysisID, std::unordered_set< AnalysisID > >
         m_analysis_dependencies; // all analysis dependencies
 
@@ -113,11 +121,7 @@ class AnalysisManager {
     std::vector< internal::StmtAnalysisInfo > m_stmt_analyses;
 
   public:
-    AnalysisManager(KnightContext& ctx)
-        : m_ctx(ctx), m_analysis_ctx(std::make_unique< AnalysisContext >(ctx)) {
-    }
-
-    AnalysisContext& get_analysis_context() const { return *m_analysis_ctx; }
+    AnalysisManager(KnightContext& ctx);
 
   public:
     /// \brief specialized analysis management
@@ -195,7 +199,18 @@ class AnalysisManager {
         return m_required_analyses;
     }
 
+    AnalysisContext& get_analysis_context() const;
+
     void compute_all_required_analyses_by_dependencies();
+    std::vector< AnalysisID > get_ordered_analyses(AnalysisIDSet ids) const;
+
+    void run_analyses_for_stmt(internal::StmtRef stmt,
+                               internal::VisitStmtKind visit_kind);
+    void run_analyses_for_pre_stmt(internal::StmtRef stmt);
+    void run_analyses_for_eval_stmt(internal::StmtRef stmt);
+    void run_analyses_for_post_stmt(internal::StmtRef stmt);
+    void run_analyses_for_begin_function();
+    void run_analyses_for_end_function(ProcCFG::NodeRef node);
 
 }; // class AnalysisManager
 

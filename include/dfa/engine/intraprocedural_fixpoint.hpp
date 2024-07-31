@@ -36,6 +36,7 @@ class IntraProceduralFixpointIterator final
     CheckerManager& m_checker_mgr;
     AnalysisManager& m_analysis_mgr;
     std::unique_ptr< ProgramStateManager > m_state_mgr;
+    FunctionRef m_func;
 
   public:
     IntraProceduralFixpointIterator(knight::KnightContext& ctx,
@@ -62,6 +63,8 @@ class IntraProceduralFixpointIterator final
 
     /// \brief check the postcondition of a node.
     void check_post(NodeRef, const ProgramStateRef&) override;
+
+    void run();
 
   private:
     ProgramStateManager* create_and_set_state_manager(

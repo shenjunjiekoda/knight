@@ -32,6 +32,8 @@ class ProcCFG {
     using FunctionRef = const clang::Decl*;
     using NodeRef = const clang::CFGBlock*;
     using StmtRef = const clang::Stmt*;
+    using DeclRef = const clang::Decl*;
+    using VarDeclRef = const clang::VarDecl*;
     using PredNodeIterator = clang::CFGBlock::const_pred_iterator;
     using SuccNodeIterator = clang::CFGBlock::const_succ_iterator;
     using StmtToBlockMap = std::unordered_map< StmtRef, NodeRef >;

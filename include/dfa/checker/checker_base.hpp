@@ -133,7 +133,8 @@ class BeginFunction {
     template < typename CHECKER >
     static void register_callback(CHECKER* checker, CheckerManager& mgr) {
         mgr.register_for_begin_function(
-            internal::CheckBeginFunctionCallBack(checker,
+            internal::CheckBeginFunctionCallBack(CHECKER::get_kind(),
+                                                 checker,
                                                  run_begin_function<
                                                      CHECKER >));
     }
@@ -150,7 +151,8 @@ class EndFunction {
     template < typename CHECKER >
     static void register_callback(CHECKER* checker, CheckerManager& mgr) {
         mgr.register_for_end_function(
-            internal::CheckEndFunctionCallBack(checker,
+            internal::CheckEndFunctionCallBack(CHECKER::get_kind(),
+                                               checker,
                                                run_end_function< CHECKER >));
     }
 
@@ -171,7 +173,8 @@ template < clang_stmt STMT > class PreStmt {
   public:
     template < typename CHECKER >
     void register_callback(CHECKER* checker, CheckerManager& mgr) {
-        mgr.register_for_stmt(internal::CheckStmtCallBack(checker,
+        mgr.register_for_stmt(internal::CheckStmtCallBack(CHECKER::get_kind(),
+                                                          checker,
                                                           run_pre_stmt<
                                                               CHECKER >),
                               is_interesting_stmt,
@@ -195,7 +198,8 @@ template < clang_stmt STMT > class PostStmt {
   public:
     template < typename CHECKER >
     void register_callback(CHECKER* checker, CheckerManager& mgr) {
-        mgr.register_for_stmt(internal::CheckStmtCallBack(checker,
+        mgr.register_for_stmt(internal::CheckStmtCallBack(CHECKER::get_kind(),
+                                                          checker,
                                                           run_post_stmt<
                                                               CHECKER >),
                               is_interesting_stmt,

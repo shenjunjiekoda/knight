@@ -12,6 +12,7 @@
 //===------------------------------------------------------------------===//
 
 #include "dfa/analysis_manager.hpp"
+#include "dfa/analysis_context.hpp"
 #include "dfa/analysis/analyses.hpp"
 #include "dfa/analysis/analysis_base.hpp"
 #include "dfa/domain/domains.hpp"
@@ -21,6 +22,74 @@
 #include <queue>
 
 namespace knight::dfa {
+
+namespace {
+
+std::vector< AnalysisID > compute_topological_order(
+    const std::unordered_map< AnalysisID, std::unordered_set< AnalysisID > >&
+        dependencies) {
+
+    std::unordered_map< AnalysisID, int > in_degree;
+    std::queue< AnalysisID > zero_in_degree;
+    std::vector< AnalysisID > sorted_order;
+
+    for (const auto& pair : dependencies) {
+        if (in_degree.find(pair.first) == in_degree.end()) {
+            in_degree[pair.first] = 0;
+        }
+        for (const auto& dep : pair.second) {
+            ++in_degree[dep];
+        }
+    }
+
+    for (const auto& pair : in_degree) {
+        if (pair.second == 0) {
+            zero_in_degree.push(pair.first);
+        }
+    }
+
+    // Kahn algorithm
+    while (!zero_in_degree.empty()) {
+        AnalysisID id = zero_in_degree.front();
+        zero_in_degree.pop();
+        sorted_order.push_back(id);
+
+        if (dependencies.count(id) > 0) {
+            for (AnalysisID neighbor : dependencies.at(id)) {
+                --in_degree[neighbor];
+                if (in_degree[neighbor] == 0) {
+                    zero_in_degree.push(neighbor);
+                }
+            }
+        }
+    }
+
+    knight_assert_msg(sorted_order.size() == in_degree.size(),
+                      "Graph has a cycle or disconnected components");
+
+    return sorted_order;
+}
+
+std::vector< AnalysisID > get_subset_order(
+    const std::vector< AnalysisID >& full_order, const AnalysisIDSet& subset) {
+
+    std::vector< AnalysisID > res;
+    for (AnalysisID id : full_order) {
+        if (subset.find(id) != subset.end()) {
+            res.push_back(id);
+        }
+    }
+    return res;
+}
+
+} // anonymous namespace
+
+AnalysisManager::AnalysisManager(KnightContext& ctx)
+    : m_ctx(ctx), m_analysis_ctx(std::make_unique< AnalysisContext >(ctx)) {}
+
+AnalysisContext& AnalysisManager::get_analysis_context() const {
+    return *m_analysis_ctx;
+}
 
 bool AnalysisManager::is_analysis_required(AnalysisID id) const {
     return m_required_analyses.count(id) > 0U;
@@ -66,6 +135,8 @@ void AnalysisManager::compute_all_required_analyses_by_dependencies() {
             q.push(dep_id);
         }
     }
+
+    m_analysis_full_order = compute_topological_order(m_analysis_dependencies);
 }
 
 void AnalysisManager::enable_analysis(
@@ -124,6 +195,67 @@ void AnalysisManager::register_for_begin_function(
 void AnalysisManager::register_for_end_function(
     internal::AnalyzeEndFunctionCallBack anz_fn) {
     m_end_function_analyses.emplace_back(anz_fn);
+}
+
+void AnalysisManager::run_analyses_for_stmt(
+    internal::StmtRef stmt, internal::VisitStmtKind visit_kind) {
+    AnalysisIDSet tgt_ids;
+    std::unordered_map< AnalysisID, internal::AnalyzeStmtCallBack* > callbacks;
+    for (auto& info : m_stmt_analyses) {
+        if (info.kind != visit_kind || !info.match_cb(stmt)) {
+            continue;
+        }
+        auto& callback = info.anz_cb;
+        auto id = callback.get_id();
+        if (is_analysis_required(id)) {
+            tgt_ids.insert(id);
+            callbacks.emplace(id, &callback);
+        }
+    }
+    for (auto id : get_subset_order(m_analysis_full_order, tgt_ids)) {
+        (*callbacks[id])(stmt, *m_analysis_ctx);
+    }
+}
+
+void AnalysisManager::run_analyses_for_pre_stmt(internal::StmtRef stmt) {
+    run_analyses_for_stmt(stmt, internal::VisitStmtKind::Pre);
+}
+void AnalysisManager::run_analyses_for_eval_stmt(internal::StmtRef stmt) {
+    run_analyses_for_stmt(stmt, internal::VisitStmtKind::Eval);
+}
+void AnalysisManager::run_analyses_for_post_stmt(internal::StmtRef stmt) {
+    run_analyses_for_stmt(stmt, internal::VisitStmtKind::Post);
+}
+
+void AnalysisManager::run_analyses_for_begin_function() {
+    AnalysisIDSet tgt_ids;
+    std::unordered_map< AnalysisID, internal::AnalyzeBeginFunctionCallBack* >
+        callbacks;
+    for (auto& info : m_begin_function_analyses) {
+        auto id = info.get_id();
+        if (is_analysis_required(id)) {
+            tgt_ids.insert(id);
+            callbacks.emplace(id, &info);
+        }
+    }
+    for (auto id : get_subset_order(m_analysis_full_order, tgt_ids)) {
+        (*callbacks[id])(*m_analysis_ctx);
+    }
+}
+void AnalysisManager::run_analyses_for_end_function(ProcCFG::NodeRef node) {
+    AnalysisIDSet tgt_ids;
+    std::unordered_map< AnalysisID, internal::AnalyzeEndFunctionCallBack* >
+        callbacks;
+    for (auto& info : m_end_function_analyses) {
+        auto id = info.get_id();
+        if (is_analysis_required(id)) {
+            tgt_ids.insert(id);
+            callbacks.emplace(id, &info);
+        }
+    }
+    for (auto id : get_subset_order(m_analysis_full_order, tgt_ids)) {
+        (*callbacks[id])(node, *m_analysis_ctx);
+    }
 }
 
 } // namespace knight::dfa
