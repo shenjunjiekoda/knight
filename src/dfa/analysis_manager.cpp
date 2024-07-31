@@ -185,6 +185,14 @@ std::optional< AnalysisManager::DomainDefaultValFn > AnalysisManager::
     }
     return it->second;
 }
+std::optional< AnalysisManager::DomainBottomValFn > AnalysisManager::
+    get_domain_bottom_val_fn(DomID id) const {
+    auto it = m_domain_bottom_fn.find(id);
+    if (it == m_domain_bottom_fn.end()) {
+        return std::nullopt;
+    }
+    return it->second;
+}
 
 void AnalysisManager::register_for_stmt(internal::AnalyzeStmtCallBack anz_fn,
                                         internal::MatchStmtCallBack match_fn,

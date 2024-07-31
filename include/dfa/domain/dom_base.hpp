@@ -117,9 +117,11 @@ struct AbsDomBase {
 
 /// \brief Base wrapper class for all domains
 ///
-/// `Derived` domain shall be final and *requires* the following methods:
+/// `Derived` domain *requires* the following methods:
 /// - `static get_kind()`
-/// - `Derived()` ctor
+/// - `Derived(...): AbsDom()...{}` constructor
+/// - `static UniqueVal default_val()` which returns the default abstract value
+/// - `static UniqueVal bottom_val()` which returns the bottom abstract value
 /// - `clone() const`
 /// - `is_bottom() const`
 /// - `is_top() const`
@@ -129,7 +131,6 @@ struct AbsDomBase {
 /// - `leq(const Derived& other) const`
 ///
 /// `Derived` domain may also implement the following *optional* methods:
-/// - `static UniqueVal default_val()`
 /// - `normalize()`
 /// - `join_with_at_loop_head(const Derived& other)`
 /// - `join_consecutive_iter_with(const Derived& other)`
@@ -213,5 +214,13 @@ template < typename Derived > class AbsDom : public AbsDomBase {
     }
 
 }; // class AbsDom
+
+template < typename DerivedDom >
+struct isa_abs_dom
+    : std::bool_constant<
+          std::is_base_of_v< AbsDom< DerivedDom >, DerivedDom > > {};
+
+template < typename DerivedDom >
+concept derived_dom = isa_abs_dom< DerivedDom >::value;
 
 } // namespace knight::dfa

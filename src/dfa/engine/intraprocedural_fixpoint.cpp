@@ -30,7 +30,7 @@ IntraProceduralFixpointIterator::IntraProceduralFixpointIterator(
     : m_func(func), m_ctx(ctx), m_analysis_mgr(analysis_mgr),
       m_checker_mgr(checker_mgr), m_state_mgr(state_mgr),
       WtoBasedFixPointIterator(ProcCFG::build(func),
-                               state_mgr.get_default_state()) {}
+                               state_mgr.get_bottom_state()) {}
 
 ProgramStateRef IntraProceduralFixpointIterator::transfer_node(
     NodeRef node, ProgramStateRef pre_state) {
@@ -62,9 +62,8 @@ void IntraProceduralFixpointIterator::check_pre(NodeRef node,
         }
 
         auto it = m_stmt_pre.find(stmt);
-        auto pre_state = it == m_stmt_pre.end()
-                             ? m_state_mgr.get_default_state()
-                             : it->second;
+        auto pre_state = it == m_stmt_pre.end() ? m_state_mgr.get_bottom_state()
+                                                : it->second;
         m_checker_mgr.get_checker_context().set_current_state(pre_state);
 
         m_checker_mgr.run_checkers_for_pre_stmt(stmt);
@@ -84,7 +83,7 @@ void IntraProceduralFixpointIterator::check_post(NodeRef node,
         }
         auto it = m_stmt_post.find(stmt);
         auto post_state = it == m_stmt_post.end()
-                              ? m_state_mgr.get_default_state()
+                              ? m_state_mgr.get_bottom_state()
                               : it->second;
         m_checker_mgr.get_checker_context().set_current_state(post_state);
         m_checker_mgr.run_checkers_for_post_stmt(stmt);
@@ -95,7 +94,7 @@ void IntraProceduralFixpointIterator::run() {
     m_analysis_mgr.run_analyses_for_begin_function();
     m_checker_mgr.run_checkers_for_begin_function();
 
-    FixPointIterator::run(m_state_mgr.get_default_state());
+    FixPointIterator::run(m_state_mgr.get_bottom_state());
 
     auto exit_node = ProcCFG::exit(get_cfg());
     m_analysis_mgr.run_analyses_for_end_function(exit_node);

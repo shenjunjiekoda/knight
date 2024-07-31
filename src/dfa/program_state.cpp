@@ -61,15 +61,6 @@ template < typename Domain > bool ProgramState::exists() const {
     return get(Domain::get_kind()).has_value();
 }
 
-template < typename Domain >
-std::optional< Domain* > ProgramState::get() const {
-    auto it = m_dom_val.find(get_domain_id(Domain::get_kind()));
-    if (it == m_dom_val.end()) {
-        return std::nullopt;
-    }
-    return std::make_optional(it->second.get());
-}
-
 template < typename Domain > bool ProgramState::remove() {
     auto id = get_domain_id(Domain::get_kind());
     return m_dom_val.erase(id) != 0U;
@@ -227,6 +218,22 @@ ProgramStateRef ProgramStateManager::get_default_state() {
             if (auto default_fn =
                     m_analysis_mgr.get_domain_default_val_fn(dom_id)) {
                 dom_val[dom_id] = std::move((*default_fn)());
+            }
+        }
+    }
+    ProgramState State(this, std::move(dom_val));
+
+    return get_persistent_state(State);
+}
+
+ProgramStateRef ProgramStateManager::get_bottom_state() {
+    DomValMap dom_val;
+    for (auto analysis_id : m_analysis_mgr.get_required_analyses()) {
+        for (auto dom_id :
+             m_analysis_mgr.get_registered_domains_in(analysis_id)) {
+            if (auto bottom_fn =
+                    m_analysis_mgr.get_domain_bottom_val_fn(dom_id)) {
+                dom_val[dom_id] = std::move((*bottom_fn)());
             }
         }
     }

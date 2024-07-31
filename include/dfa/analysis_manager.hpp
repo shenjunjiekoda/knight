@@ -108,7 +108,9 @@ class AnalysisManager {
     /// \brief registered domains
     std::unordered_map< DomID, AnalysisID > m_domains;
     using DomainDefaultValFn = std::function< UniqueVal() >;
+    using DomainBottomValFn = std::function< UniqueVal() >;
     std::unordered_map< DomID, DomainDefaultValFn > m_domain_default_fn;
+    std::unordered_map< DomID, DomainBottomValFn > m_domain_bottom_fn;
     std::unordered_map< AnalysisID, std::unordered_set< DomID > >
         m_analysis_domains;
 
@@ -165,11 +167,13 @@ class AnalysisManager {
         auto dom_id = get_domain_id(Dom::get_kind());
         m_domains[dom_id] = analysis_id;
         m_domain_default_fn[dom_id] = Dom::default_val;
+        m_domain_bottom_fn[dom_id] = Dom::bottom_val;
         m_analysis_domains[analysis_id].insert(dom_id);
     }
     std::unordered_set< DomID > get_registered_domains_in(AnalysisID id) const;
     std::optional< DomainDefaultValFn > get_domain_default_val_fn(
         DomID id) const;
+    std::optional< DomainBottomValFn > get_domain_bottom_val_fn(DomID id) const;
     /// @}
 
     /// \brief callback registrations

@@ -87,11 +87,14 @@ class ProgramState : public llvm::FoldingSetNode {
     /// \return True if the domain kind exists, false otherwise.
     template < typename Domain > bool exists() const;
 
-    /// \brief Get the domain with the given kind.
-    ///
-    /// \return The domain with the given kind, or std::nullopt if it doesn't
-    /// exist.
-    template < typename Domain > std::optional< Domain* > get() const;
+    /// \brief Get the abstract cal with the given domain.
+    template < typename Domain > std::optional< Domain* > get() const {
+        auto it = m_dom_val.find(get_domain_id(Domain::get_kind()));
+        if (it == m_dom_val.end()) {
+            return std::nullopt;
+        }
+        return std::make_optional(static_cast< Domain* >(it->second.get()));
+    }
 
     /// \brief Remove the given domain from the program state.
     template < typename Domain > bool remove();
@@ -175,6 +178,7 @@ class ProgramStateManager {
 
   public:
     ProgramStateRef get_default_state();
+    ProgramStateRef get_bottom_state();
 
     ProgramStateRef get_persistent_state(ProgramState& State);
 
