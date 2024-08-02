@@ -15,7 +15,7 @@
 
 #include "dfa/domain/dom_base.hpp"
 #include "dfa/domain/domains.hpp"
-#include "dfa/domain/non_relational_domain.hpp"
+#include "dfa/domain/map/map_domain.hpp"
 #include "util/assert.hpp"
 
 #include <clang/AST/Decl.h>
@@ -128,8 +128,7 @@ class DemoItvDom : public AbsDom< DemoItvDom > {
     }
 }; // class DemoItvDom
 
-using DemoMapDomain = NonRelationalDomain< const clang::Decl*,
-                                           DemoItvDom,
-                                           DomainKind::DemoMapDom >;
+using DemoMapDomain =
+    MapDom< const clang::Decl*, DemoItvDom, DomainKind::DemoMapDom >;
 
 } // namespace knight::dfa

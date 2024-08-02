@@ -1,4 +1,4 @@
-//===- non_relational_domain.hpp --------------------------------------------===//
+//===- map_domain.hpp -------------------------------------------------===//
 //
 // Copyright (c) 2024 Junjie Shen
 //
@@ -7,7 +7,7 @@
 //
 //===------------------------------------------------------------------===//
 //
-//  This header defines the non-relational domain.
+//  This header defines the map domain.
 //
 //===------------------------------------------------------------------===//
 
@@ -18,11 +18,10 @@
 
 namespace knight::dfa {
 
-template < typename Key, derived_dom Value, DomainKind domain_kind >
-class NonRelationalDomain
-    : public AbsDom< NonRelationalDomain< Key, Value, domain_kind > > {
+template < typename Key, derived_dom SeparateValue, DomainKind domain_kind >
+class MapDom : public AbsDom< MapDom< Key, SeparateValue, domain_kind > > {
   public:
-    using Map = std::unordered_map< Key, Value >;
+    using Map = std::unordered_map< Key, SeparateValue >;
 
   private:
     Map m_table;
@@ -30,23 +29,19 @@ class NonRelationalDomain
     bool m_is_top = false;
 
   public:
-    NonRelationalDomain(bool is_bottom, bool is_top, Map table = {})
+    MapDom(bool is_bottom, bool is_top, Map table = {})
         : m_is_bottom(is_bottom), m_is_top(is_top), m_table(std::move(table)) {}
 
-    NonRelationalDomain(const NonRelationalDomain&) = default;
-    NonRelationalDomain(NonRelationalDomain&&) = default;
-    NonRelationalDomain& operator=(const NonRelationalDomain&) = default;
-    NonRelationalDomain& operator=(NonRelationalDomain&&) = default;
-    ~NonRelationalDomain() override = default;
+    MapDom(const MapDom&) = default;
+    MapDom(MapDom&&) = default;
+    MapDom& operator=(const MapDom&) = default;
+    MapDom& operator=(MapDom&&) = default;
+    ~MapDom() override = default;
 
   public:
-    static NonRelationalDomain top() {
-        return NonRelationalDomain(false, true);
-    }
+    static MapDom top() { return MapDom(false, true); }
 
-    static NonRelationalDomain bottom() {
-        return NonRelationalDomain(false, true);
-    }
+    static MapDom bottom() { return MapDom(false, true); }
 
     const Map& get_table() const { return m_table; }
 
@@ -57,22 +52,25 @@ class NonRelationalDomain
         this->m_table.erase(key);
     }
 
-    Value get_value(const Key& key) const {
+    SeparateValue get_value(const Key& key) const {
         if (this->is_bottom()) {
-            return *(static_cast< Value* >(Value::bottom_val().get()));
+            return *(static_cast< SeparateValue* >(
+                SeparateValue::bottom_val().get()));
         }
         if (this->is_top()) {
-            return *(static_cast< Value* >(Value::default_val().get()));
+            return *(static_cast< SeparateValue* >(
+                SeparateValue::default_val().get()));
         }
 
         auto it = m_table.find(key);
         if (it != m_table.end()) {
             return it->second;
         }
-        return *(static_cast< Value* >(Value::default_val().get()));
+        return *(
+            static_cast< SeparateValue* >(SeparateValue::default_val().get()));
     }
 
-    void set_value(const Key& key, const Value& value) {
+    void set_value(const Key& key, const SeparateValue& value) {
         if (this->is_bottom()) {
             return;
         } else if (value.is_bottom()) {
@@ -84,7 +82,7 @@ class NonRelationalDomain
         }
     }
 
-    void meet_value(const Key& key, const Value& value) {
+    void meet_value(const Key& key, const SeparateValue& value) {
         if (this->is_bottom()) {
             return;
         } else if (value.is_bottom()) {
@@ -107,20 +105,18 @@ class NonRelationalDomain
     static DomainKind get_kind() { return domain_kind; }
 
     static UniqueVal default_val() {
-        return std::make_unique< NonRelationalDomain >(true, false);
+        return std::make_unique< MapDom >(true, false);
     }
     static UniqueVal bottom_val() {
-        return std::make_unique< NonRelationalDomain >(false, true);
+        return std::make_unique< MapDom >(false, true);
     }
 
     UniqueVal clone() const override {
         Map table;
         for (auto& [key, value] : m_table) {
-            table[key] = *(static_cast< Value* >(value.clone().get()));
+            table[key] = *(static_cast< SeparateValue* >(value.clone().get()));
         }
-        return std::make_unique< NonRelationalDomain >(m_is_bottom,
-                                                       m_is_top,
-                                                       table);
+        return std::make_unique< MapDom >(m_is_bottom, m_is_top, table);
     }
 
     void normalize() override {
@@ -145,7 +141,7 @@ class NonRelationalDomain
         Map().swap(m_table);
     }
 
-    void join_with(const NonRelationalDomain& other) {
+    void join_with(const MapDom& other) {
         if (other.is_bottom()) {
             return;
         }
@@ -163,7 +159,7 @@ class NonRelationalDomain
         }
     }
 
-    void join_with_at_loop_head(const NonRelationalDomain& other) {
+    void join_with_at_loop_head(const MapDom& other) {
         if (other.is_bottom()) {
             return;
         }
@@ -181,7 +177,7 @@ class NonRelationalDomain
         }
     }
 
-    void join_consecutive_iter_with(const NonRelationalDomain& other) {
+    void join_consecutive_iter_with(const MapDom& other) {
         if (other.is_bottom()) {
             return;
         }
@@ -199,7 +195,7 @@ class NonRelationalDomain
         }
     }
 
-    void widen_with(const NonRelationalDomain& other) {
+    void widen_with(const MapDom& other) {
         if (other.is_bottom()) {
             return;
         }
@@ -217,7 +213,7 @@ class NonRelationalDomain
         }
     }
 
-    void meet_with(const NonRelationalDomain& other) {
+    void meet_with(const MapDom& other) {
         if (this->is_bottom() || other.is_top()) {
             return;
         }
@@ -239,7 +235,7 @@ class NonRelationalDomain
         }
     }
 
-    void narrow_with(const NonRelationalDomain& other) {
+    void narrow_with(const MapDom& other) {
         if (this->is_bottom() || other.is_top()) {
             return;
         }
@@ -261,7 +257,7 @@ class NonRelationalDomain
         }
     }
 
-    bool leq(const NonRelationalDomain& other) const {
+    bool leq(const MapDom& other) const {
         if (this->is_bottom() || other.is_top()) {
             return true;
         }
@@ -283,7 +279,7 @@ class NonRelationalDomain
         return true;
     }
 
-    bool equals(const NonRelationalDomain& other) const {
+    bool equals(const MapDom& other) const {
         if (this->is_bottom()) {
             return other.is_bottom();
         }
@@ -331,6 +327,6 @@ class NonRelationalDomain
         }
     }
 
-}; // class NonRelationalDomain
+}; // class MapDom
 
 } // namespace knight::dfa
