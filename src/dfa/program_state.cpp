@@ -12,9 +12,9 @@
 //===------------------------------------------------------------------===//
 
 #include "dfa/program_state.hpp"
-#include "dfa/domain/domains.hpp"
 #include "dfa/analysis/analysis_base.hpp"
 #include "dfa/checker/checker_base.hpp"
+#include "dfa/domain/domains.hpp"
 #include "util/assert.hpp"
 
 #include <llvm/ADT/BitVector.h>

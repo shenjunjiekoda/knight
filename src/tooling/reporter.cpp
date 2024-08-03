@@ -17,13 +17,12 @@
 #include "clang/Tooling/Core/Replacement.h"
 #include "llvm/Support/raw_ostream.h"
 
-#include <clang/Basic/DiagnosticIDs.h>
-#include <clang/Basic/DiagnosticOptions.h>
 #include <clang/Basic/DiagnosticFrontend.h>
 #include <clang/Basic/DiagnosticIDs.h>
-#include <clang/Rewrite/Core/Rewriter.h>
+#include <clang/Basic/DiagnosticOptions.h>
 #include <clang/Format/Format.h>
 #include <clang/Frontend/TextDiagnosticPrinter.h>
+#include <clang/Rewrite/Core/Rewriter.h>
 #include <llvm/ADT/IntrusiveRefCntPtr.h>
 #include <llvm/Support/Process.h>
 

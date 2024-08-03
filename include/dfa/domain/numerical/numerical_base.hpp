@@ -13,8 +13,8 @@
 
 #pragma once
 
-#include "dfa/domain/dom_base.hpp"
 #include "dfa/constraint/linear.hpp"
+#include "dfa/domain/dom_base.hpp"
 
 #include <clang/AST/OperationKinds.h>
 
@@ -57,8 +57,11 @@ class NumericalDom : public AbsDom< Derived > {
     /// \brief Assign `x = y`
     virtual void transfer_assign_variable(VarRef x, VarRef y) = 0;
 
-    /// \brief Assign `x = e`
-    virtual void transfer_assign_linear_expr(VarRef x, const LinearExpr& e) = 0;
+    /// \brief Assign `x = expr`
+    virtual void transfer_assign_linear_expr(VarRef x,
+                                             const LinearExpr& expr) = 0;
+
+    virtual void apply(clang::UnaryOperatorKind op, VarRef x, VarRef y) = 0;
 
     /// \brief Apply `x = y op z`
     virtual void apply(clang::BinaryOperatorKind op,

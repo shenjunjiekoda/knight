@@ -14,11 +14,11 @@
 
 #pragma once
 
-#include <optional>
-#include <string>
-#include <set>
-#include <variant>
 #include <map>
+#include <optional>
+#include <set>
+#include <string>
+#include <variant>
 
 namespace knight {
 

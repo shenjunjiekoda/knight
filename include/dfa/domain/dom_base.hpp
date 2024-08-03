@@ -13,8 +13,8 @@
 
 #pragma once
 
-#include <llvm/Support/raw_ostream.h>
 #include <llvm/ADT/StringRef.h>
+#include <llvm/Support/raw_ostream.h>
 
 #include "dfa/domain/domains.hpp"
 #include "support/dom.hpp"
@@ -42,7 +42,7 @@ struct AbsDomBase {
     virtual ~AbsDomBase() {}
 
     /// \brief Clone the abstract value
-    virtual UniqueVal clone() const = 0;
+    [[nodiscard]] virtual UniqueVal clone() const = 0;
 
     /// \brief Normalize the abstract value
     ///
@@ -51,10 +51,10 @@ struct AbsDomBase {
     virtual void normalize() {}
 
     /// \brief Check if the abstract value is bottom
-    virtual bool is_bottom() const = 0;
+    [[nodiscard]] virtual bool is_bottom() const = 0;
 
     /// \brief Check if the abstract value is top
-    virtual bool is_top() const = 0;
+    [[nodiscard]] virtual bool is_top() const = 0;
 
     /// \brief Set the abstract value to bottom
     virtual void set_to_bottom() = 0;
@@ -91,20 +91,20 @@ struct AbsDomBase {
     }
 
     /// \brief Check the inclusion relation
-    virtual bool leq(const AbsDomBase& other) const = 0;
+    [[nodiscard]] virtual bool leq(const AbsDomBase& other) const = 0;
 
     /// \brief Equality comparison
-    virtual bool equals(const AbsDomBase& other) const {
+    [[nodiscard]] virtual bool equals(const AbsDomBase& other) const {
         return leq(other) && other.leq(*this);
     }
 
     /// \brief Equality comparison operator
-    bool operator==(const AbsDomBase& other) const {
+    [[nodiscard]] bool operator==(const AbsDomBase& other) const {
         return this->equals(other);
     }
 
     /// \brief Inequality comparison operator
-    bool operator!=(const AbsDomBase& other) const {
+    [[nodiscard]] bool operator!=(const AbsDomBase& other) const {
         return !this->equals(other);
     }
 
@@ -197,14 +197,14 @@ template < typename Derived > class AbsDom : public AbsDomBase {
         }
     }
 
-    virtual bool leq(const AbsDomBase& other) const override {
+    [[nodiscard]] virtual bool leq(const AbsDomBase& other) const override {
         static_assert(does_derived_dom_can_leq< Derived >::value,
                       "derived domain needs to implement `leq` method");
         return static_cast< const Derived& >(other).leq(
             static_cast< const Derived& >(*this));
     }
 
-    virtual bool equals(const AbsDomBase& other) const override {
+    [[nodiscard]] virtual bool equals(const AbsDomBase& other) const override {
         if constexpr (does_derived_dom_can_equals< Derived >::value) {
             return static_cast< const Derived& >(other).equals(
                 static_cast< const Derived& >(*this));

@@ -13,15 +13,14 @@
 
 #pragma once
 
-#include "support/graph.hpp"
 #include "support/dumpable.hpp"
+#include "support/graph.hpp"
 #include "util/assert.hpp"
 
-#include <climits>
 #include <llvm/Support/raw_ostream.h>
 
+#include <climits>
 #include <list>
-#include <cstdint>
 
 namespace knight {
 
@@ -122,7 +121,8 @@ template < graph G, typename GraphTrait = GraphTrait< G > > class WtoNesting {
         while (it != this->end()) {
             if (other_it == other.end()) {
                 return 1; // `this` is nested within `other`
-            } else if (*it == *other_it) {
+            }
+            if (*it == *other_it) {
                 ++it;
                 ++other_it;
             } else {
@@ -131,9 +131,8 @@ template < graph G, typename GraphTrait = GraphTrait< G > > class WtoNesting {
         }
         if (other_it == other.end()) {
             return 0; // equals
-        } else {
-            return -1; // `other` is nested within `this`
         }
+        return -1; // `other` is nested within `this`
     }
 
 }; // class WtoNesting
@@ -266,6 +265,8 @@ template < graph G, typename GraphTrait = GraphTrait< G > > class Wto {
   private:
     using WtoComponentPtr = std::unique_ptr< WtoComponentT >;
     using WtoComponentList = std::list< WtoComponentPtr >;
+    using WtoComponentListConstIterator =
+        typename WtoComponentList::const_iterator;
     using Dfn = int;
     using DfnTable = std::unordered_map< NodeRef, Dfn >;
     using Stack = std::vector< NodeRef >;
@@ -276,12 +277,12 @@ template < graph G, typename GraphTrait = GraphTrait< G > > class Wto {
     WtoComponentList m_components;
     NestingTable m_nesting_table;
     DfnTable m_dfn_table;
-    Dfn m_num;
+    Dfn m_num{0};
     Stack m_stack;
 
   public:
     /// \brief Compute the weak topological order of the given graph
-    explicit Wto(GraphRef cfg) : m_num(0) {
+    explicit Wto(GraphRef cfg) {
         this->visit(GraphTrait::entry(cfg), this->m_components);
         this->m_dfn_table.clear();
         this->m_stack.clear();
@@ -331,9 +332,8 @@ template < graph G, typename GraphTrait = GraphTrait< G > > class Wto {
         auto it = this->m_dfn_table.find(n);
         if (it != this->m_dfn_table.end()) {
             return it->second;
-        } else {
-            return Dfn(0);
         }
+        return 0;
     }
 
     /// \brief Set the depth-first number of the given node
@@ -363,7 +363,7 @@ template < graph G, typename GraphTrait = GraphTrait< G > > class Wto {
              it != et;
              ++it) {
             NodeRef succ = *it;
-            if (this->dfn(succ) == Dfn(0)) {
+            if (this->dfn(succ) == 0) {
                 this->visit(succ, partition);
             }
         }
@@ -376,20 +376,19 @@ template < graph G, typename GraphTrait = GraphTrait< G > > class Wto {
     Dfn visit(NodeRef vertex, WtoComponentList& partition) {
         Dfn head(0);
         Dfn min(0);
-        bool loop;
 
         this->push(vertex);
-        this->m_num += Dfn(1);
+        this->m_num += 1;
         head = this->m_num;
         this->set_dfn(vertex, head);
-        loop = false;
+        bool loop = false;
         for (auto it = GraphTrait::succ_begin(vertex),
                   et = GraphTrait::succ_end(vertex);
              it != et;
              ++it) {
             NodeRef succ = *it;
             Dfn succ_dfn = this->dfn(succ);
-            if (succ_dfn == Dfn(0)) {
+            if (succ_dfn == 0) {
                 min = this->visit(succ, partition);
             } else {
                 min = succ_dfn;
@@ -404,7 +403,7 @@ template < graph G, typename GraphTrait = GraphTrait< G > > class Wto {
             NodeRef element = this->pop();
             if (loop) {
                 while (element != vertex) {
-                    this->set_dfn(element, Dfn(0));
+                    this->set_dfn(element, 0);
                     element = this->pop();
                 }
                 partition.push_front(this->component(vertex));
@@ -436,6 +435,14 @@ template < graph G, typename GraphTrait = GraphTrait< G > > class Wto {
         for (const auto& c : this->m_components) {
             c->accept(v);
         }
+    }
+
+    WtoComponentListConstIterator begin() const {
+        return this->m_components.cbegin();
+    }
+
+    WtoComponentListConstIterator end() const {
+        return this->m_components.cend();
     }
 
     /// \brief Dump the order, for debugging purpose

@@ -13,10 +13,10 @@
 
 #pragma once
 
+#include "dfa/engine/iterator.hpp"
 #include "dfa/program_state.hpp"
 #include "support/graph.hpp"
 #include "util/wto.hpp"
-#include "dfa/engine/iterator.hpp"
 
 namespace knight::dfa {
 
@@ -61,17 +61,17 @@ class WtoBasedFixPointIterator : public FixPointIterator< CFG, GraphTrait > {
     ~WtoBasedFixPointIterator() = default;
 
   public:
-    bool is_converged() const override { return m_converged; }
-    GraphRef get_cfg() const override { return m_cfg; }
-    const Wto& get_wto() const { return m_wto; }
-    const ProgramStateRef& get_bottom() const { return m_bottom; }
+    [[nodiscard]] bool is_converged() const override { return m_converged; }
+    [[nodiscard]] GraphRef get_cfg() const override { return m_cfg; }
+    [[nodiscard]] const Wto& get_wto() const { return m_wto; }
+    [[nodiscard]] const ProgramStateRef& get_bottom() const { return m_bottom; }
 
   public:
-    ProgramStateRef get_pre(NodeRef node) const override {
+    [[nodiscard]] ProgramStateRef get_pre(NodeRef node) const override {
         return get(m_pre, node);
     }
 
-    ProgramStateRef get_post(NodeRef node) const override {
+    [[nodiscard]] ProgramStateRef get_post(NodeRef node) const override {
         return get(m_post, node);
     }
 
@@ -81,7 +81,7 @@ class WtoBasedFixPointIterator : public FixPointIterator< CFG, GraphTrait > {
     /// \param iteration Iteration number
     /// \param state_before State before the iteration
     /// \param state_after State after the iteration
-    virtual ProgramStateRef merge_at_head_when_increasing(
+    [[nodiscard]] virtual ProgramStateRef merge_at_head_when_increasing(
         NodeRef haed,
         unsigned iter_cnt,
         const ProgramStateRef& state_before,
@@ -98,7 +98,7 @@ class WtoBasedFixPointIterator : public FixPointIterator< CFG, GraphTrait > {
     /// \param iter_cnt Iteration count
     /// \param state_before State before the iteration
     /// \param state_after State after the iteration
-    virtual bool is_increasing_fixpoint_reached(
+    [[nodiscard]] virtual bool is_increasing_fixpoint_reached(
         [[maybe_unused]] NodeRef head,
         [[maybe_unused]] unsigned iter_cnt,
         const ProgramStateRef& state_before,
@@ -112,7 +112,7 @@ class WtoBasedFixPointIterator : public FixPointIterator< CFG, GraphTrait > {
     /// \param iter_cnt Iteration count
     /// \param state_before State before the iteration
     /// \param state_after State after the iteration
-    virtual ProgramStateRef narrow_at_loop_head_when_decreasing(
+    [[nodiscard]] virtual ProgramStateRef narrow_at_loop_head_when_decreasing(
         [[maybe_unused]] NodeRef head,
         [[maybe_unused]] unsigned iter_cnt,
         [[maybe_unused]] const ProgramStateRef& state_before,
@@ -182,8 +182,8 @@ class WtoBasedFixPointIterator : public FixPointIterator< CFG, GraphTrait > {
         set(m_post, node, std::move(state));
     }
 
-    const ProgramStateRef& get(const InvariantMap& inv_map,
-                               const NodeRef& node) const {
+    [[nodiscard]] const ProgramStateRef& get(const InvariantMap& inv_map,
+                                             const NodeRef& node) const {
         auto it = inv_map.find(node);
         return it == inv_map.end() ? m_bottom : it->second;
     }

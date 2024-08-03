@@ -13,8 +13,8 @@
 
 #pragma once
 
-#include <llvm/Support/CommandLine.h>
 #include <llvm/Option/OptTable.h>
+#include <llvm/Support/CommandLine.h>
 
 #include <clang/Driver/Options.h>
 #include <clang/Tooling/CommonOptionsParser.h>
@@ -24,6 +24,8 @@ namespace knight::cl_opts {
 using namespace llvm;
 using namespace clang::driver;
 using namespace clang::tooling;
+
+// NOLINTBEGIN(readability-identifier-naming,cert-err58-cpp,cppcoreguidelines-avoid-non-const-global-variables,cppcoreguidelines-interfaces-global-init,fuchsia-statically-constructed-objects)
 
 inline cl::OptionCategory knight_category("knight options");
 
@@ -104,5 +106,7 @@ Dump the control flow graph of the analyzed function.
 )"),
                                 cl::init(false),
                                 cl::cat(knight_category));
+
+// NOLINTEND(readability-identifier-naming,cert-err58-cpp,cppcoreguidelines-avoid-non-const-global-variables,cppcoreguidelines-interfaces-global-init,fuchsia-statically-constructed-objects)
 
 } // namespace knight::cl_opts

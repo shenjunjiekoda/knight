@@ -13,8 +13,8 @@
 
 #pragma once
 
-#include <clang/Analysis/CFG.h>
 #include <clang/AST/Decl.h>
+#include <clang/Analysis/CFG.h>
 
 #include <llvm/ADT/BitVector.h>
 #include <llvm/Support/raw_ostream.h>

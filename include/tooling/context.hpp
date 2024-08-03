@@ -19,14 +19,14 @@
 
 #include <llvm/ADT/StringRef.h>
 
-#include <clang/Basic/SourceManager.h>
-#include <clang/Basic/LangOptions.h>
 #include <clang/AST/ASTContext.h>
+#include <clang/Basic/LangOptions.h>
+#include <clang/Basic/SourceManager.h>
 #include <clang/Tooling/Core/Diagnostic.h>
 
-#include <unordered_map>
 #include <memory>
 #include <string>
+#include <unordered_map>
 
 namespace knight {
 
@@ -111,8 +111,9 @@ class KnightContext {
     /// \returns \c true if the checker is enabled, \c false otherwise.
     bool is_analysis_directly_enabled(llvm::StringRef analysis) const;
 
-    /// \brief Returns the corresponding checker name for the given diagnostic ID.
-    /// \returns The checker name if found, or an empty optional if not found.
+    /// \brief Returns the corresponding checker name for the given diagnostic
+    /// ID. \returns The checker name if found, or an empty optional if not
+    /// found.
     std::optional< std::string > get_check_name(unsigned diag_id);
 
     /// \brief Get the options for the given file.

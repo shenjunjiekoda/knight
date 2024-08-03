@@ -25,7 +25,7 @@ concept checker_has_add_dependencies = requires(CheckerManager& mgr) {
 };
 
 template < typename CHECKER >
-struct is_dependent_checker
+struct is_dependent_checker // NOLINT
     : std::bool_constant< checker_has_add_dependencies< CHECKER > > {
 }; // struct is_dependent_checker
 

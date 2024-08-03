@@ -16,7 +16,6 @@
 #include "dfa/analysis_manager.hpp"
 #include "dfa/checker/checkers.hpp"
 #include "dfa/checker_context.hpp"
-#include "dfa/domain/dom_base.hpp"
 #include "dfa/proc_cfg.hpp"
 #include "tooling/context.hpp"
 
@@ -70,11 +69,13 @@ using CheckEndFunctionCallBack =
 using CheckStmtCallBack = CheckerCallBack< void(StmtRef, CheckerContext&) >;
 using MatchStmtCallBack = bool (*)(StmtRef S);
 enum class CheckStmtKind { Pre, Post };
+constexpr unsigned StmtCheckerInfoAlign = 64;
 struct StmtCheckerInfo {
     CheckStmtCallBack anz_cb;
     MatchStmtCallBack match_cb;
     CheckStmtKind kind;
-}; // struct StmtCheckerInfo
+} __attribute__((aligned(StmtCheckerInfoAlign)))
+__attribute__((packed)); // struct StmtCheckerInfo
 
 } // namespace internal
 
@@ -120,7 +121,7 @@ class CheckerManager {
     template < typename CHECKER, typename... AT >
     UniqueCheckerRef register_checker(KnightContext& ctx, AT&&... Args) {
         CheckerID id = get_checker_id(CHECKER::get_kind());
-        if (m_checkers.count(id)) {
+        if (m_checkers.contains(id)) {
             llvm::errs() << get_checker_name_by_id(id)
                          << " checker is already registered.\n";
         } else {

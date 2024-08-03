@@ -20,9 +20,9 @@
 namespace knight {
 
 template < typename STMT >
-struct is_clang_stmt : std::is_base_of< clang::Stmt, STMT > {};
+struct is_clang_stmt : std::is_base_of< clang::Stmt, STMT > {}; // NOLINT
 template < typename DECL >
-struct is_clang_decl : std::is_base_of< clang::Decl, DECL > {};
+struct is_clang_decl : std::is_base_of< clang::Decl, DECL > {}; // NOLINT
 
 template < typename STMT >
 concept clang_stmt = is_clang_stmt< STMT >::value;

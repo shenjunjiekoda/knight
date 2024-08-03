@@ -31,7 +31,9 @@ class DemoAnalysis : public Analysis< DemoAnalysis,
   public:
     DemoAnalysis(KnightContext& ctx) : Analysis(ctx) {}
 
-    static AnalysisKind get_kind() { return AnalysisKind::DemoAnalysis; }
+    [[nodiscard]] static AnalysisKind get_kind() {
+        return AnalysisKind::DemoAnalysis;
+    }
 
     void analyze_begin_function(AnalysisContext& C) const {
         llvm::outs() << "DemoAnalysis::analyze_begin_function()\n";

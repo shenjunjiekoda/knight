@@ -14,8 +14,8 @@
 #include "dfa/analysis/analyses.hpp"
 #include "dfa/analysis/demo_analysis.hpp"
 #include "dfa/checker/demo_checker.hpp"
-#include "tooling/module.hpp"
 #include "tooling/factory.hpp"
+#include "tooling/module.hpp"
 
 namespace knight {
 

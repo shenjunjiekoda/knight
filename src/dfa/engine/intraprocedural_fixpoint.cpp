@@ -13,10 +13,10 @@
 //===------------------------------------------------------------------===//
 
 #include "dfa/engine/intraprocedural_fixpoint.hpp"
-#include "dfa/engine/block_engine.hpp"
-#include "dfa/program_state.hpp"
 #include "dfa/analysis/analysis_base.hpp"
 #include "dfa/checker/checker_base.hpp"
+#include "dfa/engine/block_engine.hpp"
+#include "dfa/program_state.hpp"
 #include "llvm/Support/raw_ostream.h"
 
 namespace knight::dfa {

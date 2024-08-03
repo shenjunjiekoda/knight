@@ -12,12 +12,12 @@
 //===------------------------------------------------------------------===//
 
 #include <cstdint>
-#include <llvm/Support/raw_ostream.h>
-#include <llvm/Support/InitLLVM.h>
-#include <llvm/Support/WithColor.h>
-#include <llvm/Support/TargetSelect.h>
 #include <llvm/Support/CommandLine.h>
+#include <llvm/Support/InitLLVM.h>
 #include <llvm/Support/Process.h>
+#include <llvm/Support/TargetSelect.h>
+#include <llvm/Support/WithColor.h>
+#include <llvm/Support/raw_ostream.h>
 
 #include <clang/Tooling/CommonOptionsParser.h>
 #include <string>

@@ -17,8 +17,8 @@
 #include "util/assert.hpp"
 
 #include <clang/Basic/Diagnostic.h>
-#include <clang/Tooling/Core/Diagnostic.h>
 #include <clang/Lex/Lexer.h>
+#include <clang/Tooling/Core/Diagnostic.h>
 #include <llvm/ADT/STLExtras.h>
 
 #include <algorithm>
@@ -73,8 +73,8 @@ void KnightDiagnosticConsumer::HandleDiagnostic(
         auto check = m_context.get_check_name(diagnostic.getID());
 
         if (!check) {
-            // This is a compiler diagnostic without a warning option. Assign check
-            // name based on its level.
+            // This is a compiler diagnostic without a warning option. Assign
+            // check name based on its level.
             switch (diag_level) {
             case DiagnosticsEngine::Error:
             case DiagnosticsEngine::Fatal:

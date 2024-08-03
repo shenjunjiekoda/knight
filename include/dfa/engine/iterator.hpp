@@ -38,26 +38,25 @@ class FixPointIterator {
   public:
     virtual void run(ProgramStateRef init_state) = 0;
 
-    virtual GraphRef get_cfg() const = 0;
+    [[nodiscard]] virtual GraphRef get_cfg() const = 0;
 
-    virtual ProgramStateRef get_pre(NodeRef node) const = 0;
-    virtual ProgramStateRef get_post(NodeRef node) const = 0;
-    virtual bool is_converged() const = 0;
+    [[nodiscard]] virtual ProgramStateRef get_pre(NodeRef node) const = 0;
+    [[nodiscard]] virtual ProgramStateRef get_post(NodeRef node) const = 0;
+    [[nodiscard]] virtual bool is_converged() const = 0;
     virtual void clear() = 0;
 
     /// \brief transfer function for a graph node.
     ///
     /// \return the out program state after transfering to the given node.
-    virtual ProgramStateRef transfer_node(NodeRef node,
-                                          ProgramStateRef pre_state) = 0;
+    [[nodiscard]] virtual ProgramStateRef transfer_node(
+        NodeRef node, ProgramStateRef pre_state) = 0;
 
     /// \brief transfer function for a graph edge.
     ///
     /// \return the out program state after transfering to the given edge,
     ///         to the in state of the destination node.
-    virtual ProgramStateRef transfer_edge(NodeRef src,
-                                          NodeRef dst,
-                                          ProgramStateRef src_post_state) = 0;
+    [[nodiscard]] virtual ProgramStateRef transfer_edge(
+        NodeRef src, NodeRef dst, ProgramStateRef src_post_state) = 0;
 
     /// \brief check the precondition of a node.
     virtual void check_pre(NodeRef, const ProgramStateRef&) = 0;

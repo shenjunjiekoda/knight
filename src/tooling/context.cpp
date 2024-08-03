@@ -15,9 +15,9 @@
 #include "tooling/context.hpp"
 #include "util/assert.hpp"
 
-#include <clang/Basic/SourceManager.h>
-#include <clang/Basic/SourceLocation.h>
 #include <clang/AST/ASTDiagnostic.h>
+#include <clang/Basic/SourceLocation.h>
+#include <clang/Basic/SourceManager.h>
 
 #include <memory>
 

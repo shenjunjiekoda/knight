@@ -21,7 +21,6 @@
 #include <clang/AST/Decl.h>
 
 #include <climits>
-#include <map>
 
 namespace knight::dfa {
 
@@ -40,16 +39,20 @@ class DemoItvDom : public AbsDom< DemoItvDom > {
     DemoItvDom(Bottom) : m_lb(0), m_ub(0), m_is_bottom(true), AbsDom() {}
 
     /// \brief specify the domain kind
-    static DomainKind get_kind() { return DomainKind::DemoItvDom; }
+    [[nodiscard]] static DomainKind get_kind() {
+        return DomainKind::DemoItvDom;
+    }
 
   public:
-    static UniqueVal default_val() { return std::make_unique< DemoItvDom >(); }
+    [[nodiscard]] static UniqueVal default_val() {
+        return std::make_unique< DemoItvDom >();
+    }
 
-    static UniqueVal bottom_val() {
+    [[nodiscard]] static UniqueVal bottom_val() {
         return std::make_unique< DemoItvDom >(Bottom{});
     }
 
-    UniqueVal clone() const override {
+    [[nodiscard]] UniqueVal clone() const override {
         if (is_bottom()) {
             return bottom_val();
         }
@@ -62,9 +65,9 @@ class DemoItvDom : public AbsDom< DemoItvDom > {
         }
     }
 
-    bool is_bottom() const override { return m_is_bottom; }
+    [[nodiscard]] bool is_bottom() const override { return m_is_bottom; }
 
-    bool is_top() const override {
+    [[nodiscard]] bool is_top() const override {
         return !m_is_bottom && m_lb == INT_MIN && m_ub == INT_MAX;
     }
 
@@ -105,14 +108,14 @@ class DemoItvDom : public AbsDom< DemoItvDom > {
         m_ub = std::min(m_ub, other.m_ub);
     }
 
-    bool leq(const DemoItvDom& other) const {
+    [[nodiscard]] bool leq(const DemoItvDom& other) const {
         if (is_bottom() || other.is_top()) {
             return true;
         }
         return m_lb <= other.m_lb && m_ub >= other.m_ub;
     }
 
-    bool equals(const DemoItvDom& other) const {
+    [[nodiscard]] bool equals(const DemoItvDom& other) const {
         if (is_bottom() && other.is_bottom()) {
             return true;
         }

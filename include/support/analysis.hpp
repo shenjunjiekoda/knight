@@ -25,7 +25,7 @@ concept analysis_has_add_dependencies = requires(AnalysisManager& mgr) {
 };
 
 template < typename ANALYSIS >
-struct is_dependent_analysis
+struct is_dependent_analysis // NOLINT
     : std::bool_constant< analysis_has_add_dependencies< ANALYSIS > > {
 }; // struct is_dependent_analysis
 

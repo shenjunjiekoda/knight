@@ -87,18 +87,24 @@ template < typename Num, typename Var > class LinearExpr {
 
     void set_to_zero() { set_to_constant(0); }
 
-    Map& get_terms() { return this->m_terms; }
-    const Map& get_variable_terms() const { return this->m_terms; }
-    std::size_t num_variable_terms() const { return this->m_terms.size(); }
+    [[nodiscard]] Map& get_terms() { return this->m_terms; }
+    [[nodiscard]] const Map& get_variable_terms() const {
+        return this->m_terms;
+    }
+    [[nodiscard]] std::size_t num_variable_terms() const {
+        return this->m_terms.size();
+    }
 
-    bool is_constant() const { return this->m_terms.empty(); }
-    const Num& get_constant_term() const { return this->m_constant; }
+    [[nodiscard]] bool is_constant() const { return this->m_terms.empty(); }
+    [[nodiscard]] const Num& get_constant_term() const {
+        return this->m_constant;
+    }
 
-    bool is_constant(Num cst) const {
+    [[nodiscard]] bool is_constant(Num cst) const {
         return is_constant() && get_constant_term() == cst;
     }
 
-    Num get_factor_of(VarRef var) const {
+    [[nodiscard]] Num get_factor_of(VarRef var) const {
         auto it = this->m_terms.find(var);
         if (it != this->m_terms.end()) {
             return it->second;
@@ -133,7 +139,7 @@ template < typename Num, typename Var > class LinearExpr {
     }
 
     /// \brief Unary minus
-    LinearExpr operator-() const {
+    [[nodiscard]] LinearExpr operator-() const {
         LinearExpr r(*this);
         r *= -1;
         return r;
@@ -165,7 +171,7 @@ template < typename Num, typename Var > class LinearExpr {
     }
 
     /// \brief return the single var x or std::nullopt if not a single var
-    std::optional< VarRef > get_as_single_variable() const {
+    [[nodiscard]] std::optional< VarRef > get_as_single_variable() const {
         if (this->m_constant == 0 && this->m_terms.size() == 1) {
             auto it = this->m_terms.begin();
             if (it->second == 1) {
@@ -176,7 +182,7 @@ template < typename Num, typename Var > class LinearExpr {
     }
 
     /// \brief Return all variables in the expression
-    VarSet get_var_set() const {
+    [[nodiscard]] VarSet get_var_set() const {
         VarSet vars;
         for (const auto& [var, _] : this->m_terms) {
             vars.insert(var);
@@ -208,141 +214,147 @@ template < typename Num, typename Var > class LinearExpr {
 }; // class LinearExpr
 
 template < typename Num, typename Var >
-inline LinearExpr< Num, Var > operator*(typename Var::Ref var, Num factor) {
+[[nodiscard]] inline LinearExpr< Num, Var > operator*(typename Var::Ref var,
+                                                      Num factor) {
     return LinearExpr< Num, Var >(std::move(factor), var);
 }
 
 template < typename Num, typename Var >
-inline LinearExpr< Num, Var > operator*(Num factor, typename Var::Ref var) {
+[[nodiscard]] inline LinearExpr< Num, Var > operator*(Num factor,
+                                                      typename Var::Ref var) {
     return LinearExpr< Num, Var >(std::move(factor), var);
 }
 
 template < typename Num, typename Var >
-inline LinearExpr< Num, Var > operator*(LinearExpr< Num, Var > linear_expr,
-                                        const Num& k) {
+[[nodiscard]] inline LinearExpr< Num, Var > operator*(
+    LinearExpr< Num, Var > linear_expr, const Num& k) {
     linear_expr *= k;
     return linear_expr;
 }
 
 template < typename Num, typename Var >
-inline LinearExpr< Num, Var > operator*(const Num& k,
-                                        LinearExpr< Num, Var > linear_expr) {
+[[nodiscard]] inline LinearExpr< Num, Var > operator*(
+    const Num& k, LinearExpr< Num, Var > linear_expr) {
     linear_expr *= k;
     return linear_expr;
 }
 
 template < typename Num, typename Var >
-inline LinearExpr< Num, Var > operator+(typename Var::Ref var, const Num& n) {
+[[nodiscard]] inline LinearExpr< Num, Var > operator+(typename Var::Ref var,
+                                                      const Num& n) {
     LinearExpr< Num, Var > single_var_expr(var);
     single_var_expr += n;
     return single_var_expr;
 }
 
 template < typename Num, typename Var >
-inline LinearExpr< Num, Var > operator+(const Num& n, typename Var::Ref var) {
+[[nodiscard]] inline LinearExpr< Num, Var > operator+(const Num& n,
+                                                      typename Var::Ref var) {
     LinearExpr< Num, Var > single_var_expr(var);
     single_var_expr += n;
     return single_var_expr;
 }
 
 template < typename Num, typename Var >
-inline LinearExpr< Num, Var > operator+(typename Var::Ref x,
-                                        typename Var::Ref y) {
+[[nodiscard]] inline LinearExpr< Num, Var > operator+(typename Var::Ref x,
+                                                      typename Var::Ref y) {
     LinearExpr< Num, Var > single_var_expr(x);
     single_var_expr += y;
     return single_var_expr;
 }
 
 template < typename Num, typename Var >
-inline LinearExpr< Num, Var > operator+(LinearExpr< Num, Var > linear_expr,
-                                        const Num& n) {
+[[nodiscard]] inline LinearExpr< Num, Var > operator+(
+    LinearExpr< Num, Var > linear_expr, const Num& n) {
     linear_expr += n;
     return linear_expr;
 }
 
 template < typename Num, typename Var >
-inline LinearExpr< Num, Var > operator+(const Num& n,
-                                        LinearExpr< Num, Var > linear_expr) {
+[[nodiscard]] inline LinearExpr< Num, Var > operator+(
+    const Num& n, LinearExpr< Num, Var > linear_expr) {
     linear_expr += n;
     return linear_expr;
 }
 
 template < typename Num, typename Var >
-inline LinearExpr< Num, Var > operator+(LinearExpr< Num, Var > linear_expr,
-                                        typename Var::Ref x) {
+[[nodiscard]] inline LinearExpr< Num, Var > operator+(
+    LinearExpr< Num, Var > linear_expr, typename Var::Ref x) {
     linear_expr += x;
     return linear_expr;
 }
 
 template < typename Num, typename Var >
-inline LinearExpr< Num, Var > operator+(typename Var::Ref linear_expr,
-                                        LinearExpr< Num, Var > x) {
+[[nodiscard]] inline LinearExpr< Num, Var > operator+(
+    typename Var::Ref linear_expr, LinearExpr< Num, Var > x) {
     x += linear_expr;
     return x;
 }
 
 template < typename Num, typename Var >
-inline LinearExpr< Num, Var > operator+(LinearExpr< Num, Var > x,
-                                        const LinearExpr< Num, Var >& y) {
+[[nodiscard]] inline LinearExpr< Num, Var > operator+(
+    LinearExpr< Num, Var > x, const LinearExpr< Num, Var >& y) {
     x += y;
     return x;
 }
 
 template < typename Num, typename Var >
-inline LinearExpr< Num, Var > operator-(typename Var::Ref var, const Num& n) {
+[[nodiscard]] inline LinearExpr< Num, Var > operator-(typename Var::Ref var,
+                                                      const Num& n) {
     LinearExpr< Num, Var > single_var_expr(var);
     single_var_expr -= n;
     return single_var_expr;
 }
 
 template < typename Num, typename Var >
-inline LinearExpr< Num, Var > operator-(const Num& n, typename Var::Ref var) {
+[[nodiscard]] inline LinearExpr< Num, Var > operator-(const Num& n,
+                                                      typename Var::Ref var) {
     LinearExpr< Num, Var > single_var_expr(-1, var);
     single_var_expr += n;
     return single_var_expr;
 }
 
 template < typename Num, typename Var >
-inline LinearExpr< Num, Var > operator-(typename Var::Ref x,
-                                        typename Var::Ref y) {
+[[nodiscard]] inline LinearExpr< Num, Var > operator-(typename Var::Ref x,
+                                                      typename Var::Ref y) {
     LinearExpr< Num, Var > single_var_expr(x);
     single_var_expr -= y;
     return single_var_expr;
 }
 
 template < typename Num, typename Var >
-inline LinearExpr< Num, Var > operator-(LinearExpr< Num, Var > linear_expr,
-                                        const Num& n) {
+[[nodiscard]] inline LinearExpr< Num, Var > operator-(
+    LinearExpr< Num, Var > linear_expr, const Num& n) {
     linear_expr -= n;
     return linear_expr;
 }
 
 template < typename Num, typename Var >
-inline LinearExpr< Num, Var > operator-(LinearExpr< Num, Var > linear_expr,
-                                        typename Var::Ref x) {
+[[nodiscard]] inline LinearExpr< Num, Var > operator-(
+    LinearExpr< Num, Var > linear_expr, typename Var::Ref x) {
     linear_expr -= x;
     return linear_expr;
 }
 
 template < typename Num, typename Var >
-inline LinearExpr< Num, Var > operator-(const Num& n,
-                                        LinearExpr< Num, Var > linear_expr) {
+[[nodiscard]] inline LinearExpr< Num, Var > operator-(
+    const Num& n, LinearExpr< Num, Var > linear_expr) {
     linear_expr *= -1;
     linear_expr += n;
     return linear_expr;
 }
 
 template < typename Num, typename Var >
-inline LinearExpr< Num, Var > operator-(typename Var::Ref x,
-                                        LinearExpr< Num, Var > linear_expr) {
+[[nodiscard]] inline LinearExpr< Num, Var > operator-(
+    typename Var::Ref x, LinearExpr< Num, Var > linear_expr) {
     linear_expr *= -1;
     linear_expr += x;
     return linear_expr;
 }
 
 template < typename Num, typename Var >
-inline LinearExpr< Num, Var > operator-(LinearExpr< Num, Var > x,
-                                        const LinearExpr< Num, Var >& y) {
+[[nodiscard]] inline LinearExpr< Num, Var > operator-(
+    LinearExpr< Num, Var > x, const LinearExpr< Num, Var >& y) {
     x -= y;
     return x;
 }
@@ -354,7 +366,7 @@ enum class LinearConstraintKind {
     LCK_Equality,    // ==
     LCK_Disequation, // !=
     LCK_Inequality,  // <=
-}; // enum class LinearConstraintLinearConstraintKind
+};                   // enum class LinearConstraintLinearConstraintKind
 
 template < typename Num, typename Var > class LinearConstraint {
   public:
@@ -380,17 +392,17 @@ template < typename Num, typename Var > class LinearConstraint {
     ~LinearConstraint() = default;
 
     /// \brief Create the tautology 0 == 0
-    static LinearConstraint tautology() {
+    [[nodiscard]] static LinearConstraint tautology() {
         return LinearConstraint(LinearExpr(), LCK_Equality);
     }
 
     /// \brief Create the contradiction 0 != 0
-    static LinearConstraint contradiction() {
+    [[nodiscard]] static LinearConstraint contradiction() {
         return LinearConstraint(LinearExpr(), LCK_Disequation);
     }
 
     /// \brief Return true if the constraint is a tautology
-    bool is_tautology() const {
+    [[nodiscard]] bool is_tautology() const {
         if (!this->m_linear_expr.is_constant()) {
             return false;
         }
@@ -412,7 +424,7 @@ template < typename Num, typename Var > class LinearConstraint {
     }
 
     /// \brief Return true if the constraint is a contradiction
-    bool is_contradiction() const {
+    [[nodiscard]] bool is_contradiction() const {
         if (!this->m_linear_expr.is_constant()) {
             return false;
         }
@@ -436,24 +448,36 @@ template < typename Num, typename Var > class LinearConstraint {
         knight_unreachable("Invalid constraint kind");
     }
 
-    bool is_equality() const { return this->m_kind == LCK_Equality; }
-    bool is_disequation() const { return this->m_kind == LCK_Disequation; }
-    bool is_Inequality() const { return this->m_kind == LCK_Inequality; }
+    [[nodiscard]] bool is_equality() const {
+        return this->m_kind == LCK_Equality;
+    }
+    [[nodiscard]] bool is_disequation() const {
+        return this->m_kind == LCK_Disequation;
+    }
+    [[nodiscard]] bool is_Inequality() const {
+        return this->m_kind == LCK_Inequality;
+    }
 
-    const LinearExpr& get_linear_expression() const {
+    [[nodiscard]] const LinearExpr& get_linear_expression() const {
         return this->m_linear_expr;
     }
 
-    LinearConstraintKind get_constraint_kind() const { return this->m_kind; }
-    Num get_constant_term() const { return -this->m_linear_expr.constant(); }
-    std::size_t num_variable_terms() const {
+    [[nodiscard]] LinearConstraintKind get_constraint_kind() const {
+        return this->m_kind;
+    }
+    [[nodiscard]] Num get_constant_term() const {
+        return -this->m_linear_expr.constant();
+    }
+    [[nodiscard]] std::size_t num_variable_terms() const {
         return this->m_linear_expr.num_variable_terms();
     }
 
-    Num get_factor_of(VarRef var) const {
+    [[nodiscard]] Num get_factor_of(VarRef var) const {
         return this->m_linear_expr.get_factor_of(var);
     }
-    VarSet get_var_set() const { return this->m_linear_expr.get_var_set(); }
+    [[nodiscard]] VarSet get_var_set() const {
+        return this->m_linear_expr.get_var_set();
+    }
 
     void dump(llvm::raw_ostream& os) const {
         if (this->is_contradiction()) {
@@ -491,45 +515,45 @@ template < typename Num, typename Var > class LinearConstraint {
 }; // class LinearConstraint
 
 template < typename Num, typename Var >
-inline LinearConstraint< Num, Var > operator<=(
+[[nodiscard]] inline LinearConstraint< Num, Var > operator<=(
     LinearExpr< Num, Var > linear_expr, const Num& n) {
     return LinearConstraint< Num, Var >(std::move(linear_expr) - n,
                                         LinearConstraintKind::LCK_Inequality);
 }
 
 template < typename Num, typename Var >
-inline LinearConstraint< Num, Var > operator<=(LinearExpr< Num, Var > x,
-                                               typename Var::Ref y) {
+[[nodiscard]] inline LinearConstraint< Num, Var > operator<=(
+    LinearExpr< Num, Var > x, typename Var::Ref y) {
     return LinearConstraint< Num, Var >(std::move(x) - std::move(y),
                                         LinearConstraintKind::LCK_Inequality);
 }
 
 template < typename Num, typename Var >
-inline LinearConstraint< Num, Var > operator<=(typename Var::Ref x,
-                                               const Num& n) {
+[[nodiscard]] inline LinearConstraint< Num, Var > operator<=(
+    typename Var::Ref x, const Num& n) {
     return LinearConstraint< Num,
                              Var >(std::move(x) - n,
                                    LinearConstraint< Num, Var >::Inequality);
 }
 
 template < typename Num, typename Var >
-inline LinearConstraint< Num, Var > operator<=(typename Var::Ref x,
-                                               typename Var::Ref y) {
+[[nodiscard]] inline LinearConstraint< Num, Var > operator<=(
+    typename Var::Ref x, typename Var::Ref y) {
     return LinearConstraint< Num,
                              Var >(std::move(x) - std::move(y),
                                    LinearConstraint< Num, Var >::Inequality);
 }
 
 template < typename Num, typename Var >
-inline LinearConstraint< Num, Var > operator<=(typename Var::Ref x,
-                                               LinearExpr< Num, Var > y) {
+[[nodiscard]] inline LinearConstraint< Num, Var > operator<=(
+    typename Var::Ref x, LinearExpr< Num, Var > y) {
     return LinearConstraint< Num,
                              Var >(std::move(x) - std::move(y),
                                    LinearConstraint< Num, Var >::Inequality);
 }
 
 template < typename Num, typename Var >
-inline LinearConstraint< Num, Var > operator<=(
+[[nodiscard]] inline LinearConstraint< Num, Var > operator<=(
     LinearExpr< Num, Var > x, const LinearExpr< Num, Var >& y) {
     return LinearConstraint< Num,
                              Var >(std::move(x) - y,
@@ -537,7 +561,7 @@ inline LinearConstraint< Num, Var > operator<=(
 }
 
 template < typename Num, typename Var >
-inline LinearConstraint< Num, Var > operator>=(
+[[nodiscard]] inline LinearConstraint< Num, Var > operator>=(
     LinearExpr< Num, Var > linear_expr, const Num& n) {
     return LinearConstraint< Num,
                              Var >(n - std::move(linear_expr),
@@ -545,7 +569,7 @@ inline LinearConstraint< Num, Var > operator>=(
 }
 
 template < typename Num, typename Var >
-inline LinearConstraint< Num, Var > operator>=(
+[[nodiscard]] inline LinearConstraint< Num, Var > operator>=(
     LinearExpr< Num, Var > linear_expr, typename Var::Ref x) {
     return LinearConstraint< Num,
                              Var >(std::move(x) - std::move(linear_expr),
@@ -553,23 +577,23 @@ inline LinearConstraint< Num, Var > operator>=(
 }
 
 template < typename Num, typename Var >
-inline LinearConstraint< Num, Var > operator>=(typename Var::Ref x,
-                                               const Num& n) {
+[[nodiscard]] inline LinearConstraint< Num, Var > operator>=(
+    typename Var::Ref x, const Num& n) {
     return LinearConstraint< Num,
                              Var >(n - std::move(x),
                                    LinearConstraint< Num, Var >::Inequality);
 }
 
 template < typename Num, typename Var >
-inline LinearConstraint< Num, Var > operator>=(typename Var::Ref x,
-                                               typename Var::Ref y) {
+[[nodiscard]] inline LinearConstraint< Num, Var > operator>=(
+    typename Var::Ref x, typename Var::Ref y) {
     return LinearConstraint< Num,
                              Var >(std::move(y) - std::move(x),
                                    LinearConstraint< Num, Var >::Inequality);
 }
 
 template < typename Num, typename Var >
-inline LinearConstraint< Num, Var > operator>=(
+[[nodiscard]] inline LinearConstraint< Num, Var > operator>=(
     typename Var::Ref x, LinearExpr< Num, Var > linear_expr) {
     return LinearConstraint< Num,
                              Var >(std::move(linear_expr) - std::move(x),
@@ -577,57 +601,57 @@ inline LinearConstraint< Num, Var > operator>=(
 }
 
 template < typename Num, typename Var >
-inline LinearConstraint< Num, Var > operator>=(const LinearExpr< Num, Var >& x,
-                                               LinearExpr< Num, Var > y) {
+[[nodiscard]] inline LinearConstraint< Num, Var > operator>=(
+    const LinearExpr< Num, Var >& x, LinearExpr< Num, Var > y) {
     return LinearConstraint< Num,
                              Var >(std::move(y) - x,
                                    LinearConstraint< Num, Var >::Inequality);
 }
 
 template < typename Num, typename Var >
-inline LinearConstraint< Num, Var > operator==(
+[[nodiscard]] inline LinearConstraint< Num, Var > operator==(
     LinearExpr< Num, Var > linear_expr, const Num& n) {
     return LinearConstraint< Num, Var >(std::move(linear_expr) - n,
                                         LinearConstraint< Num, Var >::Equality);
 }
 
 template < typename Num, typename Var >
-inline LinearConstraint< Num, Var > operator==(
+[[nodiscard]] inline LinearConstraint< Num, Var > operator==(
     LinearExpr< Num, Var > linear_expr, typename Var::Ref x) {
     return LinearConstraint< Num, Var >(std::move(linear_expr) - std::move(x),
                                         LinearConstraint< Num, Var >::Equality);
 }
 
 template < typename Num, typename Var >
-inline LinearConstraint< Num, Var > operator==(typename Var::Ref x,
-                                               const Num& n) {
+[[nodiscard]] inline LinearConstraint< Num, Var > operator==(
+    typename Var::Ref x, const Num& n) {
     return LinearConstraint< Num, Var >(std::move(x) - n,
                                         LinearConstraint< Num, Var >::Equality);
 }
 
 template < typename Num, typename Var >
-inline LinearConstraint< Num, Var > operator==(typename Var::Ref x,
-                                               typename Var::Ref y) {
+[[nodiscard]] inline LinearConstraint< Num, Var > operator==(
+    typename Var::Ref x, typename Var::Ref y) {
     return LinearConstraint< Num, Var >(std::move(x) - std::move(y),
                                         LinearConstraint< Num, Var >::Equality);
 }
 
 template < typename Num, typename Var >
-inline LinearConstraint< Num, Var > operator==(
+[[nodiscard]] inline LinearConstraint< Num, Var > operator==(
     typename Var::Ref x, LinearExpr< Num, Var > linear_expr) {
     return LinearConstraint< Num, Var >(std::move(linear_expr) - std::move(x),
                                         LinearConstraint< Num, Var >::Equality);
 }
 
 template < typename Num, typename Var >
-inline LinearConstraint< Num, Var > operator==(
+[[nodiscard]] inline LinearConstraint< Num, Var > operator==(
     LinearExpr< Num, Var > x, const LinearExpr< Num, Var >& y) {
     return LinearConstraint< Num, Var >(std::move(x) - y,
                                         LinearConstraint< Num, Var >::Equality);
 }
 
 template < typename Num, typename Var >
-inline LinearConstraint< Num, Var > operator!=(
+[[nodiscard]] inline LinearConstraint< Num, Var > operator!=(
     LinearExpr< Num, Var > linear_expr, const Num& n) {
     return LinearConstraint< Num,
                              Var >(std::move(linear_expr) - n,
@@ -635,7 +659,7 @@ inline LinearConstraint< Num, Var > operator!=(
 }
 
 template < typename Num, typename Var >
-inline LinearConstraint< Num, Var > operator!=(
+[[nodiscard]] inline LinearConstraint< Num, Var > operator!=(
     LinearExpr< Num, Var > linear_expr, typename Var::Ref x) {
     return LinearConstraint< Num,
                              Var >(std::move(linear_expr) - std::move(x),
@@ -643,23 +667,23 @@ inline LinearConstraint< Num, Var > operator!=(
 }
 
 template < typename Num, typename Var >
-inline LinearConstraint< Num, Var > operator!=(typename Var::Ref x,
-                                               const Num& n) {
+[[nodiscard]] inline LinearConstraint< Num, Var > operator!=(
+    typename Var::Ref x, const Num& n) {
     return LinearConstraint< Num,
                              Var >(std::move(x) - n,
                                    LinearConstraint< Num, Var >::Disequation);
 }
 
 template < typename Num, typename Var >
-inline LinearConstraint< Num, Var > operator!=(typename Var::Ref x,
-                                               typename Var::Ref y) {
+[[nodiscard]] inline LinearConstraint< Num, Var > operator!=(
+    typename Var::Ref x, typename Var::Ref y) {
     return LinearConstraint< Num,
                              Var >(std::move(x) - std::move(y),
                                    LinearConstraint< Num, Var >::Disequation);
 }
 
 template < typename Num, typename Var >
-inline LinearConstraint< Num, Var > operator!=(
+[[nodiscard]] inline LinearConstraint< Num, Var > operator!=(
     typename Var::Ref x, LinearExpr< Num, Var > linear_expr) {
     return LinearConstraint< Num,
                              Var >(std::move(linear_expr) - std::move(x),
@@ -667,7 +691,7 @@ inline LinearConstraint< Num, Var > operator!=(
 }
 
 template < typename Num, typename Var >
-inline LinearConstraint< Num, Var > operator!=(
+[[nodiscard]] inline LinearConstraint< Num, Var > operator!=(
     LinearExpr< Num, Var > x, const LinearExpr< Num, Var >& y) {
     return LinearConstraint< Num,
                              Var >(std::move(x) - y,
@@ -699,9 +723,11 @@ template < typename Num, typename Var > class LinearConstraintSystem {
     LinearConstraintSystem& operator=(LinearConstraintSystem&&) = default;
     ~LinearConstraintSystem() = default;
 
-    bool is_empty() const { return this->m_linear_csts.empty(); }
+    [[nodiscard]] bool is_empty() const { return this->m_linear_csts.empty(); }
 
-    std::size_t size() const { return this->m_linear_csts.size(); }
+    [[nodiscard]] std::size_t size() const {
+        return this->m_linear_csts.size();
+    }
 
     void add_linear_constraint(LinearConstraint cst) {
         this->m_linear_csts.emplace_back(std::move(cst));
@@ -721,12 +747,14 @@ template < typename Num, typename Var > class LinearConstraintSystem {
                                    std::make_move_iterator(csts.end()));
     }
 
-    const LinearConstraints& get_linear_constraints() const {
+    [[nodiscard]] const LinearConstraints& get_linear_constraints() const {
         return m_linear_csts;
     }
-    LinearConstraints& get_linear_constraints_ref() { return m_linear_csts; }
+    [[nodiscard]] LinearConstraints& get_linear_constraints_ref() {
+        return m_linear_csts;
+    }
 
-    VarSet get_var_set() const {
+    [[nodiscard]] VarSet get_var_set() const {
         VarSet vars;
         for (const LinearConstraint& cst : this->m_linear_csts) {
             for (const auto& term : cst) {

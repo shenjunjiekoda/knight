@@ -346,6 +346,59 @@ class SeparateNumericalDom
 
     /// TODO: For numericals
 
+    void widen_with_threshold(const SeparateNumericalDom& other,
+                              const Num& threshold) {
+        if (other.is_bottom() || this->is_top()) {
+            return;
+        } else if (this->is_bottom()) {
+            *this = other;
+        } else {
+            for (auto& [key, sep_num_value] : other.m_table) {
+                auto it = m_table.find(key);
+                if (it == m_table.end()) {
+                    m_table[key] = sep_num_value;
+                } else {
+                    it->second.widening_threshold(sep_num_value, threshold);
+                }
+            }
+        }
+    }
+
+    void narrow_with_threshold(const SeparateNumericalDom& other,
+                               const Num& threshold) {
+        if (this->is_bottom() || other.is_top()) {
+            return;
+        }
+        if (other.is_bottom() || this->is_top()) {
+            *this = other;
+            return;
+        }
+        for (auto& [key, value] : other.m_table) {
+            auto it = m_table.find(key);
+            if (it == m_table.end()) {
+                m_table[key] = value;
+            } else {
+                it->second.narrow_with_threshold(value, threshold);
+                if (it->second.is_bottom()) {
+                    this->set_to_bottom();
+                    return;
+                }
+            }
+        }
+    }
+
+    /// \brief Assign `x = n`
+    void transfer_assign_constant(VarRef x, const Num& n) {
+        this->set_value(x, Value(n));
+    }
+
+    /// \brief Assign `x = y`
+    void transfer_assign_variable(VarRef x, VarRef y) {
+        this->set_value(x, this->get_value(y));
+    }
+
+    void transfer_assign_linear_expr(VarRef x, const LinearExpr& expr) {}
+
 }; // class SeparateNumericalDom
 
 } // namespace knight::dfa

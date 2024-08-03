@@ -13,9 +13,9 @@
 //===------------------------------------------------------------------===//
 
 #include "tooling/factory.hpp"
-#include "tooling/context.hpp"
 #include "dfa/analysis_manager.hpp"
 #include "dfa/checker_manager.hpp"
+#include "tooling/context.hpp"
 
 namespace knight {
 

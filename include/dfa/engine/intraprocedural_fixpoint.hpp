@@ -53,16 +53,15 @@ class IntraProceduralFixpointIterator final
     /// \brief transfer function for a graph node.
     ///
     /// \return the out program state after transfering to the given node.
-    ProgramStateRef transfer_node(NodeRef node,
-                                  ProgramStateRef pre_state) override;
+    [[nodiscard]] ProgramStateRef transfer_node(
+        NodeRef node, ProgramStateRef pre_state) override;
 
     /// \brief transfer function for a graph edge.
     ///
     /// \return the out program state after transfering to the given edge,
     ///         to the in state of the destination node.
-    ProgramStateRef transfer_edge(NodeRef src,
-                                  NodeRef dst,
-                                  ProgramStateRef src_post_state) override;
+    [[nodiscard]] ProgramStateRef transfer_edge(
+        NodeRef src, NodeRef dst, ProgramStateRef src_post_state) override;
 
     /// \brief check the precondition of a node.
     void check_pre(NodeRef, const ProgramStateRef&) override;

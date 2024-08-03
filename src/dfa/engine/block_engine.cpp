@@ -12,17 +12,19 @@
 //===------------------------------------------------------------------===//
 
 #include "dfa/engine/block_engine.hpp"
-#include "dfa/proc_cfg.hpp"
 #include "dfa/analysis/analysis_base.hpp"
+#include "dfa/proc_cfg.hpp"
 #include "util/assert.hpp"
+
+#include <clang/Analysis/CFG.h>
 
 namespace knight::dfa {
 
 void BlockExecutionEngine::exec() {
     ProgramStateRef state = m_state;
     for (auto& elem : m_node->Elements) {
-        using enum clang::CFGElement::Kind;
         switch (elem.getKind()) {
+            using enum clang::CFGElement::Kind;
         default:
             break;
         case Initializer: {
@@ -71,8 +73,8 @@ void BlockExecutionEngine::exec() {
     }
 }
 
-/// \brief Transfer C++ base or member initializer from constructor's initialization
-/// list.
+/// \brief Transfer C++ base or member initializer from constructor's
+/// initialization list.
 void BlockExecutionEngine::exec_cxx_ctor_initializer(
     clang::CXXCtorInitializer* initializer) {
     // todo

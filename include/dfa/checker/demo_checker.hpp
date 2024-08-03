@@ -27,7 +27,9 @@ class DemoChecker : public Checker< DemoChecker, check::BeginFunction > {
   public:
     DemoChecker(KnightContext& C) : Checker(C) {}
 
-    static CheckerKind get_kind() { return CheckerKind::DemoChecker; }
+    [[nodiscard]] static CheckerKind get_kind() {
+        return CheckerKind::DemoChecker;
+    }
 
     void check_begin_function(CheckerContext& C) const {
         auto* func =

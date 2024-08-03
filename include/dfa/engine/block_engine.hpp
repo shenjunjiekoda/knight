@@ -16,7 +16,6 @@
 #include "dfa/analysis_manager.hpp"
 #include "dfa/proc_cfg.hpp"
 #include "dfa/program_state.hpp"
-#include "support/graph.hpp"
 
 #include <clang/AST/DeclCXX.h>
 #include <clang/AST/ExprCXX.h>
@@ -60,8 +59,8 @@ class BlockExecutionEngine {
     ProgramStateRef get_state() const { return m_state; }
 
   private:
-    /// \brief Transfer C++ base or member initializer from constructor's initialization
-    /// list.
+    /// \brief Transfer C++ base or member initializer from constructor's
+    /// initialization list.
     void exec_cxx_ctor_initializer(clang::CXXCtorInitializer* initializer);
 
     /// \brief Transfer beginning of a scope implicitly generated

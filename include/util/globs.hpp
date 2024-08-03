@@ -13,13 +13,15 @@
 
 #pragma once
 
-#include <llvm/ADT/StringRef.h>
 #include <llvm/ADT/StringMap.h>
+#include <llvm/ADT/StringRef.h>
 #include <llvm/Support/Regex.h>
 
 #include <vector>
 
 namespace knight {
+
+constexpr unsigned GlobAlign = 32;
 
 /// \brief A utility class for matching comma-separeted
 /// strings against globs.
@@ -30,14 +32,15 @@ class Globs {
     struct Glob {
         bool is_negative;
         llvm::Regex regex;
-    }; // struct Glob
+    } __attribute__((aligned(GlobAlign)))
+    __attribute__((packed)); // struct Glob
 
   private:
     std::vector< Glob > m_globs;
     mutable llvm::StringMap< bool > m_cache;
 
   public:
-    Globs(llvm::StringRef globs);
+    explicit Globs(llvm::StringRef globs);
     bool matches(llvm::StringRef str) const;
 
 }; // class Globs

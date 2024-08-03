@@ -13,9 +13,9 @@
 
 #pragma once
 
+#include "dfa/analysis/analyses.hpp"
 #include "dfa/analysis_context.hpp"
 #include "dfa/analysis_manager.hpp"
-#include "dfa/analysis/analyses.hpp"
 #include "support/clang_ast.hpp"
 #include "llvm/Support/raw_ostream.h"
 
@@ -65,7 +65,8 @@ class AnalysisBase;
 ///    /// \brief register your analysis to manager here.
 ///    static UniqueAnalysisRef register_analysis(AnalysisManager& mgr,
 ///                                             KnightContext& ctx) {
-///        return mgr.register_analysis< MyAnalysisImpl >(ctx, (more ctor args...));
+///        return mgr.register_analysis< MyAnalysisImpl >(ctx, (more ctor
+///        args...));
 ///    }
 ///
 /// }; // class MyAnalysisImpl

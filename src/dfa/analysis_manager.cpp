@@ -12,9 +12,9 @@
 //===------------------------------------------------------------------===//
 
 #include "dfa/analysis_manager.hpp"
-#include "dfa/analysis_context.hpp"
 #include "dfa/analysis/analyses.hpp"
 #include "dfa/analysis/analysis_base.hpp"
+#include "dfa/analysis_context.hpp"
 #include "dfa/domain/domains.hpp"
 #include "util/assert.hpp"
 #include "llvm/Support/raw_ostream.h"
@@ -146,7 +146,8 @@ void AnalysisManager::compute_full_order_analyses_after_registry() {
 
 void AnalysisManager::enable_analysis(
     std::unique_ptr< AnalysisBase > analysis) {
-    // TODO: add enabling logic for analyses (check filter and required checkers)
+    // TODO: add enabling logic for analyses (check filter and required
+    // checkers)
     auto id = get_analysis_id(analysis->kind);
     m_enabled_analyses.emplace(id, std::move(analysis));
 }

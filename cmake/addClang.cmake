@@ -24,6 +24,7 @@ if(NOT LINK_CLANG_DYLIB AND NOT ${CLANG_LIBS})
     clangBasic
     clangDriver
     clangFrontend
+    clangRewrite
     clangRewriteFrontend
     clangSerialization
     clangStaticAnalyzerFrontend

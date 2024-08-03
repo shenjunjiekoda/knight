@@ -14,12 +14,12 @@
 
 #pragma once
 
-#include <vector>
 #include <functional>
 #include <memory>
+#include <vector>
 
-#include <llvm/ADT/StringRef.h>
 #include <llvm/ADT/DenseMap.h>
+#include <llvm/ADT/StringRef.h>
 
 #include "dfa/analysis/analyses.hpp"
 #include "dfa/analysis/analysis_base.hpp"
@@ -27,8 +27,8 @@
 #include "dfa/checker/checker_base.hpp"
 #include "dfa/checker/checkers.hpp"
 #include "dfa/checker_manager.hpp"
-#include "support/checker.hpp"
 #include "support/analysis.hpp"
+#include "support/checker.hpp"
 
 #include <unordered_map>
 

@@ -39,11 +39,11 @@ class MapDom : public AbsDom< MapDom< Key, SeparateValue, domain_kind > > {
     ~MapDom() override = default;
 
   public:
-    static MapDom top() { return MapDom(false, true); }
+    [[nodiscard]] static MapDom top() { return MapDom(false, true); }
 
-    static MapDom bottom() { return MapDom(false, true); }
+    [[nodiscard]] static MapDom bottom() { return MapDom(false, true); }
 
-    const Map& get_table() const { return m_table; }
+    [[nodiscard]] const Map& get_table() const { return m_table; }
 
     void forget(const Key& key) {
         if (this->is_bottom() || this->is_top()) {
@@ -52,7 +52,7 @@ class MapDom : public AbsDom< MapDom< Key, SeparateValue, domain_kind > > {
         this->m_table.erase(key);
     }
 
-    SeparateValue get_value(const Key& key) const {
+    [[nodiscard]] SeparateValue get_value(const Key& key) const {
         if (this->is_bottom()) {
             return *(static_cast< SeparateValue* >(
                 SeparateValue::bottom_val().get()));
@@ -111,7 +111,7 @@ class MapDom : public AbsDom< MapDom< Key, SeparateValue, domain_kind > > {
         return std::make_unique< MapDom >(false, true);
     }
 
-    UniqueVal clone() const override {
+    [[nodiscard]] UniqueVal clone() const override {
         Map table;
         for (auto& [key, value] : m_table) {
             table[key] = *(static_cast< SeparateValue* >(value.clone().get()));
@@ -125,9 +125,13 @@ class MapDom : public AbsDom< MapDom< Key, SeparateValue, domain_kind > > {
         }
     }
 
-    bool is_bottom() const override { return m_is_bottom && !m_is_top; }
+    [[nodiscard]] bool is_bottom() const override {
+        return m_is_bottom && !m_is_top;
+    }
 
-    bool is_top() const override { return !m_is_bottom && m_is_top; }
+    [[nodiscard]] bool is_top() const override {
+        return !m_is_bottom && m_is_top;
+    }
 
     void set_to_bottom() override {
         m_is_bottom = true;
@@ -257,7 +261,7 @@ class MapDom : public AbsDom< MapDom< Key, SeparateValue, domain_kind > > {
         }
     }
 
-    bool leq(const MapDom& other) const {
+    [[nodiscard]] bool leq(const MapDom& other) const {
         if (this->is_bottom() || other.is_top()) {
             return true;
         }
@@ -279,7 +283,7 @@ class MapDom : public AbsDom< MapDom< Key, SeparateValue, domain_kind > > {
         return true;
     }
 
-    bool equals(const MapDom& other) const {
+    [[nodiscard]] bool equals(const MapDom& other) const {
         if (this->is_bottom()) {
             return other.is_bottom();
         }

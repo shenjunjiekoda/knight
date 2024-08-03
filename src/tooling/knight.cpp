@@ -14,8 +14,8 @@
 #include "tooling/knight.hpp"
 #include "dfa/analysis_manager.hpp"
 #include "tooling/diagnostic.hpp"
-#include "tooling/module.hpp"
 #include "tooling/factory.hpp"
+#include "tooling/module.hpp"
 #include "tooling/reporter.hpp"
 #include "util/vfs.hpp"
 

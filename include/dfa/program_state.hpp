@@ -18,12 +18,11 @@
 #include "dfa/domain/domains.hpp"
 
 #include <optional>
-#include <unordered_map>
 #include <unordered_set>
 
-#include <llvm/Support/raw_ostream.h>
 #include <llvm/ADT/ImmutableMap.h>
 #include <llvm/ADT/IntrusiveRefCntPtr.h>
+#include <llvm/Support/raw_ostream.h>
 
 namespace knight::dfa {
 
@@ -138,7 +137,8 @@ class ProgramState : public llvm::FoldingSetNode {
     /// \brief Profile the contents of a ProgramState object for use in a
     ///  FoldingSet.  Two ProgramState objects are considered equal if they
     ///  have the same domain value ptrs.
-    static void Profile(llvm::FoldingSetNodeID& id, const ProgramState* s) {
+    static void Profile(llvm::FoldingSetNodeID& id, // NOLINT
+                        const ProgramState* s) {
         for (const auto& [_, val] : s->m_dom_val) {
             id.AddPointer(val.get());
         }
@@ -146,7 +146,10 @@ class ProgramState : public llvm::FoldingSetNode {
 
     /// \brief Used to profile the contents of this object for inclusion
     ///  in a FoldingSet.
-    void Profile(llvm::FoldingSetNodeID& id) const { Profile(id, this); }
+    void Profile(llvm::FoldingSetNodeID& id) const // NOLINT
+    {
+        Profile(id, this);
+    }
 }; // class ProgramState
 
 class ProgramStateManager {

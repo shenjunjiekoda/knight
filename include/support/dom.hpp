@@ -24,7 +24,7 @@ concept derived_dom_has_join_with_method =
     };
 
 template < typename DerivedDom >
-struct does_derived_dom_can_join_with
+struct does_derived_dom_can_join_with // NOLINT
     : std::bool_constant< derived_dom_has_join_with_method< DerivedDom > > {
 }; // struct does_derived_dom_can_join_with
 
@@ -35,7 +35,7 @@ concept derived_dom_has_join_with_at_loop_head_method =
     };
 
 template < typename DerivedDom >
-struct does_derived_dom_can_join_with_at_loop_head
+struct does_derived_dom_can_join_with_at_loop_head // NOLINT
     : std::bool_constant<
           derived_dom_has_join_with_at_loop_head_method< DerivedDom > > {
 }; // struct does_derived_dom_can_join_with_at_loop_head
@@ -47,7 +47,7 @@ concept derived_dom_has_join_consecutive_iter_with_method =
     };
 
 template < typename DerivedDom >
-struct does_derived_dom_can_join_consecutive_iter_with
+struct does_derived_dom_can_join_consecutive_iter_with // NOLINT
     : std::bool_constant<
           derived_dom_has_join_consecutive_iter_with_method< DerivedDom > > {
 }; // struct does_derived_dom_can_join_consecutive_iter_with
@@ -59,7 +59,7 @@ concept derived_dom_has_widen_with_method =
     };
 
 template < typename DerivedDom >
-struct does_derived_dom_can_widen_with
+struct does_derived_dom_can_widen_with // NOLINT
     : std::bool_constant< derived_dom_has_widen_with_method< DerivedDom > > {
 }; // struct does_derived_dom_can_widen_with
 
@@ -70,7 +70,7 @@ concept derived_dom_has_meet_with_method =
     };
 
 template < typename DerivedDom >
-struct does_derived_dom_can_meet_with
+struct does_derived_dom_can_meet_with // NOLINT
     : std::bool_constant< derived_dom_has_meet_with_method< DerivedDom > > {
 }; // struct does_derived_dom_can_meet_with
 
@@ -81,7 +81,7 @@ concept derived_dom_has_narrow_with_method =
     };
 
 template < typename DerivedDom >
-struct does_derived_dom_can_narrow_with
+struct does_derived_dom_can_narrow_with // NOLINT
     : std::bool_constant< derived_dom_has_narrow_with_method< DerivedDom > > {
 }; // struct does_derived_dom_can_narrow_with
 
@@ -92,7 +92,7 @@ concept derived_dom_has_leq_method =
     };
 
 template < typename DerivedDom >
-struct does_derived_dom_can_leq
+struct does_derived_dom_can_leq // NOLINT
     : std::bool_constant< derived_dom_has_leq_method< DerivedDom > > {
 }; // struct does_derived_dom_can_leq
 
@@ -103,7 +103,7 @@ concept derived_dom_has_equals_method =
     };
 
 template < typename DerivedDom >
-struct does_derived_dom_can_equals
+struct does_derived_dom_can_equals // NOLINT
     : std::bool_constant< derived_dom_has_equals_method< DerivedDom > > {
 }; // struct does_derived_dom_can_equals
 

@@ -26,8 +26,8 @@
 
 #include <clang/AST/ASTConsumer.h>
 #include <clang/AST/DeclGroup.h>
-#include <clang/Basic/LLVM.h>
 #include <clang/Basic/Diagnostic.h>
+#include <clang/Basic/LLVM.h>
 #include <clang/Frontend/CompilerInstance.h>
 #include <clang/Tooling/CompilationDatabase.h>
 #include <llvm/Support/raw_ostream.h>
@@ -47,7 +47,8 @@ class KnightASTConsumer : public clang::ASTConsumer {
           m_checker_manager(checker_manager), m_checkers(std::move(checkers)),
           m_analysis(std::move(analysis)) {}
 
-    // TODO: add datadflow engine to run analysis and checkers here? on the decl_group or tu?
+    // TODO: add datadflow engine to run analysis and checkers here? on the
+    // decl_group or tu?
     bool HandleTopLevelDecl(clang::DeclGroupRef decl_group) override {
         auto state_mgr =
             std::make_unique< dfa::ProgramStateManager >(m_analysis_manager,
@@ -88,10 +89,12 @@ class KnightASTConsumer : public clang::ASTConsumer {
             //      m_analysis_manager.begin_function_analyses()) {
             //     fn(m_analysis_ctx);
             // }
-            // for (const auto& fn : m_checker_manager.begin_function_checks()) {
+            // for (const auto& fn : m_checker_manager.begin_function_checks())
+            // {
             //     fn(m_checker_ctx);
             // }
-            // for (const auto& fn : m_analysis_manager.end_function_analyses()) {
+            // for (const auto& fn : m_analysis_manager.end_function_analyses())
+            // {
             //     fn(nullptr, m_analysis_ctx);
             // }
             // for (const auto& fn : m_checker_manager.end_function_checks()) {

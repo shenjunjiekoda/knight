@@ -14,8 +14,8 @@
 #pragma once
 
 #include <clang/Basic/Diagnostic.h>
-#include <clang/Tooling/Core/Diagnostic.h>
 #include <clang/Frontend/DiagnosticRenderer.h>
+#include <clang/Tooling/Core/Diagnostic.h>
 
 #include "util/assert.hpp"
 

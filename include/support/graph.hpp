@@ -39,7 +39,8 @@ concept graph =
             *std::declval< typename T::PredNodeIterator >()
         } -> std::convertible_to< typename T::NodeRef >;
 
-        // T must have static member functions `entry`, `succ_begin`, `succ_end`, `pred_begin`, `pred_end`
+        // T must have static member functions `entry`, `succ_begin`,
+        // `succ_end`, `pred_begin`, `pred_end`
         { T::entry(graph) } -> std::convertible_to< typename T::NodeRef >;
         {
             T::succ_begin(nodeRef)
@@ -77,6 +78,7 @@ template < graph T > struct GraphTrait {
 }; // struct GraphTrait
 
 template < typename T >
-struct isa_graph : std::bool_constant< graph< T > > {}; // struct isa_graph
+struct isa_graph :                                      // NOLINT
+                   std::bool_constant< graph< T > > {}; // struct isa_graph
 
 } // namespace knight

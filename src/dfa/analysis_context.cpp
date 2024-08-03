@@ -12,9 +12,9 @@
 //===------------------------------------------------------------------===//
 
 #include "dfa/analysis_context.hpp"
-#include "tooling/context.hpp"
 #include "dfa/analysis/analysis_base.hpp"
 #include "dfa/program_state.hpp"
+#include "tooling/context.hpp"
 
 namespace knight::dfa {
 

@@ -29,7 +29,7 @@ template < dumpable T > struct DumpableTrait {
 }; // struct DumpableTrait
 
 template < typename T >
-struct is_dumpable : std::bool_constant< dumpable< T > > {
-}; // struct is_dumpable
+struct is_dumpable : std::bool_constant< dumpable< T > > { // NOLINT
+};                                                         // struct is_dumpable
 
 } // namespace knight

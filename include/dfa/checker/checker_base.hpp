@@ -13,11 +13,10 @@
 
 #pragma once
 
+#include "dfa/checker/checkers.hpp"
 #include "dfa/checker_context.hpp"
 #include "dfa/checker_manager.hpp"
-#include "dfa/checker/checkers.hpp"
 #include "support/clang_ast.hpp"
-
 namespace knight::dfa {
 
 /// \brief Base class for all data flow checkers.
@@ -62,7 +61,8 @@ namespace knight::dfa {
 ///    /// \brief register your checker to manager here.
 ///    static UniqueCheckerRef register_checker(CheckerManager& mgr,
 ///                                             KnightContext& ctx) {
-///        return mgr.register_checker< MyCheckerImpl >(ctx, (more ctor args...));
+///        return mgr.register_checker< MyCheckerImpl >(ctx, (more ctor
+///        args...));
 ///    }
 ///
 /// }; // class MyCheckerImpl
@@ -92,7 +92,7 @@ class CheckerBase {
     clang::DiagnosticBuilder diagnose(clang::DiagnosticIDs::Level diag_level =
                                           clang::DiagnosticIDs::Warning) const;
 
-    KnightContext& get_knight_context() { return m_ctx; }
+    [[nodiscard]] KnightContext& get_knight_context() { return m_ctx; }
 
   private:
     KnightContext& m_ctx;

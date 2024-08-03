@@ -13,8 +13,8 @@
 
 #pragma once
 
-#include <llvm/Support/VirtualFileSystem.h>
 #include <llvm/ADT/IntrusiveRefCntPtr.h>
+#include <llvm/Support/VirtualFileSystem.h>
 
 namespace knight::fs {
 
