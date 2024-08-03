@@ -53,9 +53,9 @@ class AnalysisCallBack< RET(Args...) > {
                      CallBack callback)
         : m_kind(kind), m_analysis(analysis), m_callback(callback) {}
 
-    AnalysisID get_id() const { return get_analysis_id(m_kind); }
+    [[nodiscard]] AnalysisID get_id() const { return get_analysis_id(m_kind); }
 
-    RET operator()(Args... args) const {
+    [[nodiscard]] RET operator()(Args... args) const {
         return m_callback(m_analysis, args...);
     }
 }; // class AnalysisCallBack
@@ -73,11 +73,15 @@ using AnalyzeEndFunctionCallBack =
 using AnalyzeStmtCallBack = AnalysisCallBack< void(StmtRef, AnalysisContext&) >;
 using MatchStmtCallBack = bool (*)(StmtRef S);
 enum class VisitStmtKind { Pre, Eval, Post };
+
+constexpr unsigned AlignedSize = 64;
+
 struct StmtAnalysisInfo {
     AnalyzeStmtCallBack anz_cb;
     MatchStmtCallBack match_cb;
     VisitStmtKind kind;
-}; // struct StmtAnalysisInfo
+} __attribute__((aligned(AlignedSize)))
+__attribute__((packed)); // struct StmtAnalysisInfo
 
 } // namespace internal
 
@@ -123,7 +127,7 @@ class AnalysisManager {
     std::vector< internal::StmtAnalysisInfo > m_stmt_analyses;
 
   public:
-    AnalysisManager(KnightContext& ctx);
+    explicit AnalysisManager(KnightContext& ctx);
 
   public:
     /// \brief specialized analysis management
@@ -131,9 +135,10 @@ class AnalysisManager {
     /// Dependencies shall be handled before the registration.
     /// @{
     template < typename ANALYSIS, typename... AT >
-    UniqueAnalysisRef register_analysis(KnightContext& ctx, AT&&... Args) {
+    [[nodiscard]] UniqueAnalysisRef register_analysis(KnightContext& ctx,
+                                                      AT&&... Args) {
         AnalysisID id = get_analysis_id(ANALYSIS::get_kind());
-        if (m_analyses.count(id) > 0U) {
+        if (m_analyses.contains(id)) {
             llvm::errs() << get_analysis_name_by_id(id)
                          << " analysis is already registered.\n";
         } else {
@@ -148,11 +153,11 @@ class AnalysisManager {
 
     void add_required_analysis(AnalysisID id);
     void add_analysis_dependency(AnalysisID id, AnalysisID required_id);
-    std::unordered_set< AnalysisID > get_analysis_dependencies(
+    [[nodiscard]] std::unordered_set< AnalysisID > get_analysis_dependencies(
         AnalysisID id) const;
 
     void enable_analysis(std::unique_ptr< AnalysisBase > analysis);
-    bool is_analysis_required(AnalysisID id) const;
+    [[nodiscard]] bool is_analysis_required(AnalysisID id) const;
 
     std::optional< AnalysisBase* > get_analysis(AnalysisID id);
     /// @}
@@ -170,10 +175,12 @@ class AnalysisManager {
         m_domain_bottom_fn[dom_id] = Dom::bottom_val;
         m_analysis_domains[analysis_id].insert(dom_id);
     }
-    std::unordered_set< DomID > get_registered_domains_in(AnalysisID id) const;
-    std::optional< DomainDefaultValFn > get_domain_default_val_fn(
+    [[nodiscard]] std::unordered_set< DomID > get_registered_domains_in(
+        AnalysisID id) const;
+    [[nodiscard]] std::optional< DomainDefaultValFn > get_domain_default_val_fn(
         DomID id) const;
-    std::optional< DomainBottomValFn > get_domain_bottom_val_fn(DomID id) const;
+    [[nodiscard]] std::optional< DomainBottomValFn > get_domain_bottom_val_fn(
+        DomID id) const;
     /// @}
 
     /// \brief callback registrations
@@ -185,29 +192,32 @@ class AnalysisManager {
                            internal::VisitStmtKind kind);
     /// @}
 
-    const std::vector< internal::AnalyzeBeginFunctionCallBack >&
+    [[nodiscard]] const std::vector< internal::AnalyzeBeginFunctionCallBack >&
     begin_function_analyses() const {
         return m_begin_function_analyses;
     }
 
-    const std::vector< internal::AnalyzeEndFunctionCallBack >&
+    [[nodiscard]] const std::vector< internal::AnalyzeEndFunctionCallBack >&
     end_function_analyses() const {
         return m_end_function_analyses;
     }
 
-    const std::vector< internal::StmtAnalysisInfo >& stmt_analyses() const {
+    [[nodiscard]] const std::vector< internal::StmtAnalysisInfo >&
+    stmt_analyses() const {
         return m_stmt_analyses;
     }
 
-    const std::unordered_set< AnalysisID >& get_required_analyses() const {
+    [[nodiscard]] const std::unordered_set< AnalysisID >&
+    get_required_analyses() const {
         return m_required_analyses;
     }
 
-    AnalysisContext& get_analysis_context() const;
+    [[nodiscard]] AnalysisContext& get_analysis_context() const;
 
     void compute_all_required_analyses_by_dependencies();
     void compute_full_order_analyses_after_registry();
-    std::vector< AnalysisID > get_ordered_analyses(AnalysisIDSet ids) const;
+    [[nodiscard]] std::vector< AnalysisID > get_ordered_analyses(
+        AnalysisIDSet ids) const;
 
     void run_analyses_for_stmt(internal::StmtRef stmt,
                                internal::VisitStmtKind visit_kind);

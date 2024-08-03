@@ -354,7 +354,7 @@ enum class LinearConstraintKind {
     LCK_Equality,    // ==
     LCK_Disequation, // !=
     LCK_Inequality,  // <=
-};                   // enum class LinearConstraintLinearConstraintKind
+}; // enum class LinearConstraintLinearConstraintKind
 
 template < typename Num, typename Var > class LinearConstraint {
   public:

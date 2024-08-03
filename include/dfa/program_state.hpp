@@ -74,6 +74,8 @@ class ProgramState : public llvm::FoldingSetNode {
     /// \brief Copy assignment is not allowed.
     void operator=(const ProgramState& other) = delete;
 
+    ~ProgramState() = default;
+
   private:
     friend void retain_state(ProgramStateRawPtr state);
     friend void release_state(ProgramStateRawPtr state);
@@ -103,12 +105,12 @@ class ProgramState : public llvm::FoldingSetNode {
     template < typename Domain > void set(UniqueVal val);
 
   public:
-    ProgramStateRef clone() const;
+    [[nodiscard]] ProgramStateRef clone() const;
 
     void normalize();
 
-    bool is_bottom() const;
-    bool is_top() const;
+    [[nodiscard]] bool is_bottom() const;
+    [[nodiscard]] bool is_top() const;
     void set_to_bottom();
     void set_to_top();
 
@@ -120,11 +122,15 @@ class ProgramState : public llvm::FoldingSetNode {
     ProgramStateRef meet(ProgramStateRef other);
     ProgramStateRef narrow(ProgramStateRef other);
 
-    bool leq(const ProgramState& other) const;
-    bool equals(const ProgramState& other) const;
+    [[nodiscard]] bool leq(const ProgramState& other) const;
+    [[nodiscard]] bool equals(const ProgramState& other) const;
 
-    bool operator==(const ProgramState& other) const { return equals(other); }
-    bool operator!=(const ProgramState& other) const { return !equals(other); }
+    [[nodiscard]] bool operator==(const ProgramState& other) const {
+        return equals(other);
+    }
+    [[nodiscard]] bool operator!=(const ProgramState& other) const {
+        return !equals(other);
+    }
 
     void dump(llvm::raw_ostream& os) const;
 
@@ -172,7 +178,7 @@ class ProgramStateManager {
         : m_analysis_mgr(analysis_mgr), m_alloc(alloc) {}
 
   public:
-    const DomIDs& dom_ids() const { return m_ids; }
+    [[nodiscard]] const DomIDs& dom_ids() const { return m_ids; }
 
     llvm::BumpPtrAllocator& get_allocator() { return m_alloc; }
 

@@ -83,6 +83,9 @@ def main():
     parser.add_argument(
         "--clang-format", default="clang-format", help="Path to the clang-format binary"
     )
+    parser.add_argument(
+        "--check-version", default=False, action="store_true", help="Check the clang-format version"
+    )
     args = parser.parse_args()
 
     if not args.srcdir.is_dir():
@@ -94,7 +97,9 @@ def main():
         print(f"Error: '{args.clang_format}' not found in PATH", file=sys.stderr)
         sys.exit(1)
 
-    check_clang_format_version(clang_format)
+    if args.check_version:
+        check_clang_format_version(clang_format)
+
     format_source_files(args.srcdir, clang_format)
 
 

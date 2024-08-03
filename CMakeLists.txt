@@ -10,17 +10,17 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE
-      "Release"
-      CACHE
-        STRING
-        "Build mode ('DebugSan' or 'Debug' or 'Release', default is 'Debug')"
-        FORCE)
+    "Release"
+    CACHE
+    STRING
+    "Build mode ('DebugSan' or 'Debug' or 'Release', default is 'Debug')"
+    FORCE)
 endif()
 
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
   set(CMAKE_INSTALL_PREFIX
-      "${CMAKE_SOURCE_DIR}/install"
-      CACHE PATH "cmake install directory" FORCE)
+    "${CMAKE_SOURCE_DIR}/install"
+    CACHE PATH "cmake install directory" FORCE)
 endif()
 
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
@@ -32,10 +32,12 @@ message(STATUS "- Build type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "- Install prefix: ${CMAKE_INSTALL_PREFIX}")
 message(STATUS "- Generator: ${CMAKE_GENERATOR}")
 
-
 set(SRC_DIR ${CMAKE_SOURCE_DIR})
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
+
+option(LINK_LLVM_DYLIB "Link with libLLVM dynamic library" OFF)
+option(LINK_CLANG_DYLIB "Link with libClang dynamic library" OFF)
 
 # LLVM and Clang setup
 include(cmake/addLLVM.cmake)

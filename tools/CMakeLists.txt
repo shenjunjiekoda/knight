@@ -10,4 +10,4 @@ add_executable(knight main.cpp)
 set_target_properties(knight PROPERTIES RUNTIME_OUTPUT_DIRECTORY
                                              "${CMAKE_BINARY_DIR}/bin")
 
-target_link_libraries(knight PRIVATE knight-lib ${CLANG_LIBS} ${LLVM_LIBS})
+target_link_libraries(knight PRIVATE knight-lib)

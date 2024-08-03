@@ -42,7 +42,15 @@ class KnightAction : public clang::ASTFrontendAction {
 
 class KnightActionFactory : public clang::tooling::FrontendActionFactory {
   public:
-    KnightActionFactory(KnightContext& ctx) : m_ast_factory(ctx) {}
+    explicit KnightActionFactory(
+        KnightContext& ctx,
+        std::unique_ptr< dfa::AnalysisManager > external_analysis_manager =
+            nullptr,
+        std::unique_ptr< dfa::CheckerManager > external_checker_manager =
+            nullptr)
+        : m_ast_factory(ctx,
+                        std::move(external_analysis_manager),
+                        std::move(external_checker_manager)) {}
     std::unique_ptr< clang::FrontendAction > create() override {
         return std::make_unique< KnightAction >(&m_ast_factory);
     }
@@ -136,21 +144,27 @@ KnightASTConsumerFactory::get_directly_enabled_analyses() const {
 std::vector< KnightDiagnostic > KnightDriver::run() {
     using namespace clang;
     using namespace clang::tooling;
-    ClangTool Tool(m_cdb,
-                   m_input_files,
-                   std::make_shared< PCHContainerOperations >(),
-                   m_base_fs);
+    ClangTool clang_tool(m_cdb,
+                         m_input_files,
+                         std::make_shared< PCHContainerOperations >(),
+                         m_base_fs);
 
     KnightDiagnosticConsumer diag_consumer(m_ctx);
-    DiagnosticsEngine DE(new DiagnosticIDs(),
-                         new DiagnosticOptions(),
-                         &diag_consumer,
-                         false);
-    m_ctx.set_diagnostic_engine(&DE);
-    Tool.setDiagnosticConsumer(&diag_consumer);
+    DiagnosticsEngine diag_engine(new DiagnosticIDs(),
+                                  new DiagnosticOptions(),
+                                  &diag_consumer,
+                                  false);
+    m_ctx.set_diagnostic_engine(&diag_engine);
+    clang_tool.setDiagnosticConsumer(&diag_consumer);
 
-    KnightActionFactory Factory(m_ctx);
-    Tool.run(&Factory);
+    auto analysis_manager = std::make_unique< dfa::AnalysisManager >(m_ctx);
+    auto checker_manager =
+        std::make_unique< dfa::CheckerManager >(m_ctx, *analysis_manager);
+
+    KnightActionFactory action_factory(m_ctx,
+                                       std::move(analysis_manager),
+                                       std::move(checker_manager));
+    clang_tool.run(&action_factory);
     return diag_consumer.take_diags();
 }
 

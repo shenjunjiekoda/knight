@@ -13,8 +13,4 @@
 
 #pragma once
 
-namespace knight::dfa {
-
-
-
-} // namespace knight::dfa
+namespace knight::dfa {} // namespace knight::dfa

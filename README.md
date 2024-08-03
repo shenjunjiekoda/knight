@@ -23,6 +23,10 @@ $ cmake --build build -j$(nproc)
 ```
 Note: Knight only support C++20, so you need to use a compiler support C++20.
 
+# Troubleshooting
+
+See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for more details.
+
 # Contributing
 
 Contributions are welcome, See [CONTRIBUTING.md](CONTRIBUTING.md) for more details
