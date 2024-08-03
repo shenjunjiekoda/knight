@@ -1,6 +1,6 @@
 <img src="doc/icon.png" alt="logo" width="20%" />
 
-# Knight
+# Knight ![Language](https://img.shields.io/badge/language-c++-brightgreen)![License](https://img.shields.io/badge/license-MIT-yellow)
 
 Knight is a static analysis tool for c/c++ programs written in C++20.
 
@@ -10,10 +10,18 @@ knight dependencies:
 - cmake
 - llvm/clang(>=18 is best)
 
+You can install llvm by your package manager 
 ```SHELL
-$ cmake -DLLVM_BUILD_DIR=/path/to/llvm/build -B build # use compiler support cpp20
+$ apt install llvm # for Ubuntu
+$ brew install llvm # for Homebrew
+```
+or [build from source](https://llvm.org/docs/GettingStarted.html).
+
+```SHELL
+$ cmake -DLLVM_BUILD_DIR=/path/to/llvm/build -B build 
 $ cmake --build build -j$(nproc)
 ```
+Note: Knight only support C++20, so you need to use a compiler support C++20.
 
 # Contributing
 
