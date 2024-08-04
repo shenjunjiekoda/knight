@@ -137,7 +137,7 @@ void print_enabled_analyses(
 }
 
 int main(int argc, const char** argv) {
-    llvm::InitLLVM llvm_setup(argc, argv);
+    const llvm::InitLLVM llvm_setup(argc, argv);
 
     auto opts_parser = CommonOptionsParser::create(argc,
                                                    argv,

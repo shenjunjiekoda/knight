@@ -33,7 +33,7 @@ namespace knight {
 class KnightContext {
   private:
     /// \brief The diagnostic engine used to diagnose errors.
-    clang::DiagnosticsEngine* m_diag_engine;
+    clang::DiagnosticsEngine* m_diag_engine{};
 
     std::unique_ptr< KnightOptionsProvider > m_opts_provider;
 
@@ -48,7 +48,8 @@ class KnightContext {
     llvm::BumpPtrAllocator m_alloc;
 
   public:
-    KnightContext(std::unique_ptr< KnightOptionsProvider > opts_provider);
+    explicit KnightContext(
+        std::unique_ptr< KnightOptionsProvider > opts_provider);
     ~KnightContext();
 
     /// \brief The reported diagnostic IDs and their corresponding checkers.

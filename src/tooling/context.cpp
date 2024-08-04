@@ -57,7 +57,7 @@ clang::DiagnosticBuilder KnightContext::diagnose(
     knight_assert_msg(loc.isValid(), "Invalid location");
 
     auto fmt = (info + " [" + checker + "]").str();
-    unsigned custom_diag_id =
+    const unsigned custom_diag_id =
         m_diag_engine->getDiagnosticIDs()->getCustomDiagID(diag_level, fmt);
 
     m_diag_id_to_checker_name[custom_diag_id] = checker;
@@ -90,7 +90,7 @@ std::optional< std::string > KnightContext::get_check_name(unsigned diag_id) {
         return it->second;
     }
 
-    std::string clang_warning_option = std::string(
+    const std::string clang_warning_option = std::string(
         m_diag_engine->getDiagnosticIDs()->getWarningOptionForDiag(diag_id));
     if (!clang_warning_option.empty()) {
         return "knight-diagnostic-" + clang_warning_option;
@@ -104,7 +104,7 @@ clang::DiagnosticBuilder KnightContext::diagnose(
     llvm::StringRef info,
     clang::DiagnosticIDs::Level diag_level) {
     auto fmt = (info + " [" + checker + "]").str();
-    unsigned custom_diag_id =
+    const unsigned custom_diag_id =
         m_diag_engine->getDiagnosticIDs()->getCustomDiagID(diag_level, fmt);
 
     m_diag_id_to_checker_name[custom_diag_id] = checker;

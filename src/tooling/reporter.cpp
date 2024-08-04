@@ -12,21 +12,28 @@
 //===------------------------------------------------------------------===//
 
 #include "tooling/reporter.hpp"
-#include "clang/Basic/LangOptions.h"
-#include "clang/Tooling/Core/Replacement.h"
-#include "llvm/Support/raw_ostream.h"
 #include "tooling/diagnostic.hpp"
 
 #include <clang/Basic/DiagnosticFrontend.h>
 #include <clang/Basic/DiagnosticIDs.h>
 #include <clang/Basic/DiagnosticOptions.h>
+#include <clang/Basic/LangOptions.h>
+#include <clang/Basic/SourceLocation.h>
 #include <clang/Format/Format.h>
 #include <clang/Frontend/TextDiagnosticPrinter.h>
 #include <clang/Rewrite/Core/Rewriter.h>
+#include <clang/Tooling/Core/Replacement.h>
 #include <llvm/ADT/IntrusiveRefCntPtr.h>
 #include <llvm/Support/Process.h>
+#include <llvm/Support/raw_ostream.h>
 
 namespace knight {
+
+namespace {
+
+constexpr unsigned StringMaxLength = 256U;
+
+} // anonymous namespace
 
 DiagnosticReporter::DiagnosticReporter(FixKind kind,
                                        KnightContext& ctx,
@@ -81,26 +88,29 @@ clang::SourceLocation DiagnosticReporter::get_composed_loc(llvm::StringRef file,
         return {};
     }
 
-    auto File = m_source_manager.getFileManager().getOptionalFileRef(file);
-    if (!File) {
+    auto file_entry_opt =
+        m_source_manager.getFileManager().getOptionalFileRef(file);
+    if (!file_entry_opt) {
         return {};
     }
 
-    auto file_id =
-        m_source_manager.getOrCreateFileID(*File, clang::SrcMgr::C_User);
+    auto file_id = m_source_manager.getOrCreateFileID(*file_entry_opt,
+                                                      clang::SrcMgr::C_User);
     return m_source_manager.getLocForStartOfFile(file_id).getLocWithOffset(
-        offset);
+        static_cast< clang::SourceLocation::IntTy >(offset));
 }
 
 clang::CharSourceRange DiagnosticReporter::get_char_range(
     const clang::tooling::FileByteRange& byte_range) {
-    llvm::SmallString< 256 > abs_path{byte_range.FilePath};
+    llvm::SmallString< StringMaxLength > abs_path{byte_range.FilePath};
     m_file_manager.makeAbsolutePath(abs_path);
 
     auto begin_loc = get_composed_loc(abs_path, byte_range.FileOffset);
-    return clang::CharSourceRange::getCharRange(begin_loc,
-                                                begin_loc.getLocWithOffset(
-                                                    byte_range.Length));
+    return clang::CharSourceRange::
+        getCharRange(begin_loc,
+                     begin_loc.getLocWithOffset(
+                         static_cast< clang::SourceLocation::IntTy >(
+                             byte_range.Length)));
 }
 
 void DiagnosticReporter::report_fix(
@@ -108,18 +118,18 @@ void DiagnosticReporter::report_fix(
     const llvm::StringMap< clang::tooling::Replacements >& file_replacements) {
     using namespace clang;
     for (const auto& [file, replacements] : file_replacements) {
-        for (const auto& Repl : replacements) {
-            if (!Repl.isApplicable()) {
+        for (const auto& repl : replacements) {
+            if (!repl.isApplicable()) {
                 continue;
             }
             tooling::FileByteRange byte_range;
-            byte_range.FilePath = Repl.getFilePath().str();
-            byte_range.FileOffset = Repl.getOffset();
-            byte_range.Length = Repl.getLength();
+            byte_range.FilePath = repl.getFilePath().str();
+            byte_range.FileOffset = repl.getOffset();
+            byte_range.Length = repl.getLength();
 
             diag_builder
                 << FixItHint::CreateReplacement(get_char_range(byte_range),
-                                                Repl.getReplacementText());
+                                                repl.getReplacementText());
         }
     }
 }
@@ -153,7 +163,7 @@ void DiagnosticReporter::report(const KnightDiagnostic& diagnostic) {
     {
         auto diag_level = static_cast< clang::DiagnosticsEngine::Level >(
             diagnostic.DiagLevel);
-        std::string diag_name = diagnostic.DiagnosticName;
+        const std::string diag_name = diagnostic.DiagnosticName;
 
         auto diag_builder =
             m_diag_engine.Report(loc,
@@ -168,18 +178,18 @@ void DiagnosticReporter::report(const KnightDiagnostic& diagnostic) {
         const llvm::StringMap< clang::tooling::Replacements >* chosen_fix =
             nullptr;
         if (m_fix_kind != FixKind::None) {
-            if ((chosen_fix = get_replacements(diagnostic, true))) {
+            if ((chosen_fix = get_replacements(diagnostic, true)) != nullptr) {
                 for (const auto& [file, replacements] : *chosen_fix) {
                     for (const auto& replacement : replacements) {
                         ++m_total_fixes;
-                        bool CanBeApplied = false;
+                        bool can_be_applied = false;
                         if (!replacement.isApplicable()) {
                             continue;
                         }
 
                         SourceLocation fix_loc;
 
-                        llvm::SmallString< 256 > abs_path_fix =
+                        llvm::SmallString< StringMaxLength > abs_path_fix =
                             replacement.getFilePath();
                         m_file_manager.makeAbsolutePath(abs_path_fix);
                         tooling::Replacement replace(abs_path_fix,
@@ -213,7 +223,7 @@ void DiagnosticReporter::report(const KnightDiagnostic& diagnostic) {
                                                 replace.getReplacementText());
                                 replaces = replaces.merge(
                                     clang::tooling::Replacements(replace));
-                                CanBeApplied = true;
+                                can_be_applied = true;
                                 ++m_applied_fixes;
                             } else {
                                 llvm::errs()
@@ -221,13 +231,13 @@ void DiagnosticReporter::report(const KnightDiagnostic& diagnostic) {
                                        "the replacement.\n";
                             }
                         } else {
-                            CanBeApplied = true;
+                            can_be_applied = true;
                             ++m_applied_fixes;
                         }
                         fix_loc = get_composed_loc(abs_path_fix,
                                                    replacement.getOffset());
                         fix_locs.push_back(
-                            std::make_pair(fix_loc, CanBeApplied));
+                            std::make_pair(fix_loc, can_be_applied));
                         build_dir = diagnostic.BuildDirectory;
                     }
                 }
@@ -235,7 +245,7 @@ void DiagnosticReporter::report(const KnightDiagnostic& diagnostic) {
         }
         report_fix(diag_builder, diagnostic.Message.Fix);
     }
-    for (auto& [fix_loc, can_apply] : fix_locs) {
+    for (const auto& [fix_loc, can_apply] : fix_locs) {
         m_diag_engine.Report(fix_loc,
                              can_apply ? diag::note_fixit_applied
                                        : diag::note_fixit_failed);

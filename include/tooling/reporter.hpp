@@ -61,8 +61,9 @@ class DiagnosticReporter {
     void apply_fixes();
 
   private:
-    const llvm::StringMap< clang::tooling::Replacements >* get_replacements(
-        const clang::tooling::Diagnostic& diagnostic, bool fix_note);
+    static const llvm::StringMap< clang::tooling::Replacements >*
+    get_replacements(const clang::tooling::Diagnostic& diagnostic,
+                     bool fix_note);
 
     clang::SourceLocation get_composed_loc(llvm::StringRef file,
                                            unsigned offset);

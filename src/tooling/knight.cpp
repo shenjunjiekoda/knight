@@ -21,7 +21,7 @@
 
 #include <clang/Tooling/Tooling.h>
 
-LLVM_INSTANTIATE_REGISTRY(knight::KnightModuleRegistry);
+LLVM_INSTANTIATE_REGISTRY(knight::KnightModuleRegistry); // NOLINT
 
 namespace knight {
 
@@ -29,7 +29,7 @@ namespace {
 
 class KnightAction : public clang::ASTFrontendAction {
   public:
-    KnightAction(KnightASTConsumerFactory* ast_factory)
+    explicit KnightAction(KnightASTConsumerFactory* ast_factory)
         : m_ast_factory(ast_factory) {}
     std::unique_ptr< clang::ASTConsumer > CreateASTConsumer(
         clang::CompilerInstance& ci, llvm::StringRef file) override {
@@ -183,7 +183,7 @@ void KnightDriver::handle_diagnostics(
             (void)vfs.setCurrentWorkingDirectory(diagnostic.BuildDirectory);
         }
         reporter.report(diagnostic);
-        vfs.setCurrentWorkingDirectory(*origin_cwd);
+        (void)vfs.setCurrentWorkingDirectory(*origin_cwd);
     }
     reporter.apply_fixes();
 }
