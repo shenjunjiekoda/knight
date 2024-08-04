@@ -15,6 +15,7 @@
 
 #include "dfa/engine/iterator.hpp"
 #include "dfa/program_state.hpp"
+#include "dfa/stack_frame.hpp"
 #include "support/graph.hpp"
 #include "util/wto.hpp"
 
@@ -50,9 +51,9 @@ class WtoBasedFixPointIterator : public FixPointIterator< CFG, GraphTrait > {
     ProgramStateRef m_bottom;
 
   public:
-    WtoBasedFixPointIterator(GraphRef cfg, ProgramStateRef bottom)
-        : m_cfg(cfg), m_wto(cfg), m_bottom(std::move(bottom)),
-          m_converged(false) {}
+    WtoBasedFixPointIterator(StackFrame* frame, ProgramStateRef bottom)
+        : m_cfg(frame->get_cfg()), m_wto(frame->get_cfg()),
+          m_bottom(std::move(bottom)), m_converged(false) {}
     WtoBasedFixPointIterator(const WtoBasedFixPointIterator&) = delete;
     WtoBasedFixPointIterator& operator=(const WtoBasedFixPointIterator&) =
         delete;

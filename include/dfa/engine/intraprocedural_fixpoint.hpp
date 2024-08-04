@@ -18,6 +18,7 @@
 #include "dfa/engine/wto_iterator.hpp"
 #include "dfa/proc_cfg.hpp"
 #include "dfa/program_state.hpp"
+#include "dfa/stack_frame.hpp"
 #include "support/graph.hpp"
 
 namespace knight::dfa {
@@ -38,7 +39,7 @@ class IntraProceduralFixpointIterator final
     CheckerManager& m_checker_mgr;
     AnalysisManager& m_analysis_mgr;
     ProgramStateManager& m_state_mgr;
-    FunctionRef m_func;
+    StackFrame* m_frame;
 
     StmtResultCache m_stmt_pre;
     StmtResultCache m_stmt_post;
@@ -48,7 +49,7 @@ class IntraProceduralFixpointIterator final
                                     AnalysisManager& analysis_mgr,
                                     CheckerManager& checker_mgr,
                                     ProgramStateManager& state_mgr,
-                                    FunctionRef func);
+                                    StackFrame* frame);
 
     /// \brief transfer function for a graph node.
     ///

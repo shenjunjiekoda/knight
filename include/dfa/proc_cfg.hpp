@@ -28,6 +28,7 @@ namespace knight::dfa {
 class ProcCFG {
   public:
     using GraphRef = ProcCFG*;
+    using GraphUniqueRef = std::unique_ptr< ProcCFG >;
     using ClangCFGRef = std::unique_ptr< clang::CFG >;
     using FunctionRef = const clang::Decl*;
     using NodeRef = const clang::CFGBlock*;
@@ -50,12 +51,12 @@ class ProcCFG {
 
   public:
     /// \brief build a procedural CFG from a clang function declaration.
-    static GraphRef build(const clang::Decl* function);
+    static GraphUniqueRef build(const clang::Decl* function);
 
     /// \brief build a procedural CFG from a clang declaration and its body.
-    static GraphRef build(FunctionRef function,
-                          clang::Stmt* build_scope,
-                          clang::ASTContext& ctx);
+    static GraphUniqueRef build(FunctionRef function,
+                                clang::Stmt* build_scope,
+                                clang::ASTContext& ctx);
 
   public:
     /// \brief get the entry node of the CFG.

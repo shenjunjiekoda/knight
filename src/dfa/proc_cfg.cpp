@@ -14,6 +14,7 @@
 #include "dfa/proc_cfg.hpp"
 #include "util/assert.hpp"
 #include "llvm/Support/raw_ostream.h"
+#include <memory>
 
 namespace knight::dfa {
 
@@ -115,7 +116,7 @@ ProcCFG::NodeRef ProcCFG::exit(GraphRef cfg) {
     return &(cfg->m_cfg->getExit());
 }
 
-ProcCFG::GraphRef ProcCFG::build(const clang::Decl* function) {
+ProcCFG::GraphUniqueRef ProcCFG::build(const clang::Decl* function) {
     knight_assert_msg(function != nullptr, "function provided is null");
     auto* body = function->getBody();
     knight_assert_msg(body != nullptr, "function shall have body");
@@ -123,9 +124,9 @@ ProcCFG::GraphRef ProcCFG::build(const clang::Decl* function) {
     return build(function, body, function->getASTContext());
 }
 
-ProcCFG::GraphRef ProcCFG::build(FunctionRef function,
-                                 clang::Stmt* build_scope,
-                                 clang::ASTContext& ctx) {
+ProcCFG::GraphUniqueRef ProcCFG::build(FunctionRef function,
+                                       clang::Stmt* build_scope,
+                                       clang::ASTContext& ctx) {
     knight_assert_msg(!function->isTemplated(),
                       "templated function not supported");
     knight_assert_msg(!ctx.getLangOpts().ObjC, "objective-c not supported");
@@ -138,10 +139,10 @@ ProcCFG::GraphRef ProcCFG::build(FunctionRef function,
 
     auto stmt_block_mapping = construct_stmt_block_mapping(*cfg);
     auto reachable_blocks = get_reachable_blocks(*cfg);
-    return new ProcCFG(function,
-                       std::move(cfg),
-                       std::move(stmt_block_mapping),
-                       std::move(reachable_blocks));
+    return std::unique_ptr< ProcCFG >(new ProcCFG(function,
+                                                  std::move(cfg),
+                                                  std::move(stmt_block_mapping),
+                                                  std::move(reachable_blocks)));
 }
 
 void ProcCFG::dump(llvm::raw_ostream& os, bool show_colors) const {

@@ -18,11 +18,11 @@
 #include "dfa/engine/intraprocedural_fixpoint.hpp"
 #include "dfa/proc_cfg.hpp"
 #include "dfa/program_state.hpp"
+#include "dfa/stack_frame.hpp"
 #include "tooling/context.hpp"
 #include "tooling/diagnostic.hpp"
 #include "tooling/factory.hpp"
 #include "util/vfs.hpp"
-#include "llvm/Support/Casting.h"
 
 #include <clang/AST/ASTConsumer.h>
 #include <clang/AST/DeclGroup.h>
@@ -30,6 +30,7 @@
 #include <clang/Basic/LLVM.h>
 #include <clang/Frontend/CompilerInstance.h>
 #include <clang/Tooling/CompilationDatabase.h>
+#include <llvm/Support/Casting.h>
 #include <llvm/Support/raw_ostream.h>
 
 #include <memory>
@@ -53,53 +54,45 @@ class KnightASTConsumer : public clang::ASTConsumer {
         auto state_mgr =
             std::make_unique< dfa::ProgramStateManager >(m_analysis_manager,
                                                          m_ctx.get_allocator());
-        for (auto* D : decl_group) {
-            auto* FD = llvm::dyn_cast_or_null< clang::FunctionDecl >(D);
-            if (FD == nullptr || !FD->hasBody()) {
+        for (auto* decl : decl_group) {
+            auto* function =
+                llvm::dyn_cast_or_null< clang::FunctionDecl >(decl);
+            if (function == nullptr || !function->hasBody()) {
                 continue;
             }
 
             llvm::outs() << "[*] Processing function: \n";
-            FD->printName(llvm::outs());
+            function->printName(llvm::outs());
             llvm::outs() << "\n";
 
-            auto cfg = dfa::ProcCFG::build(FD);
+            auto* frame = m_stack_frame_manager.create_top_frame(function);
             if (m_ctx.get_current_options().view_cfg) {
+                llvm::outs().changeColor(llvm::raw_ostream::Colors::RED);
                 llvm::outs() << "viewing CFG:\n";
-                cfg->view();
+                llvm::outs().resetColor();
+                frame->get_cfg()->view();
             }
 
             if (m_ctx.get_current_options().dump_cfg) {
+                llvm::outs().changeColor(llvm::raw_ostream::Colors::RED);
                 llvm::outs() << "dumping CFG:\n";
-                cfg->dump(llvm::outs(), m_ctx.get_current_options().use_color);
+                llvm::outs().resetColor();
+
+                frame->get_cfg()->dump(llvm::outs(),
+                                       m_ctx.get_current_options().use_color);
             }
 
             auto& m_analysis_ctx = m_analysis_manager.get_analysis_context();
             auto& m_checker_ctx = m_checker_manager.get_checker_context();
-            m_analysis_ctx.set_current_decl(FD);
-            m_checker_ctx.set_current_decl(FD);
+            m_analysis_ctx.set_current_stack_frame(frame);
+            m_checker_ctx.set_current_stack_frame(frame);
 
             dfa::IntraProceduralFixpointIterator engine(m_ctx,
                                                         m_analysis_manager,
                                                         m_checker_manager,
                                                         *state_mgr,
-                                                        FD);
+                                                        frame);
             engine.run();
-            // for (const auto& fn :
-            //      m_analysis_manager.begin_function_analyses()) {
-            //     fn(m_analysis_ctx);
-            // }
-            // for (const auto& fn : m_checker_manager.begin_function_checks())
-            // {
-            //     fn(m_checker_ctx);
-            // }
-            // for (const auto& fn : m_analysis_manager.end_function_analyses())
-            // {
-            //     fn(nullptr, m_analysis_ctx);
-            // }
-            // for (const auto& fn : m_checker_manager.end_function_checks()) {
-            //     fn(nullptr, m_checker_ctx);
-            // }
         }
 
         return true;
@@ -111,6 +104,7 @@ class KnightASTConsumer : public clang::ASTConsumer {
     dfa::CheckerManager& m_checker_manager;
     KnightFactory::CheckerRefs m_checkers;
     KnightFactory::AnalysisRefs m_analysis;
+    dfa::StackFrameManager m_stack_frame_manager;
 }; // class KnightASTConsumer
 
 class KnightASTConsumerFactory {

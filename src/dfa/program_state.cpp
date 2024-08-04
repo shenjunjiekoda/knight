@@ -53,6 +53,11 @@ ProgramState::ProgramState(const ProgramState& other)
     }
 }
 
+ProgramState::ProgramState(ProgramState&& other)
+    : m_mgr(other.m_mgr), m_ref_cnt(0) {
+    m_dom_val = std::move(other.m_dom_val);
+}
+
 ProgramStateManager& ProgramState::get_manager() const {
     return *m_mgr;
 }
@@ -242,13 +247,13 @@ ProgramStateRef ProgramStateManager::get_bottom_state() {
     return get_persistent_state(State);
 }
 
-ProgramStateRef ProgramStateManager::get_persistent_state(ProgramState& State) {
-    llvm::FoldingSetNodeID ID;
-    State.Profile(ID);
-    void* InsertPos;
+ProgramStateRef ProgramStateManager::get_persistent_state(ProgramState& state) {
+    llvm::FoldingSetNodeID id;
+    state.Profile(id);
+    void* insert_pos;
 
     if (ProgramState* existed =
-            m_state_set.FindNodeOrInsertPos(ID, InsertPos)) {
+            m_state_set.FindNodeOrInsertPos(id, insert_pos)) {
         return existed;
     }
 
@@ -259,8 +264,8 @@ ProgramStateRef ProgramStateManager::get_persistent_state(ProgramState& State) {
     } else {
         new_state = m_alloc.Allocate< ProgramState >();
     }
-    new (new_state) ProgramState(State);
-    m_state_set.InsertNode(new_state, InsertPos);
+    new (new_state) ProgramState(std::move(state));
+    m_state_set.InsertNode(new_state, insert_pos);
     return new_state;
 }
 

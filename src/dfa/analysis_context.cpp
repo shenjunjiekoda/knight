@@ -14,6 +14,7 @@
 #include "dfa/analysis_context.hpp"
 #include "dfa/analysis/analysis_base.hpp"
 #include "dfa/program_state.hpp"
+#include "dfa/stack_frame.hpp"
 #include "tooling/context.hpp"
 
 namespace knight::dfa {
@@ -32,6 +33,18 @@ ProgramStateRef AnalysisContext::get_state() const {
 
 void AnalysisContext::set_state(ProgramStateRef state) {
     m_state = std::move(state);
+}
+
+const clang::Decl* AnalysisContext::get_current_decl() const {
+    return m_frame->get_decl();
+}
+
+StackFrame* AnalysisContext::get_current_stack_frame() const {
+    return m_frame;
+}
+
+void AnalysisContext::set_current_stack_frame(StackFrame* frame) {
+    m_frame = frame;
 }
 
 } // namespace knight::dfa

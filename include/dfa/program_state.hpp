@@ -69,9 +69,11 @@ class ProgramState : public llvm::FoldingSetNode {
 
     /// \breif Copy constructor.
     ProgramState(const ProgramState& other);
+    ProgramState(ProgramState&& other);
 
     /// \brief Copy assignment is not allowed.
     void operator=(const ProgramState& other) = delete;
+    void operator=(ProgramState&& other) = delete;
 
     ~ProgramState() = default;
 

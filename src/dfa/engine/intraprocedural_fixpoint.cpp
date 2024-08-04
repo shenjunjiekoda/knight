@@ -26,11 +26,10 @@ IntraProceduralFixpointIterator::IntraProceduralFixpointIterator(
     AnalysisManager& analysis_mgr,
     CheckerManager& checker_mgr,
     ProgramStateManager& state_mgr,
-    FunctionRef func)
-    : m_func(func), m_ctx(ctx), m_analysis_mgr(analysis_mgr),
+    StackFrame* frame)
+    : m_frame(frame), m_ctx(ctx), m_analysis_mgr(analysis_mgr),
       m_checker_mgr(checker_mgr), m_state_mgr(state_mgr),
-      WtoBasedFixPointIterator(ProcCFG::build(func),
-                               state_mgr.get_bottom_state()) {}
+      WtoBasedFixPointIterator(frame, state_mgr.get_bottom_state()) {}
 
 ProgramStateRef IntraProceduralFixpointIterator::transfer_node(
     NodeRef node, ProgramStateRef pre_state) {
