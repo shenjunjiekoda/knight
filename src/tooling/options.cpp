@@ -7,18 +7,17 @@ namespace knight {
 
 const char* optionSourceToString(OptionSource source) {
     switch (source) {
-    case OptionSource::Default:
-        return "Default";
-    case OptionSource::CommandLine:
-        return "CommandLine";
-    case OptionSource::ConfigFile:
-        return "ConfigFile";
+        case OptionSource::Default:
+            return "Default";
+        case OptionSource::CommandLine:
+            return "CommandLine";
+        case OptionSource::ConfigFile:
+            return "ConfigFile";
     }
     knight_unreachable("invalid option source");
 }
 
 KnightOptionsDefaultProvider::KnightOptionsDefaultProvider() {
-
     if (auto user_opt = llvm::sys::Process::GetEnv("USER")) {
         options.user = *user_opt;
     } else if (auto user_opt = llvm::sys::Process::GetEnv("USERNAME")) {

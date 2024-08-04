@@ -12,10 +12,10 @@
 //===------------------------------------------------------------------===//
 
 #include "tooling/reporter.hpp"
-#include "tooling/diagnostic.hpp"
 #include "clang/Basic/LangOptions.h"
 #include "clang/Tooling/Core/Replacement.h"
 #include "llvm/Support/raw_ostream.h"
+#include "tooling/diagnostic.hpp"
 
 #include <clang/Basic/DiagnosticFrontend.h>
 #include <clang/Basic/DiagnosticIDs.h>
@@ -31,7 +31,10 @@ namespace knight {
 DiagnosticReporter::DiagnosticReporter(FixKind kind,
                                        KnightContext& ctx,
                                        fs::FileSystemRef base_vfs)
-    : m_ctx(ctx), m_fix_kind(kind), m_total_fixes(0U), m_applied_fixes(0U),
+    : m_ctx(ctx),
+      m_fix_kind(kind),
+      m_total_fixes(0U),
+      m_applied_fixes(0U),
       m_file_manager({}, std::move(base_vfs)),
       m_diag_opts(new clang::DiagnosticOptions()),
       m_consumer(new clang::TextDiagnosticPrinter(llvm::outs(), &*m_diag_opts)),
@@ -123,7 +126,6 @@ void DiagnosticReporter::report_fix(
 
 void DiagnosticReporter::report_note(
     const clang::tooling::DiagnosticMessage& diag_msg) {
-
     auto note_loc = get_composed_loc(diag_msg.FilePath, diag_msg.FileOffset);
 
     auto builder =
@@ -167,7 +169,6 @@ void DiagnosticReporter::report(const KnightDiagnostic& diagnostic) {
             nullptr;
         if (m_fix_kind != FixKind::None) {
             if ((chosen_fix = get_replacements(diagnostic, true))) {
-
                 for (const auto& [file, replacements] : *chosen_fix) {
                     for (const auto& replacement : replacements) {
                         ++m_total_fixes;

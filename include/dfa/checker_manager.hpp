@@ -33,7 +33,8 @@ using CheckerRefs = std::vector< CheckerRef >;
 using CheckerIDSet = std::unordered_set< CheckerID >;
 using CheckerNameRef = llvm::StringRef;
 
-template < typename T > class CheckerCallBack;
+template < typename T >
+class CheckerCallBack;
 
 template < typename RET, typename... Args >
 class CheckerCallBack< RET(Args...) > {
@@ -107,7 +108,8 @@ class CheckerManager {
 
   public:
     CheckerManager(KnightContext& ctx, AnalysisManager& analysis_mgr)
-        : m_ctx(ctx), m_checker_ctx(std::make_unique< CheckerContext >(ctx)),
+        : m_ctx(ctx),
+          m_checker_ctx(std::make_unique< CheckerContext >(ctx)),
           m_analysis_mgr(analysis_mgr) {}
 
     CheckerContext& get_checker_context() const { return *m_checker_ctx; }
@@ -153,7 +155,7 @@ class CheckerManager {
     void register_for_begin_function(internal::CheckBeginFunctionCallBack cb);
     void register_for_end_function(internal::CheckEndFunctionCallBack cb);
     void register_for_stmt(internal::CheckStmtCallBack cb,
-                           internal::MatchStmtCallBack match_cb,
+                           internal::MatchStmtCallBack match_fn,
                            internal::CheckStmtKind kind);
     /// @}
 

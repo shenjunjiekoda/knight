@@ -24,7 +24,8 @@
 
 namespace knight::dfa {
 
-template < typename Num, typename Var > class LinearExpr {
+template < typename Num, typename Var >
+class LinearExpr {
   public:
     using VarRef = Var::Ref;
     using VarSet = std::unordered_set< VarRef >;
@@ -368,7 +369,8 @@ enum class LinearConstraintKind {
     LCK_Inequality,  // <=
 };                   // enum class LinearConstraintLinearConstraintKind
 
-template < typename Num, typename Var > class LinearConstraint {
+template < typename Num, typename Var >
+class LinearConstraint {
   public:
     using enum LinearConstraintKind;
     using VarRef = Var::Ref;
@@ -408,17 +410,17 @@ template < typename Num, typename Var > class LinearConstraint {
         }
 
         switch (this->m_kind) {
-        case LCK_Equality: {
-            return this->m_linear_expr.constant() == 0;
-        }
-        case LCK_Disequation: {
-            return this->m_linear_expr.constant() != 0;
-        }
-        case LCK_Inequality: {
-            return this->m_linear_expr.constant() <= 0;
-        }
-        default:
-            break;
+            case LCK_Equality: {
+                return this->m_linear_expr.constant() == 0;
+            }
+            case LCK_Disequation: {
+                return this->m_linear_expr.constant() != 0;
+            }
+            case LCK_Inequality: {
+                return this->m_linear_expr.constant() <= 0;
+            }
+            default:
+                break;
         }
         knight_unreachable("Invalid constraint kind");
     }
@@ -430,20 +432,20 @@ template < typename Num, typename Var > class LinearConstraint {
         }
 
         switch (this->m_kind) {
-        case LCK_Equality: {
-            // x == 0
-            return this->m_linear_expr.constant() != 0;
-        }
-        case LCK_Disequation: {
-            // x != 0
-            return this->m_linear_expr.constant() == 0;
-        }
-        case LCK_Inequality: {
-            // x <= 0
-            return this->m_linear_expr.constant() > 0;
-        }
-        default:
-            break;
+            case LCK_Equality: {
+                // x == 0
+                return this->m_linear_expr.constant() != 0;
+            }
+            case LCK_Disequation: {
+                // x != 0
+                return this->m_linear_expr.constant() == 0;
+            }
+            case LCK_Inequality: {
+                // x <= 0
+                return this->m_linear_expr.constant() > 0;
+            }
+            default:
+                break;
         }
         knight_unreachable("Invalid constraint kind");
     }
@@ -494,21 +496,21 @@ template < typename Num, typename Var > class LinearConstraint {
 
         expr.dump(os);
         switch (this->m_kind) {
-        case LCK_Equality: {
-            os << " == ";
-            break;
-        }
-        case LCK_Disequation: {
-            os << " != ";
-            break;
-        }
-        case LCK_Inequality: {
-            os << " <= ";
-            break;
-        }
-        default: {
-            knight_unreachable("Invalid constraint kind");
-        }
+            case LCK_Equality: {
+                os << " == ";
+                break;
+            }
+            case LCK_Disequation: {
+                os << " != ";
+                break;
+            }
+            case LCK_Inequality: {
+                os << " <= ";
+                break;
+            }
+            default: {
+                knight_unreachable("Invalid constraint kind");
+            }
         }
         os << cst;
     }
@@ -698,7 +700,8 @@ template < typename Num, typename Var >
                                    LinearConstraint< Num, Var >::Disequation);
 }
 
-template < typename Num, typename Var > class LinearConstraintSystem {
+template < typename Num, typename Var >
+class LinearConstraintSystem {
   public:
     using LinearConstraint = LinearConstraint< Num, Var >;
     using VarRef = Var::Ref;

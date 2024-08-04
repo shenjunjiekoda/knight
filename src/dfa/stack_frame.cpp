@@ -38,7 +38,9 @@ StackFrame::StackFrame(StackFrameManager* manager,
                        const clang::Decl* decl,
                        StackFrame* parent,
                        CallSiteInfo call_site_info)
-    : m_manager(manager), m_decl(decl), m_parent(parent),
+    : m_manager(manager),
+      m_decl(decl),
+      m_parent(parent),
       m_call_site_info(std::move(call_site_info)) {}
 
 StackFrame::StackFrame(const StackFrame& other) = default;

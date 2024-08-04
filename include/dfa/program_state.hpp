@@ -37,7 +37,8 @@ void release_state(ProgramStateRawPtr state);
 
 namespace llvm {
 
-template <> struct IntrusiveRefCntPtrInfo< knight::dfa::ProgramState > {
+template <>
+struct IntrusiveRefCntPtrInfo< knight::dfa::ProgramState > {
     static void retain(knight::dfa::ProgramStateRawPtr state) {
         knight::dfa::retain_state(state);
     }
@@ -88,10 +89,12 @@ class ProgramState : public llvm::FoldingSetNode {
     /// \brief Check if the given domain kind exists in the program state.
     ///
     /// \return True if the domain kind exists, false otherwise.
-    template < typename Domain > bool exists() const;
+    template < typename Domain >
+    bool exists() const;
 
     /// \brief Get the abstract cal with the given domain.
-    template < typename Domain > std::optional< Domain* > get() const {
+    template < typename Domain >
+    std::optional< Domain* > get() const {
         auto it = m_dom_val.find(get_domain_id(Domain::get_kind()));
         if (it == m_dom_val.end()) {
             return std::nullopt;
@@ -100,10 +103,12 @@ class ProgramState : public llvm::FoldingSetNode {
     }
 
     /// \brief Remove the given domain from the program state.
-    template < typename Domain > bool remove();
+    template < typename Domain >
+    bool remove();
 
     /// \brief Set the given domain to the given abstract val.
-    template < typename Domain > void set(UniqueVal val);
+    template < typename Domain >
+    void set(UniqueVal val);
 
   public:
     [[nodiscard]] ProgramStateRef clone() const;

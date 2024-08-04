@@ -16,8 +16,8 @@
 #include "dfa/analysis/analyses.hpp"
 #include "dfa/analysis_context.hpp"
 #include "dfa/analysis_manager.hpp"
-#include "support/clang_ast.hpp"
 #include "llvm/Support/raw_ostream.h"
+#include "support/clang_ast.hpp"
 
 namespace knight::dfa {
 
@@ -145,7 +145,6 @@ class BeginFunction {
 }; // class BeginFunction
 
 class EndFunction {
-
     template < typename ANALYSIS >
     static void run_end_function(void* analysis, AnalysisContext& C) {
         ((const ANALYSIS*)analysis)->analyze_end_function(C);
@@ -162,7 +161,8 @@ class EndFunction {
 
 }; // class EndFunction
 
-template < clang_stmt STMT > class PreStmt {
+template < clang_stmt STMT >
+class PreStmt {
     template < typename ANALYSIS >
     static void run_pre_stmt(void* analysis,
                              internal::StmtRef S,
@@ -187,7 +187,8 @@ template < clang_stmt STMT > class PreStmt {
 
 }; // class PreStmt
 
-template < clang_stmt STMT > class EvalStmt {
+template < clang_stmt STMT >
+class EvalStmt {
     template < typename ANALYSIS >
     static void run_eval_stmt(void* analysis,
                               internal::StmtRef S,
@@ -212,7 +213,8 @@ template < clang_stmt STMT > class EvalStmt {
     }
 }; // class EvalStmt
 
-template < clang_stmt STMT > class PostStmt {
+template < clang_stmt STMT >
+class PostStmt {
     template < typename ANALYSIS >
     static void run_post_stmt(void* analysis,
                               internal::StmtRef S,

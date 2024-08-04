@@ -44,8 +44,10 @@ class KnightASTConsumer : public clang::ASTConsumer {
                       dfa::CheckerManager& checker_manager,
                       KnightFactory::CheckerRefs checkers,
                       KnightFactory::AnalysisRefs analysis)
-        : m_ctx(ctx), m_analysis_manager(analysis_manager),
-          m_checker_manager(checker_manager), m_checkers(std::move(checkers)),
+        : m_ctx(ctx),
+          m_analysis_manager(analysis_manager),
+          m_checker_manager(checker_manager),
+          m_checkers(std::move(checkers)),
           m_analysis(std::move(analysis)) {}
 
     // TODO: add datadflow engine to run analysis and checkers here? on the
@@ -61,20 +63,28 @@ class KnightASTConsumer : public clang::ASTConsumer {
                 continue;
             }
 
-            llvm::outs() << "[*] Processing function: \n";
+            llvm::outs() << "[*] Processing function: ";
+            if (m_ctx.get_current_options().use_color) {
+                llvm::outs().changeColor(llvm::raw_ostream::Colors::RED);
+            }
             function->printName(llvm::outs());
+            llvm::outs().resetColor();
             llvm::outs() << "\n";
 
             auto* frame = m_stack_frame_manager.create_top_frame(function);
             if (m_ctx.get_current_options().view_cfg) {
-                llvm::outs().changeColor(llvm::raw_ostream::Colors::RED);
+                if (m_ctx.get_current_options().use_color) {
+                    llvm::outs().changeColor(llvm::raw_ostream::Colors::RED);
+                }
                 llvm::outs() << "viewing CFG:\n";
                 llvm::outs().resetColor();
                 frame->get_cfg()->view();
             }
 
             if (m_ctx.get_current_options().dump_cfg) {
-                llvm::outs().changeColor(llvm::raw_ostream::Colors::RED);
+                if (m_ctx.get_current_options().use_color) {
+                    llvm::outs().changeColor(llvm::raw_ostream::Colors::RED);
+                }
                 llvm::outs() << "dumping CFG:\n";
                 llvm::outs().resetColor();
 
@@ -148,7 +158,9 @@ class KnightDriver {
         const clang::tooling::CompilationDatabase& cdb,
         std::vector< std::string > input_files,
         llvm::IntrusiveRefCntPtr< llvm::vfs::OverlayFileSystem > base_fs)
-        : m_ctx(ctx), m_cdb(cdb), m_input_files(std::move(input_files)),
+        : m_ctx(ctx),
+          m_cdb(cdb),
+          m_input_files(std::move(input_files)),
           m_base_fs(base_fs) {}
 
   public:

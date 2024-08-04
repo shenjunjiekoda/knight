@@ -62,16 +62,19 @@ ProgramStateManager& ProgramState::get_manager() const {
     return *m_mgr;
 }
 
-template < typename Domain > bool ProgramState::exists() const {
+template < typename Domain >
+bool ProgramState::exists() const {
     return get(Domain::get_kind()).has_value();
 }
 
-template < typename Domain > bool ProgramState::remove() {
+template < typename Domain >
+bool ProgramState::remove() {
     auto id = get_domain_id(Domain::get_kind());
     return m_dom_val.erase(id) != 0U;
 }
 
-template < typename Domain > void ProgramState::set(UniqueVal val) {
+template < typename Domain >
+void ProgramState::set(UniqueVal val) {
     m_dom_val[get_domain_id(Domain::get_kind())] = std::move(val);
 }
 
@@ -98,36 +101,36 @@ void ProgramState::set_to_top() {
     llvm::for_each(m_dom_val, [](auto& pair) { pair.second->set_to_top(); });
 }
 
-#define UNION_MAP(OP)                                                          \
-    ProgramState new_state = *this;                                            \
-    DomValMap map;                                                             \
-    for (auto& [other_id, other_val] : other->m_dom_val) {                     \
-        auto it = m_dom_val.find(other_id);                                    \
-        if (it == m_dom_val.end()) {                                           \
-            map[other_id] = other_val->clone();                                \
-        } else {                                                               \
-            auto new_val = it->second->clone();                                \
-            new_val->OP(*other_val);                                           \
-            map[other_id] = std::move(new_val);                                \
-        }                                                                      \
-    }                                                                          \
-    return get_manager().get_persistent_state_with_dom_val_map(new_state,      \
-                                                               std::move(      \
+#define UNION_MAP(OP)                                                     \
+    ProgramState new_state = *this;                                       \
+    DomValMap map;                                                        \
+    for (auto& [other_id, other_val] : other->m_dom_val) {                \
+        auto it = m_dom_val.find(other_id);                               \
+        if (it == m_dom_val.end()) {                                      \
+            map[other_id] = other_val->clone();                           \
+        } else {                                                          \
+            auto new_val = it->second->clone();                           \
+            new_val->OP(*other_val);                                      \
+            map[other_id] = std::move(new_val);                           \
+        }                                                                 \
+    }                                                                     \
+    return get_manager().get_persistent_state_with_dom_val_map(new_state, \
+                                                               std::move( \
                                                                    map));
 
-#define INTERSECT_MAP(OP)                                                      \
-    ProgramState new_state = *this;                                            \
-    DomValMap map;                                                             \
-    for (auto& [other_id, other_val] : other->m_dom_val) {                     \
-        auto it = m_dom_val.find(other_id);                                    \
-        if (it != m_dom_val.end()) {                                           \
-            auto new_val = it->second->clone();                                \
-            new_val->OP(*other_val);                                           \
-            map[other_id] = std::move(new_val);                                \
-        }                                                                      \
-    }                                                                          \
-    return get_manager().get_persistent_state_with_dom_val_map(new_state,      \
-                                                               std::move(      \
+#define INTERSECT_MAP(OP)                                                 \
+    ProgramState new_state = *this;                                       \
+    DomValMap map;                                                        \
+    for (auto& [other_id, other_val] : other->m_dom_val) {                \
+        auto it = m_dom_val.find(other_id);                               \
+        if (it != m_dom_val.end()) {                                      \
+            auto new_val = it->second->clone();                           \
+            new_val->OP(*other_val);                                      \
+            map[other_id] = std::move(new_val);                           \
+        }                                                                 \
+    }                                                                     \
+    return get_manager().get_persistent_state_with_dom_val_map(new_state, \
+                                                               std::move( \
                                                                    map));
 
 ProgramStateRef ProgramState::clone() const {

@@ -16,6 +16,9 @@
 #include "dfa/checker/checkers.hpp"
 #include "tooling/context.hpp"
 
+#include <clang/Basic/Diagnostic.h>
+#include <clang/Basic/DiagnosticIDs.h>
+
 namespace knight::dfa {
 
 CheckerBase::CheckerBase(KnightContext& ctx, CheckerKind k)

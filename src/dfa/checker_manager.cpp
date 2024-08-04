@@ -17,8 +17,8 @@
 #include "dfa/checker/checker_base.hpp"
 #include "dfa/checker/checkers.hpp"
 #include "util/assert.hpp"
-#include <memory>
 
+#include <memory>
 namespace knight::dfa {
 
 void CheckerManager::add_required_checker(CheckerID id) {
@@ -26,7 +26,7 @@ void CheckerManager::add_required_checker(CheckerID id) {
 }
 
 bool CheckerManager::is_checker_required(CheckerID id) const {
-    return m_required_checkers.count(id) > 0U;
+    return m_required_checkers.contains(id);
 }
 
 void CheckerManager::enable_checker(std::unique_ptr< CheckerBase > checker) {
@@ -42,20 +42,20 @@ std::optional< CheckerBase* > CheckerManager::get_checker(CheckerID id) {
     return it->second.get();
 }
 
-void CheckerManager::register_for_stmt(internal::CheckStmtCallBack anz_fn,
+void CheckerManager::register_for_stmt(internal::CheckStmtCallBack cb,
                                        internal::MatchStmtCallBack match_fn,
                                        internal::CheckStmtKind kind) {
-    m_stmt_checks.emplace_back(anz_fn, match_fn, kind);
+    m_stmt_checks.emplace_back(cb, match_fn, kind);
 }
 
 void CheckerManager::register_for_begin_function(
-    internal::CheckBeginFunctionCallBack anz_fn) {
-    m_begin_function_checks.emplace_back(anz_fn);
+    internal::CheckBeginFunctionCallBack cb) {
+    m_begin_function_checks.emplace_back(cb);
 }
 
 void CheckerManager::register_for_end_function(
-    internal::CheckEndFunctionCallBack anz_fn) {
-    m_end_function_checks.emplace_back(anz_fn);
+    internal::CheckEndFunctionCallBack cb) {
+    m_end_function_checks.emplace_back(cb);
 }
 
 void CheckerManager::run_checkers_for_stmt(internal::StmtRef stmt,

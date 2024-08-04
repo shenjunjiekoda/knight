@@ -56,7 +56,8 @@ concept graph =
         } -> std::convertible_to< typename T::PredNodeIterator >;
     }; // concept graph
 
-template < graph T > struct GraphTrait {
+template < graph T >
+struct GraphTrait {
     using GraphRef = typename T::GraphRef;
     using NodeRef = typename T::NodeRef;
     using SuccNodeIterator = typename T::SuccNodeIterator;

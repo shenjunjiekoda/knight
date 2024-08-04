@@ -24,16 +24,21 @@
 
 namespace knight {
 
-template < graph G, typename GraphTrait > class Wto;
-template < graph G, typename GraphTrait > class WtoVertex;
-template < graph G, typename GraphTrait > class WtoCycle;
-template < graph G, typename GraphTrait > class WtoComponentVisitor;
+template < graph G, typename GraphTrait >
+class Wto;
+template < graph G, typename GraphTrait >
+class WtoVertex;
+template < graph G, typename GraphTrait >
+class WtoCycle;
+template < graph G, typename GraphTrait >
+class WtoComponentVisitor;
 
 /// \brief Represents the nesting of a node
 ///
 /// The nesting of a node is the list of cycles containing the node, from
 /// the outermost to the innermost.
-template < graph G, typename GraphTrait = GraphTrait< G > > class WtoNesting {
+template < graph G, typename GraphTrait = GraphTrait< G > >
+class WtoNesting {
   public:
     using NodeRef = typename GraphTrait::NodeRef;
     using Nodes = std::vector< NodeRef >;
@@ -140,7 +145,8 @@ template < graph G, typename GraphTrait = GraphTrait< G > > class WtoNesting {
 /// \brief Base class for components of a weak topological order
 ///
 /// This is either a vertex or a cycle.
-template < graph G, typename GraphTrait = GraphTrait< G > > class WtoComponent {
+template < graph G, typename GraphTrait = GraphTrait< G > >
+class WtoComponent {
   public:
     WtoComponent() = default;
     WtoComponent(const WtoComponent&) noexcept = default;
@@ -253,7 +259,8 @@ class WtoComponentVisitor {
 }; // class WtoComponentVisitor
 
 /// \brief Weak Topological Ordering
-template < graph G, typename GraphTrait = GraphTrait< G > > class Wto {
+template < graph G, typename GraphTrait = GraphTrait< G > >
+class Wto {
   public:
     using GraphRef = G::GraphRef;
     using NodeRef = typename GraphTrait::NodeRef;

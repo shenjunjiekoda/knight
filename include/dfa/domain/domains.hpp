@@ -32,48 +32,48 @@ enum class DomainKind {
 inline llvm::StringRef get_domain_name(DomainKind kind) {
     switch (kind) {
 #undef DOMAIN_DEF
-#define DOMAIN_DEF(KIND, NAME, ID, DESC)                                       \
-    case DomainKind::KIND:                                                     \
+#define DOMAIN_DEF(KIND, NAME, ID, DESC) \
+    case DomainKind::KIND:               \
         return NAME;
 #include "domains.def"
-    default:
-        return "Unknown";
+        default:
+            return "Unknown";
     }
 }
 
 inline llvm::StringRef get_domain_desc(DomainKind kind) {
     switch (kind) {
 #undef DOMAIN_DEF
-#define DOMAIN_DEF(KIND, NAME, ID, DESC)                                       \
-    case DomainKind::KIND:                                                     \
+#define DOMAIN_DEF(KIND, NAME, ID, DESC) \
+    case DomainKind::KIND:               \
         return DESC;
 #include "domains.def"
-    default:
-        return "Unknown";
+        default:
+            return "Unknown";
     }
 }
 
 inline uint8_t get_domain_id(DomainKind kind) {
     switch (kind) {
 #undef DOMAIN_DEF
-#define DOMAIN_DEF(KIND, NAME, ID, DESC)                                       \
-    case DomainKind::KIND:                                                     \
+#define DOMAIN_DEF(KIND, NAME, ID, DESC) \
+    case DomainKind::KIND:               \
         return ID;
 #include "domains.def"
-    default:
-        return 0;
+        default:
+            return 0;
     }
 }
 
 inline DomainKind get_domain_kind(DomID id) {
     switch (id) {
 #undef DOMAIN_DEF
-#define DOMAIN_DEF(KIND, NAME, ID, DESC)                                       \
-    case ID:                                                                   \
+#define DOMAIN_DEF(KIND, NAME, ID, DESC) \
+    case ID:                             \
         return DomainKind::KIND;
 #include "domains.def"
-    default:
-        return DomainKind::None;
+        default:
+            return DomainKind::None;
     }
 }
 

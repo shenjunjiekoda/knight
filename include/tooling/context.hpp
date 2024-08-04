@@ -31,7 +31,6 @@
 namespace knight {
 
 class KnightContext {
-
   private:
     /// \brief The diagnostic engine used to diagnose errors.
     clang::DiagnosticsEngine* m_diag_engine;

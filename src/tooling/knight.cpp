@@ -66,7 +66,6 @@ KnightASTConsumerFactory::KnightASTConsumerFactory(
     std::unique_ptr< dfa::AnalysisManager > external_analysis_manager,
     std::unique_ptr< dfa::CheckerManager > external_checker_manager)
     : m_ctx(ctx) {
-
     if (external_analysis_manager != nullptr) {
         m_analysis_manager = std::move(external_analysis_manager);
     } else {

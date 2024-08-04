@@ -12,9 +12,9 @@
 //===------------------------------------------------------------------===//
 
 #include "dfa/proc_cfg.hpp"
-#include "util/assert.hpp"
-#include "llvm/Support/raw_ostream.h"
 #include <memory>
+#include "llvm/Support/raw_ostream.h"
+#include "util/assert.hpp"
 
 namespace knight::dfa {
 
@@ -157,7 +157,8 @@ ProcCFG::ProcCFG(FunctionRef proc,
                  ClangCFGRef cfg,
                  StmtToBlockMap stmt_to_block,
                  llvm::BitVector reachable_block)
-    : m_proc(proc), m_cfg(std::move(cfg)),
+    : m_proc(proc),
+      m_cfg(std::move(cfg)),
       m_stmt_to_block(std::move(stmt_to_block)),
       m_reachable_block(std::move(reachable_block)) {}
 

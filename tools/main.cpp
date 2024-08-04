@@ -11,13 +11,13 @@
 //
 //===------------------------------------------------------------------===//
 
-#include <cstdint>
 #include <llvm/Support/CommandLine.h>
 #include <llvm/Support/InitLLVM.h>
 #include <llvm/Support/Process.h>
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/Support/WithColor.h>
 #include <llvm/Support/raw_ostream.h>
+#include <cstdint>
 
 #include <clang/Tooling/CommonOptionsParser.h>
 #include <string>
@@ -36,18 +36,18 @@ using namespace knight;
 using namespace knight::cl_opts;
 
 using ErrCode = uint8_t;
-constexpr ErrCode NORMAL_EXIT = 0;
-constexpr ErrCode OPT_PARSE_FAILURE = 1;
-constexpr ErrCode BASE_VFS_CREATE_FAILURE = 2;
-constexpr ErrCode VFS_FILE_FAILURE = 3;
-constexpr ErrCode NO_INPUT_FILES = 4;
-constexpr ErrCode COMPILE_ERROR_FOUND = 5;
+constexpr ErrCode NormalExit = 0;
+constexpr ErrCode OptParseFailure = 1;
+constexpr ErrCode BaseVfsCreateFailure = 2;
+constexpr ErrCode VfsFileFailure = 3;
+constexpr ErrCode NoInputFiles = 4;
+constexpr ErrCode CompileErrorFound = 5;
 
 llvm::IntrusiveRefCntPtr< llvm::vfs::OverlayFileSystem > get_vfs(
     ErrCode& code) {
     auto base_vfs = fs::create_base_vfs();
     if (!base_vfs) {
-        code = BASE_VFS_CREATE_FAILURE;
+        code = BaseVfsCreateFailure;
         return nullptr;
     }
 
@@ -55,21 +55,21 @@ llvm::IntrusiveRefCntPtr< llvm::vfs::OverlayFileSystem > get_vfs(
         if (auto vfs = fs::get_vfs_from_yaml(overlay_file, base_vfs)) {
             base_vfs->pushOverlay(std::move(vfs));
         } else {
-            code = VFS_FILE_FAILURE;
+            code = VfsFileFailure;
             return nullptr;
         }
     }
-    code = NORMAL_EXIT;
+    code = NormalExit;
     return base_vfs;
 }
 
 std::unique_ptr< KnightOptionsProvider > get_opts_provider() {
     auto opts_provider = std::make_unique< KnightOptionsCommandLineProvider >();
     if (analyses.getNumOccurrences() > 0) {
-        opts_provider->options.analyses = analyses;
+        opts_provider->options.analyses = analyses; // NOLINT
     }
     if (checkers.getNumOccurrences() > 0) {
-        opts_provider->options.checkers = checkers;
+        opts_provider->options.checkers = checkers; // NOLINT
     }
     if (use_color.getNumOccurrences() > 0) {
         opts_provider->options.use_color = use_color;
@@ -88,7 +88,7 @@ std::unique_ptr< KnightOptionsProvider > get_opts_provider() {
 
 std::vector< std::string > get_enabled_checkers() {
     KnightContext context(std::move(get_opts_provider()));
-    KnightASTConsumerFactory factory(context);
+    const KnightASTConsumerFactory factory(context);
     std::vector< std::string > checkers;
     for (const auto& [_, name] : factory.get_enabled_checks()) {
         checkers.push_back(name.str());
@@ -98,7 +98,7 @@ std::vector< std::string > get_enabled_checkers() {
 
 std::vector< std::string > get_directly_enabled_analyses() {
     KnightContext context(std::move(get_opts_provider()));
-    KnightASTConsumerFactory factory(context);
+    const KnightASTConsumerFactory factory(context);
     std::vector< std::string > analyses;
     for (const auto& [_, name] : factory.get_directly_enabled_analyses()) {
         analyses.push_back(name.str());
@@ -137,14 +137,14 @@ void print_enabled_analyses(
 }
 
 int main(int argc, const char** argv) {
-    llvm::InitLLVM X(argc, argv);
+    llvm::InitLLVM llvm_setup(argc, argv);
 
     auto opts_parser = CommonOptionsParser::create(argc,
                                                    argv,
                                                    knight_category,
                                                    cl::ZeroOrMore);
 
-    ErrCode code;
+    ErrCode code = NormalExit;
     auto base_vfs = get_vfs(code);
     if (!base_vfs) {
         return code;
@@ -152,7 +152,7 @@ int main(int argc, const char** argv) {
 
     if (!opts_parser) {
         WithColor::error() << toString(opts_parser.takeError());
-        return OPT_PARSE_FAILURE;
+        return OptParseFailure;
     }
 
     auto opts_provider = get_opts_provider();
@@ -177,13 +177,13 @@ int main(int argc, const char** argv) {
         if (list_analyses) {
             print_enabled_analyses(enabled_analyses);
         }
-        return NORMAL_EXIT;
+        return NormalExit;
     }
 
     if (src_path_lst.empty()) {
         llvm::errs() << "No input files provided.\n";
         llvm::cl::PrintHelpMessage(false, true);
-        return NO_INPUT_FILES;
+        return NoInputFiles;
     }
 
     KnightContext ctx(std::move(opts_provider));
@@ -194,14 +194,13 @@ int main(int argc, const char** argv) {
     const auto& diags = driver.run();
     driver.handle_diagnostics(diags, try_fix);
 
-    bool compile_error_found = llvm::any_of(diags, [](const auto& diag) {
-        return diag.DiagLevel == KnightDiagnostic::Error;
-    });
-
-    if (compile_error_found) {
+    if (const bool compile_error_found =
+            llvm::any_of(diags, [](const auto& diag) {
+                return diag.DiagLevel == KnightDiagnostic::Error;
+            })) {
         llvm::errs() << "Error: compilation failed.\n";
-        return COMPILE_ERROR_FOUND;
+        return CompileErrorFound;
     }
 
-    return NORMAL_EXIT;
+    return code;
 }

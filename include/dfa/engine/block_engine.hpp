@@ -48,8 +48,11 @@ class BlockExecutionEngine {
                          ProgramStateRef in_state,
                          StmtResultCache& stmt_pre,
                          StmtResultCache& stmt_post)
-        : m_cfg(cfg), m_node(node), m_analysis_manager(analysis_manager),
-          m_state(std::move(in_state)), m_stmt_pre(stmt_pre),
+        : m_cfg(cfg),
+          m_node(node),
+          m_analysis_manager(analysis_manager),
+          m_state(std::move(in_state)),
+          m_stmt_pre(stmt_pre),
           m_stmt_post(stmt_post) {}
 
   public:

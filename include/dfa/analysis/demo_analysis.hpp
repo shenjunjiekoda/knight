@@ -13,13 +13,13 @@
 
 #pragma once
 
+#include "clang/AST/Decl.h"
+#include "clang/AST/Expr.h"
+#include "clang/AST/Stmt.h"
 #include "dfa/analysis/analysis_base.hpp"
 #include "dfa/analysis_context.hpp"
 #include "dfa/domain/demo_dom.hpp"
 #include "tooling/context.hpp"
-#include "clang/AST/Decl.h"
-#include "clang/AST/Expr.h"
-#include "clang/AST/Stmt.h"
 
 #include <llvm/Support/raw_ostream.h>
 

@@ -18,7 +18,8 @@
 #include "dfa/proc_cfg.hpp"
 #include "tooling/context.hpp"
 #include "util/assert.hpp"
-#include "llvm/Support/raw_ostream.h"
+
+#include <llvm/Support/raw_ostream.h>
 
 #include <memory>
 #include <unordered_set>
@@ -35,7 +36,8 @@ using AnalysisRefs = std::vector< AnalysisRef >;
 using AnalysisIDSet = std::unordered_set< AnalysisID >;
 using AnalysisNameRef = llvm::StringRef;
 
-template < typename T > class AnalysisCallBack;
+template < typename T >
+class AnalysisCallBack;
 
 template < typename RET, typename... Args >
 class AnalysisCallBack< RET(Args...) > {
@@ -167,7 +169,8 @@ class AnalysisManager {
     /// Analysis shall be registered first.
     /// Domain dependencies shall be handled before the registration.
     /// @{
-    template < typename Analysis, typename Dom > void add_domain_dependency() {
+    template < typename Analysis, typename Dom >
+    void add_domain_dependency() {
         auto analysis_id = get_analysis_id(Analysis::get_kind());
         auto dom_id = get_domain_id(Dom::get_kind());
         m_domains[dom_id] = analysis_id;

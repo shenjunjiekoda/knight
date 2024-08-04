@@ -15,6 +15,9 @@
 #include "dfa/analysis/analyses.hpp"
 #include "tooling/context.hpp"
 
+#include <clang/Basic/Diagnostic.h>
+#include <clang/Basic/DiagnosticIDs.h>
+
 namespace knight::dfa {
 
 AnalysisBase::AnalysisBase(KnightContext& ctx, AnalysisKind k)

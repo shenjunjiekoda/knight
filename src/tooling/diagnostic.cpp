@@ -76,35 +76,35 @@ void KnightDiagnosticConsumer::HandleDiagnostic(
             // This is a compiler diagnostic without a warning option. Assign
             // check name based on its level.
             switch (diag_level) {
-            case DiagnosticsEngine::Error:
-            case DiagnosticsEngine::Fatal:
-                check = "clang-error";
-                break;
-            case DiagnosticsEngine::Warning:
-                check = "clang-warning";
-                break;
-            case DiagnosticsEngine::Remark:
-                check = "clang-remark";
-                break;
-            default:
-                check = "clang-unknown";
-                break;
+                case DiagnosticsEngine::Error:
+                case DiagnosticsEngine::Fatal:
+                    check = "clang-error";
+                    break;
+                case DiagnosticsEngine::Warning:
+                    check = "clang-warning";
+                    break;
+                case DiagnosticsEngine::Remark:
+                    check = "clang-remark";
+                    break;
+                default:
+                    check = "clang-unknown";
+                    break;
             }
         }
 
         KnightDiagnostic::Level level = KnightDiagnostic::Warning;
         switch (diag_level) {
-        default:
-            level = KnightDiagnostic::Warning;
-            break;
-        case DiagnosticsEngine::Error:
-            [[fallthrough]];
-        case DiagnosticsEngine::Fatal:
-            level = KnightDiagnostic::Error;
-            break;
-        case DiagnosticsEngine::Remark:
-            level = KnightDiagnostic::Remark;
-            break;
+            default:
+                level = KnightDiagnostic::Warning;
+                break;
+            case DiagnosticsEngine::Error:
+                [[fallthrough]];
+            case DiagnosticsEngine::Fatal:
+                level = KnightDiagnostic::Error;
+                break;
+            case DiagnosticsEngine::Remark:
+                level = KnightDiagnostic::Remark;
+                break;
         }
 
         m_diags.emplace_back(*check, level, m_context.get_cuurent_build_dir());

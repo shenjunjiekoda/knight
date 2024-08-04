@@ -95,7 +95,8 @@ class KnightFactory {
 
     /// \brief Registers the analysis with the name.
     /// TODO: add concept
-    template < typename ANALYSIS > void register_analysis() {
+    template < typename ANALYSIS >
+    void register_analysis() {
         dfa::AnalysisKind kind = ANALYSIS::get_kind();
         if constexpr (dfa::is_dependent_analysis< ANALYSIS >::value) {
             ANALYSIS::add_dependencies(m_analysis_mgr);
@@ -107,7 +108,8 @@ class KnightFactory {
 
     /// \brief Registers the checker with the name.
     /// TODO: add concept
-    template < typename CHECKER > void register_checker() {
+    template < typename CHECKER >
+    void register_checker() {
         dfa::CheckerKind kind = CHECKER::get_kind();
         if constexpr (dfa::is_dependent_checker< CHECKER >::value) {
             CHECKER::add_dependencies(m_checker_mgr);

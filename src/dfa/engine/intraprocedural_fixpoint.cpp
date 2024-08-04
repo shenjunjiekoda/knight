@@ -27,8 +27,11 @@ IntraProceduralFixpointIterator::IntraProceduralFixpointIterator(
     CheckerManager& checker_mgr,
     ProgramStateManager& state_mgr,
     StackFrame* frame)
-    : m_frame(frame), m_ctx(ctx), m_analysis_mgr(analysis_mgr),
-      m_checker_mgr(checker_mgr), m_state_mgr(state_mgr),
+    : m_frame(frame),
+      m_ctx(ctx),
+      m_analysis_mgr(analysis_mgr),
+      m_checker_mgr(checker_mgr),
+      m_state_mgr(state_mgr),
       WtoBasedFixPointIterator(frame, state_mgr.get_bottom_state()) {}
 
 ProgramStateRef IntraProceduralFixpointIterator::transfer_node(
@@ -44,13 +47,15 @@ ProgramStateRef IntraProceduralFixpointIterator::transfer_node(
 }
 
 ProgramStateRef IntraProceduralFixpointIterator::transfer_edge(
-    NodeRef src, NodeRef dst, ProgramStateRef src_post_state) {
+    [[maybe_unused]] NodeRef src,
+    [[maybe_unused]] NodeRef dst,
+    ProgramStateRef src_post_state) {
     return src_post_state;
 }
 
-void IntraProceduralFixpointIterator::check_pre(NodeRef node,
-                                                const ProgramStateRef&) {
-    for (auto& elem : node->Elements) {
+void IntraProceduralFixpointIterator::check_pre(
+    NodeRef node, [[maybe_unused]] const ProgramStateRef& state) {
+    for (const auto& elem : node->Elements) {
         auto stmt_opt = elem.getAs< clang::CFGStmt >();
         if (!stmt_opt) {
             continue;
@@ -69,9 +74,9 @@ void IntraProceduralFixpointIterator::check_pre(NodeRef node,
     }
 }
 
-void IntraProceduralFixpointIterator::check_post(NodeRef node,
-                                                 const ProgramStateRef&) {
-    for (auto& elem : node->Elements) {
+void IntraProceduralFixpointIterator::check_post(
+    NodeRef node, [[maybe_unused]] const ProgramStateRef& state) {
+    for (const auto& elem : node->Elements) {
         auto stmt_opt = elem.getAs< clang::CFGStmt >();
         if (!stmt_opt) {
             continue;
@@ -95,7 +100,7 @@ void IntraProceduralFixpointIterator::run() {
 
     FixPointIterator::run(m_state_mgr.get_bottom_state());
 
-    auto exit_node = ProcCFG::exit(get_cfg());
+    NodeRef exit_node = ProcCFG::exit(get_cfg());
     m_analysis_mgr.run_analyses_for_end_function(exit_node);
     m_checker_mgr.run_checkers_for_end_function(exit_node);
 }

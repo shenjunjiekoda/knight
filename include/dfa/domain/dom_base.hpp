@@ -139,7 +139,8 @@ struct AbsDomBase {
 /// - `narrow_with(const Derived& other)`
 /// - `equals(const Derived& other) const`
 /// - `dump(llvm::Derived& os) const`
-template < typename Derived > class AbsDom : public AbsDomBase {
+template < typename Derived >
+class AbsDom : public AbsDomBase {
   public:
     AbsDom< Derived >() : AbsDomBase(Derived::get_kind()) {}
 

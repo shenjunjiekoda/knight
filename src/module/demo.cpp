@@ -23,7 +23,6 @@ constexpr const char* MOD_NAME = "demo";
 
 class DemoModule : public KnightModule {
     void add_to_factory(KnightFactory& factory) override {
-
         // Register analyses.
         factory.register_analysis< dfa::DemoAnalysis >();
 

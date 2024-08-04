@@ -21,54 +21,59 @@
 namespace knight::dfa {
 
 void BlockExecutionEngine::exec() {
-    ProgramStateRef state = m_state;
-    for (auto& elem : m_node->Elements) {
+    const ProgramStateRef state = m_state;
+    for (const auto& elem : m_node->Elements) {
         switch (elem.getKind()) {
             using enum clang::CFGElement::Kind;
-        default:
-            break;
-        case Initializer: {
-            const auto& init = elem.castAs< clang::CFGInitializer >();
-            exec_cxx_ctor_initializer(init.getInitializer());
-        } break;
-        case ScopeBegin: {
-            const auto& scope_begin = elem.castAs< clang::CFGScopeBegin >();
-            exec_scope_begin(scope_begin.getTriggerStmt(),
-                             scope_begin.getVarDecl());
-        } break;
-        case ScopeEnd: {
-            const auto& scope_end = elem.castAs< clang::CFGScopeEnd >();
-            exec_scope_end(scope_end.getTriggerStmt(), scope_end.getVarDecl());
-        } break;
-        case NewAllocator: {
-            const auto& new_allocator = elem.castAs< clang::CFGNewAllocator >();
-            exec_new_allocator_call(new_allocator.getAllocatorExpr());
-        } break;
-        case LifetimeEnds: {
-            const auto& lifetime_ends = elem.castAs< clang::CFGLifetimeEnds >();
-            exec_lifetime_ends(lifetime_ends.getTriggerStmt(),
-                               lifetime_ends.getVarDecl());
-        } break;
-        case LoopExit: {
-            knight_unreachable("construct loop exit not implemented yet");
-        } break;
-        case Statement: {
-            const auto& cfg_stmt = elem.castAs< clang::CFGStmt >();
-            exec_cfg_stmt(cfg_stmt.getStmt(), state);
-        } break;
-        case Constructor: {
-            knight_unreachable("constructor not implemented yet");
-        } break;
-        case AutomaticObjectDtor:
-        case DeleteDtor:
-        case BaseDtor:
-        case MemberDtor:
-        case TemporaryDtor: {
-            knight_unreachable("destructors not implemented yet");
-        } break;
-        case CleanupFunction: {
-            knight_unreachable("cleanup function not implemented yet");
-        } break;
+            default:
+                break;
+            case Initializer: {
+                const auto& init = elem.castAs< clang::CFGInitializer >();
+                exec_cxx_ctor_initializer(init.getInitializer());
+            } break;
+            case ScopeBegin: {
+                const auto& scope_begin = elem.castAs< clang::CFGScopeBegin >();
+                exec_scope_begin(scope_begin.getTriggerStmt(),
+                                 scope_begin.getVarDecl());
+            } break;
+            case ScopeEnd: {
+                const auto& scope_end = elem.castAs< clang::CFGScopeEnd >();
+                exec_scope_end(scope_end.getTriggerStmt(),
+                               scope_end.getVarDecl());
+            } break;
+            case NewAllocator: {
+                const auto& new_allocator =
+                    elem.castAs< clang::CFGNewAllocator >();
+                exec_new_allocator_call(new_allocator.getAllocatorExpr());
+            } break;
+            case LifetimeEnds: {
+                const auto& lifetime_ends =
+                    elem.castAs< clang::CFGLifetimeEnds >();
+                exec_lifetime_ends(lifetime_ends.getTriggerStmt(),
+                                   lifetime_ends.getVarDecl());
+            } break;
+            case LoopExit: {
+                knight_unreachable( // NOLINT
+                    "construct loop exit not implemented yet");
+            } break;
+            case Statement: {
+                const auto& cfg_stmt = elem.castAs< clang::CFGStmt >();
+                exec_cfg_stmt(cfg_stmt.getStmt(), state);
+            } break;
+            case Constructor: {
+                knight_unreachable("constructor not implemented yet"); // NOLINT
+            } break;
+            case AutomaticObjectDtor:
+            case DeleteDtor:
+            case BaseDtor:
+            case MemberDtor:
+            case TemporaryDtor: {
+                knight_unreachable("destructors not implemented yet"); // NOLINT
+            } break;
+            case CleanupFunction: {
+                knight_unreachable( // NOLINT
+                    "cleanup function not implemented yet");
+            } break;
         }
     }
 }

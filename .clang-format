@@ -1,5 +1,5 @@
 ---
-BasedOnStyle: LLVM
+BasedOnStyle: google
 ---
 AccessModifierOffset: -2
 AllowShortFunctionsOnASingleLine: Inline

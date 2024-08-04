@@ -141,7 +141,6 @@ class BeginFunction {
 }; // class BeginFunction
 
 class EndFunction {
-
     template < typename CHECKER >
     static void run_end_function(void* checker, CheckerContext& C) {
         ((const CHECKER*)checker)->check_end_function(C);
@@ -158,7 +157,8 @@ class EndFunction {
 
 }; // class EndFunction
 
-template < clang_stmt STMT > class PreStmt {
+template < clang_stmt STMT >
+class PreStmt {
     template < typename CHECKER >
     static void run_pre_stmt(void* checker,
                              internal::StmtRef S,
@@ -183,7 +183,8 @@ template < clang_stmt STMT > class PreStmt {
 
 }; // class PreStmt
 
-template < clang_stmt STMT > class PostStmt {
+template < clang_stmt STMT >
+class PostStmt {
     template < typename CHECKER >
     static void run_post_stmt(void* checker,
                               internal::StmtRef S,

@@ -23,8 +23,10 @@ namespace knight::dfa {
 
 namespace impl {
 
-template < graph G, typename GraphTrait > class WtoIterator;
-template < graph G, typename GraphTrait > class WtoChecker;
+template < graph G, typename GraphTrait >
+class WtoIterator;
+template < graph G, typename GraphTrait >
+class WtoChecker;
 
 } // namespace impl
 
@@ -52,8 +54,10 @@ class WtoBasedFixPointIterator : public FixPointIterator< CFG, GraphTrait > {
 
   public:
     WtoBasedFixPointIterator(StackFrame* frame, ProgramStateRef bottom)
-        : m_cfg(frame->get_cfg()), m_wto(frame->get_cfg()),
-          m_bottom(std::move(bottom)), m_converged(false) {}
+        : m_cfg(frame->get_cfg()),
+          m_wto(frame->get_cfg()),
+          m_bottom(std::move(bottom)),
+          m_converged(false) {}
     WtoBasedFixPointIterator(const WtoBasedFixPointIterator&) = delete;
     WtoBasedFixPointIterator& operator=(const WtoBasedFixPointIterator&) =
         delete;
