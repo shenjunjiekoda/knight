@@ -12,9 +12,11 @@
 //===------------------------------------------------------------------===//
 
 #include "dfa/proc_cfg.hpp"
-#include <memory>
-#include "llvm/Support/raw_ostream.h"
 #include "util/assert.hpp"
+
+#include <llvm/Support/raw_ostream.h>
+
+#include <memory>
 
 namespace knight::dfa {
 
@@ -44,8 +46,8 @@ void construct_mapping_for_cfg_stmt(ProcCFG::NodeRef block,
         return;
     }
     for (const auto& elem : *block) {
-        if (auto Stmt = elem.getAs< CFGStmt >()) {
-            stmtToBlock[Stmt->getStmt()] = block;
+        if (auto cfg_stmt_opt = elem.getAs< CFGStmt >()) {
+            stmtToBlock[cfg_stmt_opt->getStmt()] = block;
         }
     }
 }
@@ -55,9 +57,9 @@ void construct_mapping_for_term_condition(
     if (block == nullptr) {
         return;
     }
-    if (const auto* TerminatorCond = block->getTerminatorCondition()) {
+    if (const auto* term_cond_stmt = block->getTerminatorCondition()) {
         // does nothing if the key already exists in the map.
-        stmtToBlock.insert({TerminatorCond, block});
+        stmtToBlock.insert({term_cond_stmt, block});
     }
 }
 
@@ -66,8 +68,8 @@ void construct_mapping_for_term_stmt(ProcCFG::NodeRef block,
     if (block == nullptr) {
         return;
     }
-    if (const auto* TerminatorStmt = block->getTerminatorStmt()) {
-        stmtToBlock.insert({TerminatorStmt, block});
+    if (const auto* term_stmt = block->getTerminatorStmt()) {
+        stmtToBlock.insert({term_stmt, block});
     }
 }
 
@@ -99,7 +101,7 @@ llvm::BitVector get_reachable_blocks(const CFG& clang_cfg) {
         reachable_blocks[block->getBlockID()] = true;
         for (ProcCFG::NodeRef succ : block->succs()) {
             if (succ != nullptr) {
-                reachable_blocks.push_back(succ);
+                visited.push_back(succ);
             }
         }
     }

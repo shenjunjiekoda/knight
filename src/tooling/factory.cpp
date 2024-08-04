@@ -26,19 +26,19 @@ KnightFactory::KnightFactory(dfa::AnalysisManager& analysis_mgr,
 void KnightFactory::add_analysis_create_fn(dfa::AnalysisID id,
                                            llvm::StringRef name,
                                            AnalysisRegistryFn registry) {
-    m_analysis_registry[{id, name}] = registry;
+    m_analysis_registry[{id, name}] = std::move(registry);
 }
 
 void KnightFactory::add_checker_create_fn(dfa::AnalysisID id,
                                           llvm::StringRef name,
                                           CheckerRegistryFn registry) {
-    m_checker_registry[{id, name}] = registry;
+    m_checker_registry[{id, name}] = std::move(registry);
 }
 
 KnightFactory::AnalysisRefs KnightFactory::create_analyses(
     dfa::AnalysisManager& mgr, KnightContext* context) const {
     AnalysisRefs analyses;
-    const auto& LO = context->get_lang_options();
+    const auto& lo = context->get_lang_options();
     for (const auto& [analysis, registry] : m_analysis_registry) {
         if (m_analysis_mgr.is_analysis_required(analysis.first)) {
             auto analysis = registry(mgr, *context);
@@ -52,7 +52,7 @@ KnightFactory::AnalysisRefs KnightFactory::create_analyses(
 KnightFactory::CheckerRefs KnightFactory::create_checkers(
     dfa::CheckerManager& mgr, KnightContext* context) const {
     CheckerRefs checkers;
-    const auto& LO = context->get_lang_options();
+    const auto& lo = context->get_lang_options();
     for (const auto& [checker, registry] : m_checker_registry) {
         if (m_checker_mgr.is_checker_required(checker.first)) {
             auto checker = registry(mgr, *context);

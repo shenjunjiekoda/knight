@@ -53,6 +53,7 @@ namespace knight::dfa {
 
 using ProgramStateRef = llvm::IntrusiveRefCntPtr< ProgramState >;
 
+// TODO(ProgramState): fix ProgramState to be immutable!!
 class ProgramState : public llvm::FoldingSetNode {
     friend class ProgramStateManager;
 

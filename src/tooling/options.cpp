@@ -14,7 +14,7 @@ const char* optionSourceToString(OptionSource source) {
         case OptionSource::ConfigFile:
             return "ConfigFile";
     }
-    knight_unreachable("invalid option source");
+    knight_unreachable("invalid option source"); // NOLINT
 }
 
 KnightOptionsDefaultProvider::KnightOptionsDefaultProvider() {
@@ -28,7 +28,7 @@ KnightOptionsDefaultProvider::KnightOptionsDefaultProvider() {
 }
 
 OptionSource KnightOptionsDefaultProvider::get_checker_option_source(
-    const std::string& option) const {
+    [[maybe_unused]] const std::string& option) const {
     return OptionSource::Default;
 }
 
@@ -42,7 +42,7 @@ void KnightOptionsDefaultProvider::set_checker_option(const std::string& option,
 }
 
 KnightOptions KnightOptionsDefaultProvider::get_options_for(
-    const std::string& file) const {
+    [[maybe_unused]] const std::string& file) const {
     return options;
 }
 
@@ -61,7 +61,7 @@ void KnightOptionsCommandLineProvider::set_checker_option(
 }
 
 KnightOptionsConfigFileProvider::KnightOptionsConfigFileProvider(
-    std::string config_file) {
+    [[maybe_unused]] std::string config_file) {
     // TODO: Implement this.
 }
 

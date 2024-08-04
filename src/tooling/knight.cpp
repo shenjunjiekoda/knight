@@ -169,7 +169,7 @@ std::vector< KnightDiagnostic > KnightDriver::run() {
 
 void KnightDriver::handle_diagnostics(
     const std::vector< KnightDiagnostic >& diagnostics, bool try_fix) {
-    FixKind fix = try_fix ? FixKind::FixIt : FixKind::None;
+    const FixKind fix = try_fix ? FixKind::FixIt : FixKind::None;
 
     DiagnosticReporter reporter(fix, m_ctx, std::move(m_base_fs));
 

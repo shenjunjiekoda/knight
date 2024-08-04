@@ -52,7 +52,7 @@ std::vector< AnalysisID > compute_topological_order(
     }
 
     while (!zero_in_degree.empty()) {
-        AnalysisID current = zero_in_degree.front();
+        const AnalysisID current = zero_in_degree.front();
         zero_in_degree.pop();
         sorted_ids.push_back(current);
         auto it = dependencies.find(current);
@@ -75,7 +75,7 @@ std::vector< AnalysisID > compute_topological_order(
 std::vector< AnalysisID > get_subset_order(
     const std::vector< AnalysisID >& full_order, const AnalysisIDSet& subset) {
     std::vector< AnalysisID > res;
-    for (AnalysisID id : full_order) {
+    for (const AnalysisID id : full_order) {
         if (subset.find(id) != subset.end()) {
             res.push_back(id);
         }

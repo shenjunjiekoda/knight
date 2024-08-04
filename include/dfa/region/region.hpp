@@ -525,9 +525,15 @@ class StringLitRegion : public TypedRegion {
         return m_str_literal->getType();
     }
 
+    static void profile(llvm::FoldingSetNodeID& id,
+                        const clang::StringLiteral* str_literal,
+                        const MemSpaceRegion* space) {
+        TypedRegion::profile(id, RegionKind::StringLitRegion, space, nullptr);
+        id.AddPointer(str_literal);
+    }
+
     void Profile(llvm::FoldingSetNodeID& id) const override { // NOLINT
-        TypedRegion::Profile(id);
-        id.AddPointer(m_str_literal);
+        profile(id, m_str_literal, m_space);
     }
 
     void dump(llvm::raw_ostream& os) const override {

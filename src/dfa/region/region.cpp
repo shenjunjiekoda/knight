@@ -104,7 +104,7 @@ const SymbolicRegion* RegionManager::get_symbolic_region(
 
 const StringLitRegion* RegionManager::get_string_lit_region(
     const clang::StringLiteral* str, GlobalInternalSpaceRegion* space) {
-    return nullptr;
+    return get_persistent_region< StringLitRegion >(str, space);
 }
 
 const CXXBaseObjRegion* RegionManager::get_cxx_base_object_region(

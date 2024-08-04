@@ -40,23 +40,17 @@ void release_state(ProgramStateRawPtr state) {
 }
 
 ProgramState::ProgramState(ProgramStateManager* mgr, DomValMap dom_val)
-    : m_mgr(mgr), m_ref_cnt(0) {
-    for (auto& [id, val] : dom_val) {
-        m_dom_val[id] = std::move(val);
-    }
-}
+    : m_mgr(mgr), m_ref_cnt(0), m_dom_val(std::move(dom_val)) {}
 
 ProgramState::ProgramState(const ProgramState& other)
     : m_mgr(other.m_mgr), m_ref_cnt(0) {
-    for (auto& [id, val] : other.m_dom_val) {
+    for (const auto& [id, val] : other.m_dom_val) {
         m_dom_val[id] = val->clone();
     }
 }
 
 ProgramState::ProgramState(ProgramState&& other)
-    : m_mgr(other.m_mgr), m_ref_cnt(0) {
-    m_dom_val = std::move(other.m_dom_val);
-}
+    : m_mgr(other.m_mgr), m_ref_cnt(0), m_dom_val(std::move(other.m_dom_val)) {}
 
 ProgramStateManager& ProgramState::get_manager() const {
     return *m_mgr;
@@ -229,9 +223,9 @@ ProgramStateRef ProgramStateManager::get_default_state() {
             }
         }
     }
-    ProgramState State(this, std::move(dom_val));
+    ProgramState state(this, std::move(dom_val));
 
-    return get_persistent_state(State);
+    return get_persistent_state(state);
 }
 
 ProgramStateRef ProgramStateManager::get_bottom_state() {
@@ -245,9 +239,9 @@ ProgramStateRef ProgramStateManager::get_bottom_state() {
             }
         }
     }
-    ProgramState State(this, std::move(dom_val));
+    ProgramState state(this, std::move(dom_val));
 
-    return get_persistent_state(State);
+    return get_persistent_state(state);
 }
 
 ProgramStateRef ProgramStateManager::get_persistent_state(ProgramState& state) {

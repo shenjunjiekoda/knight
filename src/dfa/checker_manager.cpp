@@ -60,8 +60,6 @@ void CheckerManager::register_for_end_function(
 
 void CheckerManager::run_checkers_for_stmt(internal::StmtRef stmt,
                                            internal::CheckStmtKind check_kind) {
-    CheckerIDSet tgt_ids;
-    std::unordered_map< AnalysisID, internal::AnalyzeStmtCallBack* > callbacks;
     for (auto& info : m_stmt_checks) {
         if (info.kind != check_kind || !info.match_cb(stmt)) {
             continue;

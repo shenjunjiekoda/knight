@@ -20,12 +20,14 @@ namespace knight {
 
 namespace {
 
+constexpr unsigned GlobPatternMaxLen = 256U;
+
 llvm::Regex create_regex_for(llvm::StringRef Glob) {
-    llvm::SmallString< 256 > pattern("^");
+    llvm::SmallString< GlobPatternMaxLen > pattern("^");
     for (char c : Glob) {
         if (c == '*') {
             pattern.append(".*");
-        } else if (std::ispunct(c)) {
+        } else if (std::ispunct(c) != 0) {
             pattern.append("\\");
             pattern.push_back(c);
         } else {
@@ -34,17 +36,17 @@ llvm::Regex create_regex_for(llvm::StringRef Glob) {
     }
 
     pattern.push_back('$');
-    return llvm::Regex(pattern.str());
+    return {pattern.str()};
 }
 
 } // anonymous namespace
 
 Globs::Globs(llvm::StringRef globs) {
     while (!globs.empty()) {
-        bool isNegative = globs.consume_front("-");
+        bool is_negative = globs.consume_front("-");
         auto current = globs.split(',').first.trim();
         if (!current.empty()) {
-            Glob g{isNegative, create_regex_for(current)};
+            Glob g{is_negative, create_regex_for(current)};
             m_globs.push_back(std::move(g));
         }
         globs = globs.split(',').second;

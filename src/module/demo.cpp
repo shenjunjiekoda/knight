@@ -19,7 +19,7 @@
 
 namespace knight {
 
-constexpr const char* MOD_NAME = "demo";
+constexpr const char* ModName = "demo";
 
 class DemoModule : public KnightModule {
     void add_to_factory(KnightFactory& factory) override {
@@ -32,8 +32,9 @@ class DemoModule : public KnightModule {
 }; // class DemoModule
 
 /// \brief Register the AbseilModule using this statically initialized variable.
-static KnightModuleRegistry::Add< DemoModule > X(
-    MOD_NAME, "Add demo analyses and checkers.");
+static KnightModuleRegistry::Add< DemoModule > X( // NOLINT
+    ModName,
+    "Add demo analyses and checkers.");
 
 /// \brief This anchor is used to force the linker to link in the generated
 /// object file and thus register the DemoModule.

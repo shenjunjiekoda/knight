@@ -2,6 +2,12 @@
 
 namespace knight::fs {
 
+namespace {
+
+constexpr unsigned PathMaxLen = 256U;
+
+} // anonymous namespace
+
 FileSystemRef get_vfs_from_yaml(const std::string& overlay_yaml_file,
                                 FileSystemRef base_fs) {
     auto buffer = base_fs->getBufferForFile(overlay_yaml_file);
@@ -24,17 +30,17 @@ FileSystemRef get_vfs_from_yaml(const std::string& overlay_yaml_file,
 }
 
 OverlayFileSystemRef create_base_vfs() {
-    return OverlayFileSystemRef(
-        new llvm::vfs::OverlayFileSystem(llvm::vfs::getRealFileSystem()));
+    return {new llvm::vfs::OverlayFileSystem(llvm::vfs::getRealFileSystem())};
 }
 
 std::string make_absolute(llvm::StringRef file) {
-    if (file.empty())
+    if (file.empty()) {
         return {};
-    llvm::SmallString< 256 > abs_path(file);
-    if (std::error_code EC = llvm::sys::fs::make_absolute(abs_path)) {
+    }
+    llvm::SmallString< PathMaxLen > abs_path(file);
+    if (const std::error_code ec = llvm::sys::fs::make_absolute(abs_path)) {
         llvm::errs() << "make absolute path failed (" << file
-                     << "): " << EC.message() << "\n";
+                     << "): " << ec.message() << "\n";
     }
     return abs_path.str().str();
 }

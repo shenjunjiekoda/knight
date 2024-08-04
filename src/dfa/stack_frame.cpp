@@ -122,10 +122,10 @@ void StackFrame::dump(llvm::raw_ostream& os) const {
 
 StackFrame* StackFrameManager::create_top_frame(ProcCFG::DeclRef decl) {
     llvm::FoldingSetNodeID id;
-    StackFrame frame(this, decl, nullptr, CallSiteInfo());
+    const StackFrame frame(this, decl, nullptr, CallSiteInfo());
     frame.Profile(id);
 
-    void* insert_pos;
+    void* insert_pos; // NOLINT
     auto* res = m_stack_frames.FindNodeOrInsertPos(id, insert_pos);
     if (res == nullptr) {
         res = m_allocator.Allocate< StackFrame >();
@@ -144,13 +144,13 @@ StackFrame* StackFrameManager::create_from_node(StackFrame* parent,
     llvm::FoldingSetNodeID id;
     auto called_decl_opt = get_called_decl(callsite_expr);
     knight_assert_msg(called_decl_opt.has_value(), "invalid call site");
-    StackFrame frame(this,
-                     *called_decl_opt,
-                     parent,
-                     CallSiteInfo(callsite_expr, node, stmt_idx));
+    const StackFrame frame(this,
+                           *called_decl_opt,
+                           parent,
+                           CallSiteInfo(callsite_expr, node, stmt_idx));
     frame.Profile(id);
 
-    void* insert_pos;
+    void* insert_pos; // NOLINT
     auto* res = m_stack_frames.FindNodeOrInsertPos(id, insert_pos);
     if (res == nullptr) {
         res = m_allocator.Allocate< StackFrame >();
