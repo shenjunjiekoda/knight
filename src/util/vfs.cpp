@@ -9,7 +9,7 @@ constexpr unsigned PathMaxLen = 256U;
 } // anonymous namespace
 
 FileSystemRef get_vfs_from_yaml(const std::string& overlay_yaml_file,
-                                FileSystemRef base_fs) {
+                                const FileSystemRef& base_fs) {
     auto buffer = base_fs->getBufferForFile(overlay_yaml_file);
     if (!buffer) {
         llvm::errs() << "Can't load virtual filesystem overlay yaml file '"

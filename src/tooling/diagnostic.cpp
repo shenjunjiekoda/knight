@@ -47,7 +47,7 @@ struct Less {
 struct Equal {
     bool operator()(const KnightDiagnostic& lhs,
                     const KnightDiagnostic& rhs) const {
-        Less less;
+        const Less less;
         return !less(lhs, rhs) && !less(rhs, lhs);
     }
 };
@@ -151,12 +151,16 @@ void KnightDiagnosticRenderer::emitDiagnosticMessage(
     [[maybe_unused]] clang::DiagOrStoredDiag diag) {
     using namespace clang;
     // Remove check name from the message.
-    std::string check_name_in_msg = " [" + m_diag.DiagnosticName + "]";
+    const std::string check_name_in_msg = " [" + m_diag.DiagnosticName + "]";
     msg.consume_back(check_name_in_msg);
 
     auto knight_msg =
-        loc.isValid() ? tooling::DiagnosticMessage(msg, loc.getManager(), loc)
-                      : tooling::DiagnosticMessage(msg);
+        loc.isValid()
+            ? tooling::
+                  DiagnosticMessage(msg,
+                                    loc.getManager(),
+                                    loc) // NOLINT(cppcoreguidelines-slicing)
+            : tooling::DiagnosticMessage(msg);
 
     // Make sure that if a TokenRange is received from the check it is unfurled
     // into a real CharRange for the diagnostic printer later.
@@ -167,10 +171,11 @@ void KnightDiagnosticRenderer::emitDiagnosticMessage(
             return range;
         }
         knight_assert(range.isTokenRange());
-        SourceLocation token_end = Lexer::getLocForEndOfToken(range.getEnd(),
-                                                              0,
-                                                              loc.getManager(),
-                                                              LangOpts);
+        const SourceLocation token_end =
+            Lexer::getLocForEndOfToken(range.getEnd(),
+                                       0,
+                                       loc.getManager(),
+                                       LangOpts);
         return CharSourceRange::getCharRange(range.getBegin(), token_end);
     };
 
@@ -210,7 +215,7 @@ void KnightDiagnosticRenderer::emitCodeContext(
                                                : &m_diag.Message;
 
     for (const auto& fix_it : hints) {
-        CharSourceRange char_range = fix_it.RemoveRange;
+        const CharSourceRange char_range = fix_it.RemoveRange;
         knight_assert_msg(char_range.getBegin().isValid() &&
                               char_range.getEnd().isValid(),
                           "Invalid range in the fix-it hint.");
@@ -218,9 +223,9 @@ void KnightDiagnosticRenderer::emitCodeContext(
                               char_range.getEnd().isFileID(),
                           "Only file locations supported in fix-it hints.");
 
-        tooling::Replacement replacement(loc.getManager(),
-                                         char_range,
-                                         fix_it.CodeToInsert);
+        const tooling::Replacement replacement(loc.getManager(),
+                                               char_range,
+                                               fix_it.CodeToInsert);
         auto err = diag_msg->Fix[replacement.getFilePath()].add(replacement);
         if (err) {
             llvm::errs() << "Fix conflicts with existing fix! "

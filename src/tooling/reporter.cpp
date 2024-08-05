@@ -152,6 +152,8 @@ void DiagnosticReporter::report_note(
     report_fix(builder, diag_msg.Fix);
 }
 
+// TODO(complex-code): collapse the impl
+// NOLINTBEGIN(readability-function-cognitive-complexity)
 void DiagnosticReporter::report(const KnightDiagnostic& diagnostic) {
     using namespace clang;
     const auto& msg = diagnostic.Message;
@@ -208,10 +210,10 @@ void DiagnosticReporter::report(const KnightDiagnostic& diagnostic) {
                                 << "Trying to resolve conflict: "
                                 << llvm::toString(std::move(err)) << "\n";
 
-                            unsigned new_offset =
+                            const unsigned new_offset =
                                 replaces.getShiftedCodePosition(
                                     replace.getOffset());
-                            unsigned new_len =
+                            const unsigned new_len =
                                 replaces.getShiftedCodePosition(
                                     replace.getOffset() + replace.getLength()) -
                                 new_offset;

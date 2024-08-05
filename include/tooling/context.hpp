@@ -40,7 +40,7 @@ class KnightContext {
     /// \brief The current file context.
     std::string m_current_file;
     KnightOptions m_current_options;
-    clang::ASTContext* m_current_ast_ctx;
+    clang::ASTContext* m_current_ast_ctx{};
     std::unique_ptr< Globs > m_current_check_matcher;
     std::unique_ptr< Globs > m_current_analysis_matcher;
     std::string m_current_build_dir;

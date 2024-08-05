@@ -41,7 +41,7 @@ StackFrame::StackFrame(StackFrameManager* manager,
     : m_manager(manager),
       m_decl(decl),
       m_parent(parent),
-      m_call_site_info(std::move(call_site_info)) {}
+      m_call_site_info(call_site_info) {}
 
 StackFrame::StackFrame(const StackFrame& other) = default;
 

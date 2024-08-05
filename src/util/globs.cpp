@@ -24,7 +24,7 @@ constexpr unsigned GlobPatternMaxLen = 256U;
 
 llvm::Regex create_regex_for(llvm::StringRef Glob) {
     llvm::SmallString< GlobPatternMaxLen > pattern("^");
-    for (char c : Glob) {
+    for (const char c : Glob) {
         if (c == '*') {
             pattern.append(".*");
         } else if (std::ispunct(c) != 0) {
@@ -43,7 +43,7 @@ llvm::Regex create_regex_for(llvm::StringRef Glob) {
 
 Globs::Globs(llvm::StringRef globs) {
     while (!globs.empty()) {
-        bool is_negative = globs.consume_front("-");
+        const bool is_negative = globs.consume_front("-");
         auto current = globs.split(',').first.trim();
         if (!current.empty()) {
             Glob g{is_negative, create_regex_for(current)};

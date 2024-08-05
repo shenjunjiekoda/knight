@@ -128,15 +128,15 @@ class ProgramState : public llvm::FoldingSetNode {
     [[nodiscard]] ProgramStateRef set_to_bottom() const;
     [[nodiscard]] ProgramStateRef set_to_top() const;
 
-    [[nodiscard]] ProgramStateRef join(ProgramStateRef other) const;
+    [[nodiscard]] ProgramStateRef join(const ProgramStateRef& other) const;
     [[nodiscard]] ProgramStateRef join_at_loop_head(
-        ProgramStateRef other) const;
+        const ProgramStateRef& other) const;
     [[nodiscard]] ProgramStateRef join_consecutive_iter(
-        ProgramStateRef other) const;
+        const ProgramStateRef& other) const;
 
-    [[nodiscard]] ProgramStateRef widen(ProgramStateRef other) const;
-    [[nodiscard]] ProgramStateRef meet(ProgramStateRef other) const;
-    [[nodiscard]] ProgramStateRef narrow(ProgramStateRef other) const;
+    [[nodiscard]] ProgramStateRef widen(const ProgramStateRef& other) const;
+    [[nodiscard]] ProgramStateRef meet(const ProgramStateRef& other) const;
+    [[nodiscard]] ProgramStateRef narrow(const ProgramStateRef& other) const;
 
     [[nodiscard]] bool leq(const ProgramState& other) const;
     [[nodiscard]] bool equals(const ProgramState& other) const;

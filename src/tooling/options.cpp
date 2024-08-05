@@ -61,8 +61,8 @@ void KnightOptionsCommandLineProvider::set_checker_option(
 }
 
 KnightOptionsConfigFileProvider::KnightOptionsConfigFileProvider(
-    [[maybe_unused]] std::string config_file) {
-    // TODO: Implement this.
+    [[maybe_unused]] std::string config_file) { // NOLINT
+    // TODO(config): Implement this.
 }
 
 } // namespace knight

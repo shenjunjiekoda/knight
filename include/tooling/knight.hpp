@@ -34,6 +34,7 @@
 #include <llvm/Support/raw_ostream.h>
 
 #include <memory>
+#include <utility>
 
 namespace knight {
 
@@ -50,8 +51,8 @@ class KnightASTConsumer : public clang::ASTConsumer {
           m_checkers(std::move(checkers)),
           m_analysis(std::move(analysis)) {}
 
-    // TODO: add datadflow engine to run analysis and checkers here? on the
-    // decl_group or tu?
+    // TODO(enngine): add datadflow engine to run analysis and checkers here? on
+    // the decl_group or tu?
     bool HandleTopLevelDecl(clang::DeclGroupRef decl_group) override {
         auto state_mgr =
             std::make_unique< dfa::ProgramStateManager >(m_analysis_manager,
@@ -65,7 +66,7 @@ class KnightASTConsumer : public clang::ASTConsumer {
 
             llvm::outs() << "[*] Processing function: ";
             if (m_ctx.get_current_options().use_color) {
-                llvm::outs().changeColor(llvm::raw_ostream::Colors::RED);
+                llvm::outs().changeColor(llvm::raw_ostream::Colors::GREEN);
             }
             function->printName(llvm::outs());
             llvm::outs().resetColor();
@@ -125,7 +126,7 @@ class KnightASTConsumerFactory {
     std::unique_ptr< dfa::CheckerManager > m_checker_manager;
 
   public:
-    KnightASTConsumerFactory(
+    explicit KnightASTConsumerFactory(
         KnightContext& ctx,
         std::unique_ptr< dfa::AnalysisManager > external_analysis_manager =
             nullptr,
@@ -161,7 +162,7 @@ class KnightDriver {
         : m_ctx(ctx),
           m_cdb(cdb),
           m_input_files(std::move(input_files)),
-          m_base_fs(base_fs) {}
+          m_base_fs(std::move(base_fs)) {}
 
   public:
     std::vector< KnightDiagnostic > run();

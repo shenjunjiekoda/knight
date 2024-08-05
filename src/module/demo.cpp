@@ -38,6 +38,6 @@ static KnightModuleRegistry::Add< DemoModule > X( // NOLINT
 
 /// \brief This anchor is used to force the linker to link in the generated
 /// object file and thus register the DemoModule.
-volatile int DemoModuleAnchorSource = 0;
+volatile int DemoModuleAnchorSource = 0; // NOLINT
 
 } // namespace knight

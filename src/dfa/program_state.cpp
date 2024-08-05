@@ -134,28 +134,29 @@ ProgramStateRef ProgramState::set_to_top() const {
         .get_persistent_state_with_copy_and_dom_val_map(*this, \
                                                         std ::move(map));
 
-ProgramStateRef ProgramState::join(ProgramStateRef other) const {
+ProgramStateRef ProgramState::join(const ProgramStateRef& other) const {
     UNION_MAP(join_with);
 }
 
-ProgramStateRef ProgramState::join_at_loop_head(ProgramStateRef other) const {
+ProgramStateRef ProgramState::join_at_loop_head(
+    const ProgramStateRef& other) const {
     UNION_MAP(join_with_at_loop_head);
 }
 
 ProgramStateRef ProgramState::join_consecutive_iter(
-    ProgramStateRef other) const {
+    const ProgramStateRef& other) const {
     UNION_MAP(join_consecutive_iter_with);
 }
 
-ProgramStateRef ProgramState::widen(ProgramStateRef other) const {
+ProgramStateRef ProgramState::widen(const ProgramStateRef& other) const {
     UNION_MAP(widen_with);
 }
 
-ProgramStateRef ProgramState::meet(ProgramStateRef other) const {
+ProgramStateRef ProgramState::meet(const ProgramStateRef& other) const {
     INTERSECT_MAP(meet_with);
 }
 
-ProgramStateRef ProgramState::narrow(ProgramStateRef other) const {
+ProgramStateRef ProgramState::narrow(const ProgramStateRef& other) const {
     INTERSECT_MAP(narrow_with);
 }
 

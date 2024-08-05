@@ -86,7 +86,7 @@ class BlockExecutionEngine {
     void exec_lifetime_ends(StmtRef trigger_stmt, VarDeclRef var_decl);
 
     /// \brief Transfer the stmt
-    ProgramStateRef exec_cfg_stmt(StmtRef stmt, ProgramStateRef state);
+    ProgramStateRef exec_cfg_stmt(StmtRef stmt, const ProgramStateRef& state);
 
 }; // class BlockExecutionEngine
 
