@@ -54,11 +54,11 @@ class MapDom : public AbsDom< MapDom< Key, SeparateValue, domain_kind > > {
 
     [[nodiscard]] SeparateValue get_value(const Key& key) const {
         if (this->is_bottom()) {
-            return *(static_cast< SeparateValue* >(
+            return *(static_cast< const SeparateValue* >(
                 SeparateValue::bottom_val().get()));
         }
         if (this->is_top()) {
-            return *(static_cast< SeparateValue* >(
+            return *(static_cast< const SeparateValue* >(
                 SeparateValue::default_val().get()));
         }
 
@@ -66,8 +66,8 @@ class MapDom : public AbsDom< MapDom< Key, SeparateValue, domain_kind > > {
         if (it != m_table.end()) {
             return it->second;
         }
-        return *(
-            static_cast< SeparateValue* >(SeparateValue::default_val().get()));
+        return *(static_cast< const SeparateValue* >(
+            SeparateValue::default_val().get()));
     }
 
     void set_value(const Key& key, const SeparateValue& value) {
@@ -104,19 +104,19 @@ class MapDom : public AbsDom< MapDom< Key, SeparateValue, domain_kind > > {
   public:
     static DomainKind get_kind() { return domain_kind; }
 
-    static UniqueVal default_val() {
-        return std::make_unique< MapDom >(true, false);
+    static SharedVal default_val() {
+        return std::make_shared< MapDom >(true, false);
     }
-    static UniqueVal bottom_val() {
-        return std::make_unique< MapDom >(false, true);
+    static SharedVal bottom_val() {
+        return std::make_shared< MapDom >(false, true);
     }
 
-    [[nodiscard]] UniqueVal clone() const override {
+    [[nodiscard]] AbsDomBase* clone() const override {
         Map table;
         for (auto& [key, value] : m_table) {
-            table[key] = *(static_cast< SeparateValue* >(value.clone().get()));
+            table[key] = *(static_cast< SeparateValue* >(value.clone()));
         }
-        return std::make_unique< MapDom >(m_is_bottom, m_is_top, table);
+        return new MapDom(m_is_bottom, m_is_top, table);
     }
 
     void normalize() override {

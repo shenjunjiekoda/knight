@@ -22,12 +22,10 @@ namespace knight::dfa {
 template < typename Num,
            typename Var,
            derived_dom SeparateNumericalValue,
-           DomainKind domain_kind >
+           DomainKind DomKind >
 class SeparateNumericalDom
-    : public AbsDom< SeparateNumericalDom< Num,
-                                           Var,
-                                           SeparateNumericalValue,
-                                           domain_kind > > {
+    : public AbsDom<
+          SeparateNumericalDom< Num, Var, SeparateNumericalValue, DomKind > > {
   public:
     using VarRef = Var::Ref;
     using Map = std::unordered_map< VarRef, SeparateNumericalValue >;
@@ -87,7 +85,8 @@ class SeparateNumericalDom
     void set_value(const VarRef& key, const SeparateNumericalValue& value) {
         if (this->is_bottom()) {
             return;
-        } else if (value.is_bottom()) {
+        }
+        if (value.is_bottom()) {
             this->set_to_bottom();
         } else if (value.is_top()) {
             this->forget(key);
@@ -99,7 +98,8 @@ class SeparateNumericalDom
     void meet_value(const VarRef& key, const SeparateNumericalValue& value) {
         if (this->is_bottom()) {
             return;
-        } else if (value.is_bottom()) {
+        }
+        if (value.is_bottom()) {
             this->set_to_bottom();
         } else if (value.is_top()) {
             return;
@@ -116,24 +116,22 @@ class SeparateNumericalDom
     }
 
   public:
-    static DomainKind get_kind() { return domain_kind; }
+    static DomainKind get_kind() { return DomKind; }
 
-    static UniqueVal default_val() {
-        return std::make_unique< SeparateNumericalDom >(true, false);
+    static SharedVal default_val() {
+        return std::make_shared< SeparateNumericalDom >(true, false);
     }
-    static UniqueVal bottom_val() {
-        return std::make_unique< SeparateNumericalDom >(false, true);
+    static SharedVal bottom_val() {
+        return std::make_shared< SeparateNumericalDom >(false, true);
     }
 
-    UniqueVal clone() const override {
+    [[nodiscard]] SeparateNumericalValue* clone() const override {
         Map table;
         for (auto& [key, value] : m_table) {
             table[key] =
                 *(static_cast< SeparateNumericalValue* >(value.clone().get()));
         }
-        return std::make_unique< SeparateNumericalDom >(m_is_bottom,
-                                                        m_is_top,
-                                                        table);
+        return new SeparateNumericalDom(m_is_bottom, m_is_top, table);
     }
 
     void normalize() override {
@@ -142,9 +140,13 @@ class SeparateNumericalDom
         }
     }
 
-    bool is_bottom() const override { return m_is_bottom && !m_is_top; }
+    [[nodiscard]] bool is_bottom() const override {
+        return m_is_bottom && !m_is_top;
+    }
 
-    bool is_top() const override { return !m_is_bottom && m_is_top; }
+    [[nodiscard]] bool is_top() const override {
+        return !m_is_bottom && m_is_top;
+    }
 
     void set_to_bottom() override {
         m_is_bottom = true;
@@ -350,7 +352,8 @@ class SeparateNumericalDom
                               const Num& threshold) {
         if (other.is_bottom() || this->is_top()) {
             return;
-        } else if (this->is_bottom()) {
+        }
+        if (this->is_bottom()) {
             *this = other;
         } else {
             for (auto& [key, sep_num_value] : other.m_table) {

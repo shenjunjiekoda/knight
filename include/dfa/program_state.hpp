@@ -28,21 +28,20 @@ namespace knight::dfa {
 
 class ProgramState;
 class ProgramStateManager;
-using ProgramStateRawPtr = const ProgramState*;
 
-void retain_state(ProgramStateRawPtr state);
-void release_state(ProgramStateRawPtr state);
+void retain_state(const ProgramState* state);
+void release_state(const ProgramState* state);
 
 } // namespace knight::dfa
 
 namespace llvm {
 
 template <>
-struct IntrusiveRefCntPtrInfo< knight::dfa::ProgramState > {
-    static void retain(knight::dfa::ProgramStateRawPtr state) {
+struct IntrusiveRefCntPtrInfo< const knight::dfa::ProgramState > {
+    static void retain(const knight::dfa::ProgramState* state) {
         knight::dfa::retain_state(state);
     }
-    static void release(knight::dfa::ProgramStateRawPtr state) {
+    static void release(const knight::dfa::ProgramState* state) {
         knight::dfa::release_state(state);
     }
 }; // struct IntrusiveRefCntPtrInfo
@@ -51,14 +50,14 @@ struct IntrusiveRefCntPtrInfo< knight::dfa::ProgramState > {
 
 namespace knight::dfa {
 
-using ProgramStateRef = llvm::IntrusiveRefCntPtr< ProgramState >;
+using ProgramStateRef = llvm::IntrusiveRefCntPtr< const ProgramState >;
 
 // TODO(ProgramState): fix ProgramState to be immutable!!
 class ProgramState : public llvm::FoldingSetNode {
     friend class ProgramStateManager;
 
   public:
-    using DomValMap = llvm::DenseMap< DomID, UniqueVal >;
+    using DomValMap = llvm::DenseMap< DomID, SharedVal >;
     using ValRefSet = std::unordered_set< AbsValRef >;
 
   private:
@@ -69,65 +68,75 @@ class ProgramState : public llvm::FoldingSetNode {
   public:
     ProgramState(ProgramStateManager* mgr, DomValMap dom_val);
 
-    /// \breif Copy constructor.
-    ProgramState(const ProgramState& other);
-    ProgramState(ProgramState&& other);
-
-    /// \brief Copy assignment is not allowed.
+    /// \brief Only move constructor is allowed.
+    ProgramState(ProgramState&& other) noexcept;
+    ProgramState(const ProgramState& other) = delete;
     void operator=(const ProgramState& other) = delete;
     void operator=(ProgramState&& other) = delete;
 
     ~ProgramState() = default;
 
   private:
-    friend void retain_state(ProgramStateRawPtr state);
-    friend void release_state(ProgramStateRawPtr state);
+    friend void retain_state(const ProgramState* state);
+    friend void release_state(const ProgramState* state);
 
   public:
     /// \brief Return the state manager.
-    ProgramStateManager& get_manager() const;
+    [[nodiscard]] ProgramStateManager& get_manager() const;
 
     /// \brief Check if the given domain kind exists in the program state.
     ///
     /// \return True if the domain kind exists, false otherwise.
     template < typename Domain >
-    bool exists() const;
+    [[nodiscard]] bool exists() const;
 
     /// \brief Get the abstract cal with the given domain.
     template < typename Domain >
-    std::optional< Domain* > get() const {
+    [[nodiscard]] std::optional< const Domain* > get_ref() const {
         auto it = m_dom_val.find(get_domain_id(Domain::get_kind()));
         if (it == m_dom_val.end()) {
             return std::nullopt;
         }
-        return std::make_optional(static_cast< Domain* >(it->second.get()));
+        return std::make_optional(
+            static_cast< const Domain* >(it->second.get()));
+    }
+
+    template < typename Domain >
+    [[nodiscard]] std::shared_ptr< const Domain > get() const {
+        auto it = m_dom_val.find(get_domain_id(Domain::get_kind()));
+        if (it == m_dom_val.end()) {
+            return std::static_pointer_cast< const Domain >(
+                Domain::default_val());
+        }
+        return std::static_pointer_cast< const Domain >(
+            it->second->clone_shared());
     }
 
     /// \brief Remove the given domain from the program state.
     template < typename Domain >
-    bool remove();
+    [[nodiscard]] ProgramStateRef remove() const;
 
     /// \brief Set the given domain to the given abstract val.
     template < typename Domain >
-    void set(UniqueVal val);
+    [[nodiscard]] ProgramStateRef set(SharedVal val) const;
 
   public:
-    [[nodiscard]] ProgramStateRef clone() const;
-
-    void normalize();
+    [[nodiscard]] ProgramStateRef normalize() const;
 
     [[nodiscard]] bool is_bottom() const;
     [[nodiscard]] bool is_top() const;
-    void set_to_bottom();
-    void set_to_top();
+    [[nodiscard]] ProgramStateRef set_to_bottom() const;
+    [[nodiscard]] ProgramStateRef set_to_top() const;
 
-    ProgramStateRef join(ProgramStateRef other);
-    ProgramStateRef join_at_loop_head(ProgramStateRef other);
-    ProgramStateRef join_consecutive_iter(ProgramStateRef other);
+    [[nodiscard]] ProgramStateRef join(ProgramStateRef other) const;
+    [[nodiscard]] ProgramStateRef join_at_loop_head(
+        ProgramStateRef other) const;
+    [[nodiscard]] ProgramStateRef join_consecutive_iter(
+        ProgramStateRef other) const;
 
-    ProgramStateRef widen(ProgramStateRef other);
-    ProgramStateRef meet(ProgramStateRef other);
-    ProgramStateRef narrow(ProgramStateRef other);
+    [[nodiscard]] ProgramStateRef widen(ProgramStateRef other) const;
+    [[nodiscard]] ProgramStateRef meet(ProgramStateRef other) const;
+    [[nodiscard]] ProgramStateRef narrow(ProgramStateRef other) const;
 
     [[nodiscard]] bool leq(const ProgramState& other) const;
     [[nodiscard]] bool equals(const ProgramState& other) const;
@@ -199,12 +208,14 @@ class ProgramStateManager {
 
     ProgramStateRef get_persistent_state(ProgramState& State);
 
-    ProgramStateRef get_persistent_state_with_dom_val_map(ProgramState& state,
-                                                          DomValMap dom_val);
+    ProgramStateRef get_persistent_state_with_ref_and_dom_val_map(
+        ProgramState& state, DomValMap dom_val);
+    ProgramStateRef get_persistent_state_with_copy_and_dom_val_map(
+        const ProgramState& state, DomValMap dom_val);
 
   private:
-    friend void retain_state(ProgramStateRawPtr state);
-    friend void release_state(ProgramStateRawPtr state);
+    friend void retain_state(const ProgramState* state);
+    friend void release_state(const ProgramState* state);
 }; // class ProgramStateManager
 
 } // namespace knight::dfa

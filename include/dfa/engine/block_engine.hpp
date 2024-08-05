@@ -59,7 +59,7 @@ class BlockExecutionEngine {
     /// \brief General transformer for all nodes.
     void exec();
 
-    ProgramStateRef get_state() const { return m_state; }
+    [[nodiscard]] ProgramStateRef get_state() const { return m_state; }
 
   private:
     /// \brief Transfer C++ base or member initializer from constructor's

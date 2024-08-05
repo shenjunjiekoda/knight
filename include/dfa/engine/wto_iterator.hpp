@@ -48,7 +48,7 @@ class WtoBasedFixPointIterator : public FixPointIterator< CFG, GraphTrait > {
     Wto m_wto;
     InvariantMap m_pre;
     InvariantMap m_post;
-    bool m_converged;
+    bool m_converged{};
 
     ProgramStateRef m_bottom;
 
@@ -56,8 +56,7 @@ class WtoBasedFixPointIterator : public FixPointIterator< CFG, GraphTrait > {
     WtoBasedFixPointIterator(StackFrame* frame, ProgramStateRef bottom)
         : m_cfg(frame->get_cfg()),
           m_wto(frame->get_cfg()),
-          m_bottom(std::move(bottom)),
-          m_converged(false) {}
+          m_bottom(std::move(bottom)) {}
     WtoBasedFixPointIterator(const WtoBasedFixPointIterator&) = delete;
     WtoBasedFixPointIterator& operator=(const WtoBasedFixPointIterator&) =
         delete;
@@ -87,14 +86,14 @@ class WtoBasedFixPointIterator : public FixPointIterator< CFG, GraphTrait > {
     /// \param state_before State before the iteration
     /// \param state_after State after the iteration
     [[nodiscard]] virtual ProgramStateRef merge_at_head_when_increasing(
-        NodeRef haed,
+        [[maybe_unused]] NodeRef head,
         unsigned iter_cnt,
         const ProgramStateRef& state_before,
         const ProgramStateRef& state_after) {
         if (iter_cnt < 2) {
-            return state_before->clone()->join_consecutive_iter(state_after);
+            return state_before->join_consecutive_iter(state_after);
         }
-        return state_before->clone()->widen(state_after);
+        return state_before->widen(state_after);
     }
 
     /// \brief Check if the increasing iterations fixpoint is reached
@@ -122,7 +121,7 @@ class WtoBasedFixPointIterator : public FixPointIterator< CFG, GraphTrait > {
         [[maybe_unused]] unsigned iter_cnt,
         [[maybe_unused]] const ProgramStateRef& state_before,
         [[maybe_unused]] const ProgramStateRef& state_after) {
-        return state_before->clone()->narrow(state_after);
+        return state_before->narrow(state_after);
     }
 
     /// \brief Check if the decreasing iterations fixpoint is reached
@@ -175,7 +174,7 @@ class WtoBasedFixPointIterator : public FixPointIterator< CFG, GraphTrait > {
     void set(InvariantMap& inv_map,
              const NodeRef& node,
              ProgramStateRef state) {
-        state->normalize();
+        state = state->normalize();
         inv_map[node] = std::move(state);
     }
 
@@ -286,11 +285,9 @@ class WtoIterator final : public WtoComponentVisitor< G, GraphTrait > {
             }
 
             // from the head of loop
-            ProgramStateRef new_state_front =
-                this->m_fp_iterator.get_bottom()->clone();
+            ProgramStateRef new_state_front = this->m_fp_iterator.get_bottom();
             // from the tail of loop
-            ProgramStateRef new_state_back =
-                this->m_fp_iterator.get_bottom()->clone();
+            ProgramStateRef new_state_back = this->m_fp_iterator.get_bottom();
 
             for (auto it = GraphTrait::pred_begin(head),
                       end = GraphTrait::pred_end(head);
@@ -311,7 +308,7 @@ class WtoIterator final : public WtoComponentVisitor< G, GraphTrait > {
 
             new_state_front =
                 new_state_front->join_at_loop_head(std::move(new_state_back));
-            new_state_front->normalize();
+            new_state_front = new_state_front->normalize();
             if (kind == IterationKind::Increasing) {
                 ProgramStateRef increased =
                     this->m_fp_iterator
@@ -319,7 +316,7 @@ class WtoIterator final : public WtoComponentVisitor< G, GraphTrait > {
                                                        iter_cnt,
                                                        state_pre,
                                                        new_state_front);
-                increased->normalize();
+                increased = increased->normalize();
                 if (this->m_fp_iterator
                         .is_increasing_fixpoint_reached(head,
                                                         iter_cnt,
@@ -340,7 +337,7 @@ class WtoIterator final : public WtoComponentVisitor< G, GraphTrait > {
                                                              iter_cnt,
                                                              state_pre,
                                                              new_state_front);
-                refined->normalize();
+                refined = refined->normalize();
                 if (this->m_fp_iterator
                         .is_decreasing_fixpoint_reached(head,
                                                         iter_cnt,
@@ -349,9 +346,8 @@ class WtoIterator final : public WtoComponentVisitor< G, GraphTrait > {
                     // Decreasing fixpoint is reached
                     this->m_fp_iterator.set_pre(head, std::move(refined));
                     break;
-                } else {
-                    state_pre = std::move(refined);
                 }
+                state_pre = std::move(refined);
             }
         }
 

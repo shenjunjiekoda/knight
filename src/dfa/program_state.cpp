@@ -14,6 +14,7 @@
 #include "dfa/program_state.hpp"
 #include "dfa/analysis/analysis_base.hpp"
 #include "dfa/checker/checker_base.hpp"
+#include "dfa/domain/dom_base.hpp"
 #include "dfa/domain/domains.hpp"
 #include "util/assert.hpp"
 
@@ -24,11 +25,11 @@
 
 namespace knight::dfa {
 
-void retain_state(ProgramStateRawPtr state) {
+void retain_state(const ProgramState* state) {
     ++const_cast< ProgramState* >(state)->m_ref_cnt;
 }
 
-void release_state(ProgramStateRawPtr state) {
+void release_state(const ProgramState* state) {
     knight_assert(state->m_ref_cnt > 0);
     auto* s = const_cast< ProgramState* >(state);
     if (--s->m_ref_cnt == 0) {
@@ -42,14 +43,7 @@ void release_state(ProgramStateRawPtr state) {
 ProgramState::ProgramState(ProgramStateManager* mgr, DomValMap dom_val)
     : m_mgr(mgr), m_ref_cnt(0), m_dom_val(std::move(dom_val)) {}
 
-ProgramState::ProgramState(const ProgramState& other)
-    : m_mgr(other.m_mgr), m_ref_cnt(0) {
-    for (const auto& [id, val] : other.m_dom_val) {
-        m_dom_val[id] = val->clone();
-    }
-}
-
-ProgramState::ProgramState(ProgramState&& other)
+ProgramState::ProgramState(ProgramState&& other) noexcept
     : m_mgr(other.m_mgr), m_ref_cnt(0), m_dom_val(std::move(other.m_dom_val)) {}
 
 ProgramStateManager& ProgramState::get_manager() const {
@@ -58,22 +52,36 @@ ProgramStateManager& ProgramState::get_manager() const {
 
 template < typename Domain >
 bool ProgramState::exists() const {
-    return get(Domain::get_kind()).has_value();
+    return get_ref(Domain::get_kind()).has_value();
 }
 
 template < typename Domain >
-bool ProgramState::remove() {
+ProgramStateRef ProgramState::remove() const {
     auto id = get_domain_id(Domain::get_kind());
-    return m_dom_val.erase(id) != 0U;
+    auto dom_val = m_dom_val;
+    dom_val.erase(id);
+    return get_manager()
+        .get_persistent_state_with_copy_and_dom_val_map(*this,
+                                                        std::move(dom_val));
 }
 
 template < typename Domain >
-void ProgramState::set(UniqueVal val) {
-    m_dom_val[get_domain_id(Domain::get_kind())] = std::move(val);
+ProgramStateRef ProgramState::set(SharedVal val) const {
+    auto dom_val = m_dom_val;
+    dom_val[get_domain_id(Domain::get_kind())] = std::move(val);
+    return get_manager()
+        .get_persistent_state_with_copy_and_dom_val_map(*this,
+                                                        std::move(dom_val));
 }
 
-void ProgramState::normalize() {
-    llvm::for_each(m_dom_val, [](auto& pair) { pair.second->normalize(); });
+ProgramStateRef ProgramState::normalize() const {
+    DomValMap dom_val = m_dom_val;
+    for (auto& [id, val] : dom_val) {
+        const_cast< AbsDomBase* >(val.get())->normalize();
+    }
+    return get_manager()
+        .get_persistent_state_with_copy_and_dom_val_map(*this,
+                                                        std::move(dom_val));
 }
 
 bool ProgramState::is_bottom() const {
@@ -87,85 +95,76 @@ bool ProgramState::is_top() const {
                         [](const auto& pair) { return pair.second->is_top(); });
 }
 
-void ProgramState::set_to_bottom() {
-    llvm::for_each(m_dom_val, [](auto& pair) { pair.second->set_to_bottom(); });
+ProgramStateRef ProgramState::set_to_bottom() const {
+    return get_manager().get_bottom_state();
 }
 
-void ProgramState::set_to_top() {
-    llvm::for_each(m_dom_val, [](auto& pair) { pair.second->set_to_top(); });
+ProgramStateRef ProgramState::set_to_top() const {
+    return get_manager().get_default_state();
 }
 
-#define UNION_MAP(OP)                                                     \
-    ProgramState new_state = *this;                                       \
-    DomValMap map;                                                        \
-    for (auto& [other_id, other_val] : other->m_dom_val) {                \
-        auto it = m_dom_val.find(other_id);                               \
-        if (it == m_dom_val.end()) {                                      \
-            map[other_id] = other_val->clone();                           \
-        } else {                                                          \
-            auto new_val = it->second->clone();                           \
-            new_val->OP(*other_val);                                      \
-            map[other_id] = std::move(new_val);                           \
-        }                                                                 \
-    }                                                                     \
-    return get_manager().get_persistent_state_with_dom_val_map(new_state, \
-                                                               std::move( \
-                                                                   map));
+// NOLINTNEXTLINE
+#define UNION_MAP(OP)                                            \
+    DomValMap new_map;                                           \
+    for (const auto& [other_id, other_val] : other->m_dom_val) { \
+        auto it = m_dom_val.find(other_id);                      \
+        if (it == m_dom_val.end()) {                             \
+            new_map[other_id] = other_val->clone_shared();       \
+        } else {                                                 \
+            auto new_val = it->second->clone();                  \
+            new_val->OP(*other_val);                             \
+            new_map[other_id] = SharedVal(new_val);              \
+        }                                                        \
+    }                                                            \
+    return get_manager()                                         \
+        .get_persistent_state_with_copy_and_dom_val_map(*this,   \
+                                                        std ::move(new_map));
+// NOLINTNEXTLINE
+#define INTERSECT_MAP(OP)                                      \
+    DomValMap map;                                             \
+    for (auto& [other_id, other_val] : other->m_dom_val) {     \
+        auto it = m_dom_val.find(other_id);                    \
+        if (it != m_dom_val.end()) {                           \
+            auto new_val = it->second->clone();                \
+            new_val->OP(*other_val);                           \
+            map[other_id] = SharedVal(new_val);                \
+        }                                                      \
+    }                                                          \
+    return get_manager()                                       \
+        .get_persistent_state_with_copy_and_dom_val_map(*this, \
+                                                        std ::move(map));
 
-#define INTERSECT_MAP(OP)                                                 \
-    ProgramState new_state = *this;                                       \
-    DomValMap map;                                                        \
-    for (auto& [other_id, other_val] : other->m_dom_val) {                \
-        auto it = m_dom_val.find(other_id);                               \
-        if (it != m_dom_val.end()) {                                      \
-            auto new_val = it->second->clone();                           \
-            new_val->OP(*other_val);                                      \
-            map[other_id] = std::move(new_val);                           \
-        }                                                                 \
-    }                                                                     \
-    return get_manager().get_persistent_state_with_dom_val_map(new_state, \
-                                                               std::move( \
-                                                                   map));
-
-ProgramStateRef ProgramState::clone() const {
-    ProgramState new_state = *this;
-    DomValMap map;
-    for (auto& [id, val] : new_state.m_dom_val) {
-        map[id] = val->clone();
-    }
-    return get_manager().get_persistent_state_with_dom_val_map(new_state,
-                                                               std::move(map));
-}
-
-ProgramStateRef ProgramState::join(ProgramStateRef other) {
+ProgramStateRef ProgramState::join(ProgramStateRef other) const {
     UNION_MAP(join_with);
 }
 
-ProgramStateRef ProgramState::join_at_loop_head(ProgramStateRef other) {
+ProgramStateRef ProgramState::join_at_loop_head(ProgramStateRef other) const {
     UNION_MAP(join_with_at_loop_head);
 }
 
-ProgramStateRef ProgramState::join_consecutive_iter(ProgramStateRef other) {
+ProgramStateRef ProgramState::join_consecutive_iter(
+    ProgramStateRef other) const {
     UNION_MAP(join_consecutive_iter_with);
 }
 
-ProgramStateRef ProgramState::widen(ProgramStateRef other) {
+ProgramStateRef ProgramState::widen(ProgramStateRef other) const {
     UNION_MAP(widen_with);
 }
 
-ProgramStateRef ProgramState::meet(ProgramStateRef other) {
+ProgramStateRef ProgramState::meet(ProgramStateRef other) const {
     INTERSECT_MAP(meet_with);
 }
 
-ProgramStateRef ProgramState::narrow(ProgramStateRef other) {
+ProgramStateRef ProgramState::narrow(ProgramStateRef other) const {
     INTERSECT_MAP(narrow_with);
 }
 
 bool ProgramState::leq(const ProgramState& other) const {
     llvm::BitVector this_key_set;
-    bool need_to_check_other = other.m_dom_val != this->m_dom_val;
-    for (auto& [id, val] : this->m_dom_val) {
+    bool need_to_check_other = other.m_dom_val.size() != this->m_dom_val.size();
+    for (const auto& [id, val] : this->m_dom_val) {
         this_key_set.set(id);
+        auto dom_val = m_dom_val;
         auto it = other.m_dom_val.find(id);
         if (it == other.m_dom_val.end()) {
             if (!val->is_bottom()) {
@@ -183,7 +182,7 @@ bool ProgramState::leq(const ProgramState& other) const {
         return true;
     }
 
-    for (auto& [id, val] : other.m_dom_val) {
+    for (const auto& [id, val] : other.m_dom_val) {
         if (!this_key_set[id]) {
             if (!val->is_top()) {
                 return false;
@@ -195,7 +194,7 @@ bool ProgramState::leq(const ProgramState& other) const {
 }
 
 bool ProgramState::equals(const ProgramState& other) const {
-    return llvm::all_of(this->m_dom_val, [other](const auto& this_pair) {
+    return llvm::all_of(this->m_dom_val, [&other](const auto& this_pair) {
         auto it = other.m_dom_val.find(this_pair.first);
         return it != other.m_dom_val.end() &&
                this_pair.second->equals(*(it->second));
@@ -204,7 +203,7 @@ bool ProgramState::equals(const ProgramState& other) const {
 
 void ProgramState::dump(llvm::raw_ostream& os) const {
     os << "ProgramState:{\n";
-    for (auto& [id, aval] : m_dom_val) {
+    for (const auto& [id, aval] : m_dom_val) {
         os << "[" << get_domain_name_by_id(id) << "]: ";
         aval->dump(os);
         os << "\n";
@@ -247,7 +246,7 @@ ProgramStateRef ProgramStateManager::get_bottom_state() {
 ProgramStateRef ProgramStateManager::get_persistent_state(ProgramState& state) {
     llvm::FoldingSetNodeID id;
     state.Profile(id);
-    void* insert_pos;
+    void* insert_pos; // NOLINT
 
     if (ProgramState* existed =
             m_state_set.FindNodeOrInsertPos(id, insert_pos)) {
@@ -266,10 +265,18 @@ ProgramStateRef ProgramStateManager::get_persistent_state(ProgramState& state) {
     return new_state;
 }
 
-ProgramStateRef ProgramStateManager::get_persistent_state_with_dom_val_map(
-    ProgramState& state, DomValMap dom_val) {
+ProgramStateRef ProgramStateManager::
+    get_persistent_state_with_ref_and_dom_val_map(ProgramState& state,
+                                                  DomValMap dom_val) {
     state.m_dom_val = std::move(dom_val);
     return get_persistent_state(state);
+}
+
+ProgramStateRef ProgramStateManager::
+    get_persistent_state_with_copy_and_dom_val_map(const ProgramState& state,
+                                                   DomValMap dom_val) {
+    ProgramState new_state(state.m_mgr, std::move(dom_val));
+    return get_persistent_state(new_state);
 }
 
 } // namespace knight::dfa

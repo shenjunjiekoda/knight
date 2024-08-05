@@ -119,7 +119,6 @@ void BlockExecutionEngine::exec_lifetime_ends(StmtRef trigger_stmt,
 /// \brief Transfer the stmt
 ProgramStateRef BlockExecutionEngine::exec_cfg_stmt(StmtRef stmt,
                                                     ProgramStateRef state) {
-    state = state->clone();
     m_analysis_manager.get_analysis_context().set_state(state);
     m_stmt_post[stmt] = state;
 

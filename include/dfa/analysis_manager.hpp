@@ -113,8 +113,8 @@ class AnalysisManager {
 
     /// \brief registered domains
     std::unordered_map< DomID, AnalysisID > m_domains;
-    using DomainDefaultValFn = std::function< UniqueVal() >;
-    using DomainBottomValFn = std::function< UniqueVal() >;
+    using DomainDefaultValFn = std::function< SharedVal() >;
+    using DomainBottomValFn = std::function< SharedVal() >;
     std::unordered_map< DomID, DomainDefaultValFn > m_domain_default_fn;
     std::unordered_map< DomID, DomainBottomValFn > m_domain_bottom_fn;
     std::unordered_map< AnalysisID, std::unordered_set< DomID > >

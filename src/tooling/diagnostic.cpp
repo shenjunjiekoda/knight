@@ -27,6 +27,8 @@ namespace knight {
 
 namespace {
 
+constexpr unsigned DiagMsgMaxLen = 256U;
+
 struct Less {
     bool operator()(const KnightDiagnostic& lhs,
                     const KnightDiagnostic& rhs) const {
@@ -113,7 +115,7 @@ void KnightDiagnosticConsumer::HandleDiagnostic(
                                       &m_context.get_diagnostic_engine()
                                            ->getDiagnosticOptions(),
                                       m_diags.back());
-    SmallString< 100 > msg;
+    SmallString< DiagMsgMaxLen > msg;
     diagnostic.FormatDiagnostic(msg);
     FullSourceLoc loc;
     if (diagnostic.hasSourceManager()) {
@@ -142,11 +144,11 @@ std::vector< KnightDiagnostic > KnightDiagnosticConsumer::take_diags() {
 
 void KnightDiagnosticRenderer::emitDiagnosticMessage(
     clang::FullSourceLoc loc,
-    clang::PresumedLoc ploc,
+    [[maybe_unused]] clang::PresumedLoc ploc,
     clang::DiagnosticsEngine::Level level,
     llvm::StringRef msg,
     llvm::ArrayRef< clang::CharSourceRange > ranges,
-    clang::DiagOrStoredDiag diag) {
+    [[maybe_unused]] clang::DiagOrStoredDiag diag) {
     using namespace clang;
     // Remove check name from the message.
     std::string check_name_in_msg = " [" + m_diag.DiagnosticName + "]";
@@ -190,16 +192,16 @@ void KnightDiagnosticRenderer::emitDiagnosticMessage(
                       "Overwriting a diagnostic message");
     m_diag.Message = knight_msg;
 
-    for (const auto& SourceRange : valid_ranges) {
+    for (const auto& source_range : valid_ranges) {
         m_diag.Message.Ranges.emplace_back(loc.getManager(),
-                                           to_char_range(SourceRange));
+                                           to_char_range(source_range));
     }
 }
 
 void KnightDiagnosticRenderer::emitCodeContext(
     clang::FullSourceLoc loc,
     clang::DiagnosticsEngine::Level level,
-    llvm::SmallVectorImpl< clang::CharSourceRange >& ranges,
+    [[maybe_unused]] llvm::SmallVectorImpl< clang::CharSourceRange >& ranges,
     clang::ArrayRef< clang::FixItHint > hints) {
     using namespace clang;
     knight_assert(loc.isValid());
@@ -207,23 +209,24 @@ void KnightDiagnosticRenderer::emitCodeContext(
                                                ? &m_diag.Notes.back()
                                                : &m_diag.Message;
 
-    for (const auto& FixIt : hints) {
-        CharSourceRange Range = FixIt.RemoveRange;
-        knight_assert_msg(Range.getBegin().isValid() &&
-                              Range.getEnd().isValid(),
+    for (const auto& fix_it : hints) {
+        CharSourceRange char_range = fix_it.RemoveRange;
+        knight_assert_msg(char_range.getBegin().isValid() &&
+                              char_range.getEnd().isValid(),
                           "Invalid range in the fix-it hint.");
-        knight_assert_msg(Range.getBegin().isFileID() &&
-                              Range.getEnd().isFileID(),
+        knight_assert_msg(char_range.getBegin().isFileID() &&
+                              char_range.getEnd().isFileID(),
                           "Only file locations supported in fix-it hints.");
 
         tooling::Replacement replacement(loc.getManager(),
-                                         Range,
-                                         FixIt.CodeToInsert);
-        auto Err = diag_msg->Fix[replacement.getFilePath()].add(replacement);
-        if (Err) {
+                                         char_range,
+                                         fix_it.CodeToInsert);
+        auto err = diag_msg->Fix[replacement.getFilePath()].add(replacement);
+        if (err) {
             llvm::errs() << "Fix conflicts with existing fix! "
-                         << llvm::toString(std::move(Err)) << "\n";
-            knight_assert(false && "Fix conflicts with existing fix!");
+                         << llvm::toString(std::move(err)) << "\n";
+            knight_assert(false && // NOLINT
+                          "Fix conflicts with existing fix!");
         }
     }
 }

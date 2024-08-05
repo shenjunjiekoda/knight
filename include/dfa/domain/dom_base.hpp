@@ -28,7 +28,8 @@ class AbsDomBase;
 
 using DomIDs = std::unordered_set< DomID >;
 using AbsValRef = AbsDomBase*;
-using UniqueVal = std::unique_ptr< AbsDomBase >;
+using AbsValConstRef = const AbsDomBase*;
+using SharedVal = std::shared_ptr< const AbsDomBase >;
 
 /// \brief Base for all abstract domains
 ///
@@ -36,13 +37,15 @@ using UniqueVal = std::unique_ptr< AbsDomBase >;
 struct AbsDomBase {
     DomainKind kind;
 
-    /// \brief Create the top abstract value
-    AbsDomBase(DomainKind k) : kind(k) {}
+    /// \brief Create the `Top` abstract value
+    explicit AbsDomBase(DomainKind k) : kind(k) {}
 
-    virtual ~AbsDomBase() {}
+    virtual ~AbsDomBase() = default;
 
     /// \brief Clone the abstract value
-    [[nodiscard]] virtual UniqueVal clone() const = 0;
+    [[nodiscard]] virtual AbsDomBase* clone() const = 0;
+
+    [[nodiscard]] SharedVal clone_shared() const { return SharedVal(clone()); }
 
     /// \brief Normalize the abstract value
     ///
@@ -113,7 +116,7 @@ struct AbsDomBase {
     /// default impl is dump nothing
     virtual void dump(llvm::raw_ostream& os) const {}
 
-}; // class AbsDomBase
+} __attribute__((aligned(4))) __attribute__((packed)); // class AbsDomBase
 
 /// \brief Base wrapper class for all domains
 ///

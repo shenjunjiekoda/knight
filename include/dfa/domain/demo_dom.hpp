@@ -34,9 +34,10 @@ class DemoItvDom : public AbsDom< DemoItvDom > {
 
   public:
     DemoItvDom() : DemoItvDom(INT_MIN, INT_MAX) {}
-    DemoItvDom(int x) : DemoItvDom(x, x) {}
+    explicit DemoItvDom(int x) : DemoItvDom(x, x) {}
     DemoItvDom(int l, int u) : m_lb(l), m_ub(u), m_is_bottom(false), AbsDom() {}
-    DemoItvDom(Bottom) : m_lb(0), m_ub(0), m_is_bottom(true), AbsDom() {}
+    explicit DemoItvDom(Bottom)
+        : m_lb(0), m_ub(0), m_is_bottom(true), AbsDom() {}
 
     /// \brief specify the domain kind
     [[nodiscard]] static DomainKind get_kind() {
@@ -44,19 +45,19 @@ class DemoItvDom : public AbsDom< DemoItvDom > {
     }
 
   public:
-    [[nodiscard]] static UniqueVal default_val() {
-        return std::make_unique< DemoItvDom >();
+    [[nodiscard]] static SharedVal default_val() {
+        return std::make_shared< DemoItvDom >();
     }
 
-    [[nodiscard]] static UniqueVal bottom_val() {
-        return std::make_unique< DemoItvDom >(Bottom{});
+    [[nodiscard]] static SharedVal bottom_val() {
+        return std::make_shared< DemoItvDom >(Bottom{});
     }
 
-    [[nodiscard]] UniqueVal clone() const override {
+    [[nodiscard]] AbsDomBase* clone() const override {
         if (is_bottom()) {
-            return bottom_val();
+            return new DemoItvDom(Bottom{});
         }
-        return std::make_unique< DemoItvDom >(m_lb, m_ub);
+        return new DemoItvDom(m_lb, m_ub);
     }
 
     void normalize() override {

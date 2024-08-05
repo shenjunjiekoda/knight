@@ -23,17 +23,19 @@ namespace knight {
 
 class KnightContext;
 
+// NOLINTNEXTLINE(altera-struct-pack-align)
 struct KnightDiagnostic : clang::tooling::Diagnostic {
     KnightDiagnostic(llvm::StringRef checker,
                      Level diag_level,
                      llvm::StringRef build_dir);
 }; // struct KnightDiagnostic
 
+// NOLINTNEXTLINE(altera-struct-pack-align)
 struct KnightDiagnosticConsumer : public clang::DiagnosticConsumer {
-    KnightDiagnosticConsumer(KnightContext& context);
+    explicit KnightDiagnosticConsumer(KnightContext& context);
 
     void HandleDiagnostic(clang::DiagnosticsEngine::Level diag_level,
-                          const clang::Diagnostic& info) override;
+                          const clang::Diagnostic& diagnostic) override;
 
     // Retrieve the diagnostics that were captured.
     std::vector< KnightDiagnostic > take_diags();
