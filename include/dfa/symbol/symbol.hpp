@@ -25,11 +25,10 @@
 #include <clang/Basic/SourceLocation.h>
 #include <llvm/ADT/StringRef.h>
 #include <llvm/Support/raw_ostream.h>
-#include <type_traits>
 
 namespace knight::dfa {
 
-/// \brief The kind of symbol expression.(Integer for now.)
+/// \brief The kind of symbol expression.
 enum class SymExprKind {
     None,
     // symbol leaf node
@@ -139,20 +138,27 @@ class Sym : public SymExpr {
 class RegionSymVal : public Sym {
   private:
     const TypedRegion* m_region;
+    /// \brief whether the region val is external or not, which
+    ///  means it is not defined in the current analysis context.
+    bool m_is_external;
 
   public:
-    RegionSymVal(SymID id, const TypedRegion* region);
+    RegionSymVal(SymID id, const TypedRegion* region, bool is_external);
     ~RegionSymVal() override = default;
 
     [[gnu::returns_nonnull]] const TypedRegion* get_region() const;
+    [[nodiscard]] bool is_external() const { return m_is_external; }
 
-    static void profile(llvm::FoldingSetNodeID& id, const TypedRegion* region) {
+    static void profile(llvm::FoldingSetNodeID& id,
+                        const TypedRegion* region,
+                        bool is_external) {
         id.AddInteger(static_cast< unsigned >(SymExprKind::RegionSymbolVal));
         id.AddPointer(region);
+        id.AddBoolean(is_external);
     }
 
     void Profile(llvm::FoldingSetNodeID& profile) const override { // NOLINT
-        RegionSymVal::profile(profile, m_region);
+        RegionSymVal::profile(profile, m_region, m_is_external);
     }
 
     [[nodiscard]] llvm::StringRef get_kind_name() const override {
@@ -216,7 +222,7 @@ class SymbolConjured : public Sym {
     clang::QualType m_type;
     unsigned m_visit_cnt;
     const StackFrame* m_frame;
-    const void* tag;
+    const void* m_tag;
 
   public:
     SymbolConjured(SymID id,
@@ -230,7 +236,7 @@ class SymbolConjured : public Sym {
           m_type(type),
           m_visit_cnt(visit_cnt),
           m_frame(frame),
-          tag(tag) {
+          m_tag(tag) {
         knight_assert_msg(is_valid_type_for_sym_expr(type), "Invalid type");
     }
 
@@ -248,7 +254,7 @@ class SymbolConjured : public Sym {
         return m_frame;
     }
 
-    [[nodiscard]] const void* get_tag() const { return tag; }
+    [[nodiscard]] const void* get_tag() const { return m_tag; }
 
     static void profile(llvm::FoldingSetNodeID& id,
                         const clang::Stmt* stmt,
@@ -270,7 +276,7 @@ class SymbolConjured : public Sym {
                                 m_type,
                                 m_visit_cnt,
                                 m_frame,
-                                tag);
+                                m_tag);
     }
 
     static bool classof(const SymExpr* sym_expr) {

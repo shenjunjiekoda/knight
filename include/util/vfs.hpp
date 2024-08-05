@@ -24,7 +24,7 @@ using OverlayFileSystemRef =
 
 /// \brief Create a new VFS overlay from a YAML file.
 FileSystemRef get_vfs_from_yaml(const std::string& overlay_yaml_file,
-                                const FileSystemRef &base_fs);
+                                const FileSystemRef& base_fs);
 
 /// \brief Create a base VFS from RFS.
 OverlayFileSystemRef create_base_vfs();

@@ -20,7 +20,7 @@
 namespace knight::dfa {
 
 bool is_valid_type_for_sym_expr(clang::QualType type) {
-    return !type.isNull() && !type->isVoidType() && type->isScalarType();
+    return !type.isNull() && !type->isVoidType();
 }
 
 void SymIterator::expand() {
@@ -43,8 +43,12 @@ SymbolRef SymIterator::operator*() {
     return m_sym_exprs.back();
 }
 
-RegionSymVal::RegionSymVal(SymID id, const TypedRegion* region)
-    : Sym(id, SymExprKind::RegionSymbolVal), m_region(region) {
+RegionSymVal::RegionSymVal(SymID id,
+                           const TypedRegion* region,
+                           bool is_external)
+    : Sym(id, SymExprKind::RegionSymbolVal),
+      m_region(region),
+      m_is_external(is_external) {
     knight_assert_msg(region != nullptr, "Region cannot be null");
     knight_assert_msg(is_valid_type_for_sym_expr(m_region->get_value_type()),
                       "Invalid type for region symbol value");
