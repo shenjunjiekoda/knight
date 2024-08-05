@@ -29,11 +29,11 @@ const clang::Decl* CheckerContext::get_current_decl() const {
     return m_frame->get_decl();
 }
 
-StackFrame* CheckerContext::get_current_stack_frame() const {
+const StackFrame* CheckerContext::get_current_stack_frame() const {
     return m_frame;
 }
 
-void CheckerContext::set_current_stack_frame(StackFrame* frame) {
+void CheckerContext::set_current_stack_frame(const StackFrame* frame) {
     m_frame = frame;
 }
 

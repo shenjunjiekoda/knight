@@ -29,7 +29,7 @@ class StackFrame;
 class CheckerContext {
   private:
     KnightContext& m_ctx;
-    StackFrame* m_frame;
+    const StackFrame* m_frame;
     ProgramStateRef m_state{};
 
   public:
@@ -40,12 +40,12 @@ class CheckerContext {
     [[nodiscard]] clang::SourceManager& get_source_manager() const;
     [[nodiscard]] ProgramStateRef get_state() const { return m_state; }
     [[nodiscard]] const clang::Decl* get_current_decl() const;
-    [[nodiscard]] StackFrame* get_current_stack_frame() const;
+    [[nodiscard]] const StackFrame* get_current_stack_frame() const;
 
     void set_current_state(ProgramStateRef state) {
         m_state = std::move(state);
     }
-    void set_current_stack_frame(StackFrame* frame);
+    void set_current_stack_frame(const StackFrame* frame);
 }; // class CheckerContext
 
 } // namespace dfa

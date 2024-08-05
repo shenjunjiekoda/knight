@@ -15,6 +15,7 @@
 
 #include <type_traits>
 
+#include "dfa/location_context.hpp"
 #include "dfa/stack_frame.hpp"
 #include "support/dumpable.hpp"
 #include "support/symbol.hpp"
@@ -138,12 +139,17 @@ class Sym : public SymExpr {
 class RegionSymVal : public Sym {
   private:
     const TypedRegion* m_region;
+    const LocationContext* m_loc_ctx;
+
     /// \brief whether the region val is external or not, which
     ///  means it is not defined in the current analysis context.
     bool m_is_external;
 
   public:
-    RegionSymVal(SymID id, const TypedRegion* region, bool is_external);
+    RegionSymVal(SymID id,
+                 const TypedRegion* region,
+                 const LocationContext* loc_ctx,
+                 bool is_external);
     ~RegionSymVal() override = default;
 
     [[gnu::returns_nonnull]] const TypedRegion* get_region() const;

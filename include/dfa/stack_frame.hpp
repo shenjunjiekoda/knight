@@ -24,88 +24,70 @@
 
 namespace knight::dfa {
 
-class StackFrameManager;
+class LocationManager;
 
 std::optional< ProcCFG::DeclRef > get_called_decl(const ProcCFG::StmtRef& call);
+
+constexpr unsigned CallSiteInfoAlignment = 32;
 
 struct CallSiteInfo {
     ProcCFG::StmtRef callsite_expr;
     ProcCFG::NodeRef node;
     unsigned stmt_idx; // index of the call site in the node
-};                     // struct CallSiteInfo
+} __attribute__((aligned(CallSiteInfoAlignment)))
+__attribute__((packed)); // struct CallSiteInfo
 
 class StackFrame : public llvm::FoldingSetNode {
   private:
-    StackFrameManager* m_manager;
+    LocationManager* m_manager;
     const clang::Decl* m_decl;
     StackFrame* m_parent{};
     CallSiteInfo m_call_site_info;
 
   public:
-    StackFrame(StackFrameManager* manager,
-               const clang::Decl* decl,
+    StackFrame(LocationManager* manager,
+               [[gnu::nonnull]] const clang::Decl* decl,
                StackFrame* parent,
                CallSiteInfo call_site_info);
-    StackFrame(const StackFrame&);
+    StackFrame(const StackFrame&) = delete;
     StackFrame& operator=(const StackFrame&) = delete;
     ~StackFrame() = default;
 
   public:
-    ProcCFG::GraphRef get_cfg() const;
+    [[nodiscard]] ProcCFG::GraphRef get_cfg() const;
 
-    clang::ASTContext& get_ast_context() const {
+    [[nodiscard]] clang::ASTContext& get_ast_context() const {
         return m_decl->getASTContext();
     }
-    const clang::Decl* get_decl() const { return m_decl; }
-    StackFrameManager* get_manager() const;
-    StackFrame* get_parent() const { return m_parent; }
-    bool isTopFrame() const { return m_parent == nullptr; }
 
-    const CallSiteInfo& get_call_site_info() const {
-        knight_assert_msg(!isTopFrame(), "top frame has no call site info");
+    [[gnu::returns_nonnull, nodiscard]] const clang::Decl* get_decl() const {
+        return m_decl;
+    }
+
+    [[gnu::returns_nonnull, nodiscard]] LocationManager* get_manager() const;
+
+    [[nodiscard]] StackFrame* get_parent() const { return m_parent; }
+    [[nodiscard]] bool is_top_frame() const { return m_parent == nullptr; }
+
+    [[nodiscard]] const CallSiteInfo& get_call_site_info() const {
+        knight_assert_msg(!is_top_frame(), "top frame has no call site info");
         return m_call_site_info;
     }
 
-    ProcCFG::StmtRef get_callsite_expr() const;
-    ProcCFG::NodeRef get_callsite_node() const;
-    clang::CFGElement get_callsite_cfg_element() const;
+    [[nodiscard]] ProcCFG::StmtRef get_callsite_expr() const;
+    [[nodiscard]] ProcCFG::NodeRef get_callsite_node() const;
+    [[nodiscard]] clang::CFGElement get_callsite_cfg_element() const;
 
     bool is_ancestor_of(const StackFrame* other) const;
 
   public:
-    void Profile(llvm::FoldingSetNodeID& id) const;
+    static void profile(llvm::FoldingSetNodeID& id,
+                        const clang::Decl* decl,
+                        StackFrame* parent,
+                        const CallSiteInfo& call_site_info);
+    void Profile(llvm::FoldingSetNodeID& id) const; // NOLINT
     void dump(llvm::raw_ostream& os) const;
 
 }; // class StackFrame
-
-class StackFrameManager {
-  private:
-    std::unordered_map< const clang::Decl*, ProcCFG::GraphUniqueRef >
-        m_decl_to_cfg;
-
-    llvm::BumpPtrAllocator m_allocator;
-    llvm::FoldingSet< StackFrame > m_stack_frames;
-
-  public:
-    StackFrameManager() = default;
-
-  public:
-    ProcCFG::GraphRef get_cfg(const clang::Decl* decl) const {
-        auto it = m_decl_to_cfg.find(decl);
-        if (it == m_decl_to_cfg.end()) {
-            return nullptr;
-        }
-        return it->second.get();
-    }
-
-    StackFrame* create_top_frame(ProcCFG::DeclRef decl);
-    StackFrame* create_from_node(StackFrame* parent,
-                                 ProcCFG::NodeRef node,
-                                 ProcCFG::StmtRef callsite_expr,
-                                 unsigned stmt_idx);
-
-  private:
-    void ensure_cfg_created(ProcCFG::DeclRef decl);
-}; // class StackFrameManager
 
 } // namespace knight::dfa

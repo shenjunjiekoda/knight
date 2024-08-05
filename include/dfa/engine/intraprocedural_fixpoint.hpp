@@ -39,7 +39,7 @@ class IntraProceduralFixpointIterator final
     CheckerManager& m_checker_mgr;
     AnalysisManager& m_analysis_mgr;
     ProgramStateManager& m_state_mgr;
-    StackFrame* m_frame;
+    const StackFrame* m_frame;
 
     StmtResultCache m_stmt_pre;
     StmtResultCache m_stmt_post;
@@ -49,7 +49,7 @@ class IntraProceduralFixpointIterator final
                                     AnalysisManager& analysis_mgr,
                                     CheckerManager& checker_mgr,
                                     ProgramStateManager& state_mgr,
-                                    StackFrame* frame);
+                                    const StackFrame* frame);
 
     /// \brief transfer function for a graph node.
     ///

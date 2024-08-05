@@ -26,7 +26,7 @@ IntraProceduralFixpointIterator::IntraProceduralFixpointIterator(
     AnalysisManager& analysis_mgr,
     CheckerManager& checker_mgr,
     ProgramStateManager& state_mgr,
-    StackFrame* frame)
+    const StackFrame* frame)
     : m_frame(frame),
       m_ctx(ctx),
       m_analysis_mgr(analysis_mgr),

@@ -53,7 +53,7 @@ class WtoBasedFixPointIterator : public FixPointIterator< CFG, GraphTrait > {
     ProgramStateRef m_bottom;
 
   public:
-    WtoBasedFixPointIterator(StackFrame* frame, ProgramStateRef bottom)
+    WtoBasedFixPointIterator(const StackFrame* frame, ProgramStateRef bottom)
         : m_cfg(frame->get_cfg()),
           m_wto(frame->get_cfg()),
           m_bottom(std::move(bottom)) {}

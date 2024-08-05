@@ -16,9 +16,9 @@
 #include "dfa/analysis_manager.hpp"
 #include "dfa/checker_manager.hpp"
 #include "dfa/engine/intraprocedural_fixpoint.hpp"
+#include "dfa/location_manager.hpp"
 #include "dfa/proc_cfg.hpp"
 #include "dfa/program_state.hpp"
-#include "dfa/stack_frame.hpp"
 #include "tooling/context.hpp"
 #include "tooling/diagnostic.hpp"
 #include "tooling/factory.hpp"
@@ -72,7 +72,7 @@ class KnightASTConsumer : public clang::ASTConsumer {
             llvm::outs().resetColor();
             llvm::outs() << "\n";
 
-            auto* frame = m_stack_frame_manager.create_top_frame(function);
+            const auto* frame = m_location_manager.create_top_frame(function);
             if (m_ctx.get_current_options().view_cfg) {
                 if (m_ctx.get_current_options().use_color) {
                     llvm::outs().changeColor(llvm::raw_ostream::Colors::RED);
@@ -115,7 +115,7 @@ class KnightASTConsumer : public clang::ASTConsumer {
     dfa::CheckerManager& m_checker_manager;
     KnightFactory::CheckerRefs m_checkers;
     KnightFactory::AnalysisRefs m_analysis;
-    dfa::StackFrameManager m_stack_frame_manager;
+    dfa::LocationManager m_location_manager;
 }; // class KnightASTConsumer
 
 class KnightASTConsumerFactory {

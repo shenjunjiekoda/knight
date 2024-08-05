@@ -45,8 +45,10 @@ SymbolRef SymIterator::operator*() {
 
 RegionSymVal::RegionSymVal(SymID id,
                            const TypedRegion* region,
+                           const LocationContext* loc_ctx,
                            bool is_external)
     : Sym(id, SymExprKind::RegionSymbolVal),
+      m_loc_ctx(loc_ctx),
       m_region(region),
       m_is_external(is_external) {
     knight_assert_msg(region != nullptr, "Region cannot be null");

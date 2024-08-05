@@ -1,17 +1,17 @@
 #!/usr/bin/python3
 
-#===- run-clang-format ------------------------------------------------===#
-# 
+# ===- run-clang-format ------------------------------------------------===#
+#
 # Copyright (c) 2024 Junjie Shen
 #
 # see https://github.com/shenjunjiekoda/knight/blob/main/LICENSE for
 # license information.
 #
-#===------------------------------------------------------------------===#
+# ===------------------------------------------------------------------===#
 #
 #  This script runs clang-format on the whole repository.
 #
-#===------------------------------------------------------------------===#
+# ===------------------------------------------------------------------===#
 
 
 import os
@@ -25,6 +25,30 @@ import sys
 CLANG_FORMAT_VERSION = "16.0.6"
 SOURCE_EXTENSIONS = (".c", ".cpp", ".h", ".hpp")
 IGNORE_DIRECTORIES = {".git", "build"}
+
+RESET_COLOR = "\033[0m"
+GREEN = "\033[32m"
+RED = "\033[31m"
+CYAN = "\033[36m"
+
+
+def print_progress_bar(total, completed):
+    """Print the progress bar with color, ensure to overwrite the whole line."""
+    percent = (completed / total) * 100
+    bar_length = 40
+    filled_length = int(bar_length * completed // total)
+    bar = (
+        GREEN
+        + "█" * filled_length
+        + RED
+        + "-" * (bar_length - filled_length)
+        + RESET_COLOR
+    )
+    # Ensure the line is long enough to overwrite the old content
+    line = f"\r{CYAN}Progress: |{bar}| {percent:.1f}% Complete ({completed}/{total}){RESET_COLOR}"
+    line += " " * (80 - len(line))  # Pad with spaces to cover old content if any
+    sys.stdout.write(line)
+    sys.stdout.flush()
 
 
 def find_clang_format(executable):
@@ -56,18 +80,26 @@ def check_clang_format_version(clang_format):
 
 
 def format_source_files(src_dir, clang_format):
-    """Format source files using clang-format."""
+    """Format source files using clang-format and update the progress bar."""
+    files_to_format = []
     for root, dirs, files in os.walk(src_dir):
-        # Remove ignored directories from the search
         dirs[:] = [d for d in dirs if d not in IGNORE_DIRECTORIES]
-
         for file in files:
             file_path = Path(root) / file
             if file_path.suffix in SOURCE_EXTENSIONS:
-                print(f"[*] Formatting {file_path}")
-                subprocess.run(
-                    [str(clang_format), "-i", "-style=file", str(file_path)], check=True
-                )
+                files_to_format.append(file_path)
+
+    total_files = len(files_to_format)
+    completed_files = 0
+    print_progress_bar(total_files, completed_files)
+
+    for file_path in files_to_format:
+        subprocess.run(
+            [str(clang_format), "-i", "-style=file", str(file_path)], check=True
+        )
+        completed_files += 1
+        print_progress_bar(total_files, completed_files)
+    print(f"\nAll {total_files} files formatted.")
 
 
 def main():
@@ -84,7 +116,10 @@ def main():
         "--clang-format", default="clang-format", help="Path to the clang-format binary"
     )
     parser.add_argument(
-        "--check-version", default=False, action="store_true", help="Check the clang-format version"
+        "--check-version",
+        default=False,
+        action="store_true",
+        help="Check the clang-format version",
     )
     args = parser.parse_args()
 

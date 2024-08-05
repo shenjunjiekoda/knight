@@ -20,7 +20,35 @@ import subprocess
 import sys
 from pathlib import Path
 import json
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from threading import Lock
+import threading
+import time
+
+RESET_COLOR = "\033[0m"
+BLUE = "\033[34m"
+GREEN = "\033[32m"
+RED = "\033[31m"
+YELLOW = "\033[33m"
+
+
+def print_progress_bar(total, completed, lock):
+    """Print the progress bar with color."""
+    percent = (completed / total) * 100
+    bar_length = 40
+    filled_length = int(bar_length * completed // total)
+    bar = (
+        GREEN
+        + "█" * filled_length
+        + RED
+        + "-" * (bar_length - filled_length)
+        + RESET_COLOR
+    )
+    with lock:
+        sys.stdout.write(
+            f"\rProgress: |{bar}| {YELLOW}{percent:.1f}% Complete ({completed}/{total}){RESET_COLOR}"
+        )
+        sys.stdout.flush()
 
 
 def find_clang_tidy(executable):
@@ -48,21 +76,39 @@ def run_clang_tidy_on_file(
     ]
     if config_file:
         command.append(f"--config-file={config_file}")
-
     if print_detail:
         print(f"Running command: {' '.join(command)}")
-
     try:
         result = subprocess.run(command, check=True, capture_output=True, text=True)
         if print_detail:
-            print(f"std output for {file_path}:\n")
-
-        print(f"{result.stdout}")
+            print(f"std output for {file_path}:\n{result.stdout}")
         if print_detail and result.stderr:
             print(f"Standard Error for {file_path}:\n{result.stderr}", file=sys.stderr)
     except subprocess.CalledProcessError as e:
         print(f"Error while processing {file_path}:\n{e.stderr}", file=sys.stderr)
-    print(f"[*] {file_path}")
+
+
+# Spinner function
+def spinner(lock, is_running):
+    spinner_animation = ["|", "/", "-", "\\"]
+    idx = 0
+    with lock:
+        sys.stdout.write("\r")
+    while is_running():
+        with lock:
+            sys.stdout.write(
+                "\r"
+                + BLUE
+                + spinner_animation[idx % len(spinner_animation)]
+                + " Please wait..."
+                + RESET_COLOR
+                + " |"
+            )
+            sys.stdout.flush()
+            idx += 1
+        time.sleep(0.1)
+    with lock:
+        sys.stdout.write("\r")
 
 
 def main():
@@ -98,10 +144,7 @@ def main():
         help="Number of tidy instances to be run in parallel.",
     )
     parser.add_argument(
-        "--print-detail",
-        type=bool,
-        default=False,
-        help="Print the running details.",
+        "--print-detail", type=bool, default=False, help="Print the running details."
     )
     args = parser.parse_args()
 
@@ -115,35 +158,46 @@ def main():
         print(f"Error: '{args.clang_tidy}' not found in PATH", file=sys.stderr)
         sys.exit(1)
 
-    # Read the compile_commands.json file
     with open(compile_commands_path) as f:
         compile_commands = json.load(f)
 
-    # Extract the list of files to be processed
     files_to_process = [Path(entry["file"]) for entry in compile_commands]
 
-    # print("Starting clang-tidy scan for the following files:")
-    # for file in files_to_process:
-    #     print(f" - {file}")
+    lock = Lock()
+    completed_tasks = 0
+    total_tasks = len(files_to_process)
+    print_progress_bar(total_tasks, completed_tasks, lock)
 
-    # Run clang-tidy on each file using a thread pool
+    # Spinner control
+    spinner_running = True
+
+    def is_spinner_running():
+        return spinner_running
+
+    spinner_thread = threading.Thread(target=spinner, args=(lock, is_spinner_running))
+    spinner_thread.start()
+
     with ThreadPoolExecutor(max_workers=args.jobs) as executor:
-        futures = [
+        future_to_file = {
             executor.submit(
                 run_clang_tidy_on_file,
                 clang_tidy,
                 args.build_dir,
-                file_path,
+                file,
                 args.header_filter,
                 args.config_file,
                 args.print_detail,
-            )
-            for file_path in files_to_process
-        ]
-
-        # Wait for all tasks to complete
-        for future in futures:
+            ): file
+            for file in files_to_process
+        }
+        for future in as_completed(future_to_file):
+            completed_tasks += 1
+            print_progress_bar(total_tasks, completed_tasks, lock)
             future.result()
+
+    spinner_running = False
+    spinner_thread.join()
+    print("\nAll files processed.")
 
 
 if __name__ == "__main__":

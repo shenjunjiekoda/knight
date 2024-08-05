@@ -12,8 +12,10 @@
 //===------------------------------------------------------------------===//
 
 #include "dfa/stack_frame.hpp"
-#include "clang/AST/ExprCXX.h"
-#include "llvm/ADT/FoldingSet.h"
+#include "dfa/location_manager.hpp"
+
+#include <clang/AST/ExprCXX.h>
+#include <llvm/ADT/FoldingSet.h>
 
 namespace knight::dfa {
 
@@ -34,7 +36,7 @@ std::optional< ProcCFG::DeclRef > get_called_decl(
     return std::nullopt;
 }
 
-StackFrame::StackFrame(StackFrameManager* manager,
+StackFrame::StackFrame(LocationManager* manager,
                        const clang::Decl* decl,
                        StackFrame* parent,
                        CallSiteInfo call_site_info)
@@ -43,20 +45,25 @@ StackFrame::StackFrame(StackFrameManager* manager,
       m_parent(parent),
       m_call_site_info(call_site_info) {}
 
-StackFrame::StackFrame(const StackFrame& other) = default;
-
-void StackFrame::Profile(llvm::FoldingSetNodeID& id) const {
-    id.AddPointer(m_decl);
-    id.AddPointer(m_parent);
-    if (m_parent == nullptr) {
+void StackFrame::profile(llvm::FoldingSetNodeID& id,
+                         const clang::Decl* decl,
+                         StackFrame* parent,
+                         const CallSiteInfo& call_site_info) {
+    id.AddPointer(decl);
+    id.AddPointer(parent);
+    if (parent == nullptr) {
         return;
     }
-    id.AddPointer(m_call_site_info.callsite_expr);
-    id.AddPointer(m_call_site_info.node);
-    id.AddInteger(m_call_site_info.stmt_idx);
+    id.AddPointer(call_site_info.callsite_expr);
+    id.AddPointer(call_site_info.node);
+    id.AddInteger(call_site_info.stmt_idx);
 }
 
-StackFrameManager* StackFrame::get_manager() const {
+void StackFrame::Profile(llvm::FoldingSetNodeID& id) const {
+    profile(id, m_decl, m_parent, m_call_site_info);
+}
+
+LocationManager* StackFrame::get_manager() const {
     return m_manager;
 }
 
@@ -65,17 +72,17 @@ ProcCFG::GraphRef StackFrame::get_cfg() const {
 }
 
 ProcCFG::StmtRef StackFrame::get_callsite_expr() const {
-    knight_assert_msg(!isTopFrame(), "top frame has no call site info");
+    knight_assert_msg(!is_top_frame(), "top frame has no call site info");
     return m_call_site_info.callsite_expr;
 }
 
 ProcCFG::NodeRef StackFrame::get_callsite_node() const {
-    knight_assert_msg(!isTopFrame(), "top frame has no call site info");
+    knight_assert_msg(!is_top_frame(), "top frame has no call site info");
     return m_call_site_info.node;
 }
 
 clang::CFGElement StackFrame::get_callsite_cfg_element() const {
-    knight_assert_msg(!isTopFrame(), "top frame has no call site info");
+    knight_assert_msg(!is_top_frame(), "top frame has no call site info");
     return (*m_call_site_info.node)[m_call_site_info.stmt_idx];
 }
 
@@ -86,19 +93,19 @@ bool StackFrame::is_ancestor_of(const StackFrame* other) const {
             return true;
         }
         other = pa;
-    } while (!other->isTopFrame());
+    } while (!other->is_top_frame());
     return false;
 }
 
 void StackFrame::dump(llvm::raw_ostream& os) const {
     unsigned frame_depth = 0U;
-    for (const auto* frame = this; !frame->isTopFrame();
+    for (const auto* frame = this; !frame->is_top_frame();
          frame = frame->m_parent) {
         ++frame_depth;
     };
 
     unsigned frame_idx = 0U;
-    for (const auto* frame = this; !frame->isTopFrame();
+    for (const auto* frame = this; !frame->is_top_frame();
          frame = frame->m_parent) {
         if (frame_idx == 0U) {
             os << "->";
@@ -118,55 +125,6 @@ void StackFrame::dump(llvm::raw_ostream& os) const {
         os << "'\n";
         ++frame_idx;
     }
-}
-
-StackFrame* StackFrameManager::create_top_frame(ProcCFG::DeclRef decl) {
-    llvm::FoldingSetNodeID id;
-    const StackFrame frame(this, decl, nullptr, CallSiteInfo());
-    frame.Profile(id);
-
-    void* insert_pos; // NOLINT
-    auto* res = m_stack_frames.FindNodeOrInsertPos(id, insert_pos);
-    if (res == nullptr) {
-        res = m_allocator.Allocate< StackFrame >();
-        new (res) StackFrame(this, decl, nullptr, CallSiteInfo());
-        m_stack_frames.InsertNode(res, insert_pos);
-    }
-    ensure_cfg_created(decl);
-
-    return res;
-}
-
-StackFrame* StackFrameManager::create_from_node(StackFrame* parent,
-                                                ProcCFG::NodeRef node,
-                                                ProcCFG::StmtRef callsite_expr,
-                                                unsigned stmt_idx) {
-    llvm::FoldingSetNodeID id;
-    auto called_decl_opt = get_called_decl(callsite_expr);
-    knight_assert_msg(called_decl_opt.has_value(), "invalid call site");
-    const StackFrame frame(this,
-                           *called_decl_opt,
-                           parent,
-                           CallSiteInfo(callsite_expr, node, stmt_idx));
-    frame.Profile(id);
-
-    void* insert_pos; // NOLINT
-    auto* res = m_stack_frames.FindNodeOrInsertPos(id, insert_pos);
-    if (res == nullptr) {
-        res = m_allocator.Allocate< StackFrame >();
-        new (res) StackFrame(frame);
-        m_stack_frames.InsertNode(res, insert_pos);
-    }
-    ensure_cfg_created(*called_decl_opt);
-
-    return res;
-}
-
-void StackFrameManager::ensure_cfg_created(ProcCFG::DeclRef decl) {
-    if (m_decl_to_cfg.contains(decl)) {
-        return;
-    }
-    m_decl_to_cfg[decl] = ProcCFG::build(decl);
 }
 
 } // namespace knight::dfa
