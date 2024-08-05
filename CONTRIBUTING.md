@@ -14,5 +14,10 @@ Please run format tools before committing your changes. We use [clang-format](ht
 
 ```shell
 $ chmod +x scripts/run-clang-format
-$ scripts/run-clang-format
+$ scripts/run-clang-format # --help for usages
+```
+
+```shell
+$ chmod +x scripts/run-clang-tidy
+$ scripts/run-clang-tidy -j $(nproc) # --help for usages
 ```

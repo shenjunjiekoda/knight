@@ -18,8 +18,10 @@ $ brew install llvm # for Homebrew
 or [build from source](https://llvm.org/docs/GettingStarted.html).
 
 ```SHELL
-$ cmake -DLLVM_BUILD_DIR=/path/to/llvm/build -B build 
-$ cmake --build build -j$(nproc)
+$ cd knight
+$ cmake -DLLVM_BUILD_DIR=/path/to/llvm/build -B path-to-build -S .
+$ cmake --build path-to-build -j$(nproc)
+$ path-to-build/bin/knight --help # for usages
 ```
 Note: Knight only support C++20, so you need to use a compiler support C++20.
 
