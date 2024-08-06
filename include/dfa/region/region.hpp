@@ -25,9 +25,15 @@
 
 #include "dfa/region/regions.hpp"
 #include "dfa/stack_frame.hpp"
+
 namespace knight::dfa {
 
 class RegionManager;
+class MemRegion;
+class MemSpaceRegion;
+
+using MemRegionRef = const MemRegion*;
+using MemSpaceRegionRef = const MemSpaceRegion*;
 
 class MemSpaceRegion {
   public:
@@ -76,7 +82,7 @@ class StackSpaceRegion : public MemSpaceRegion {
         id.AddPointer(m_frame);
     }
 
-    [[nodiscard]] static bool classof(const MemSpaceRegion* R) {
+    [[nodiscard]] static bool classof(MemSpaceRegionRef R) {
         return R->get_kind() == SpaceKind::StackArg ||
                R->get_kind() == SpaceKind::StackLocal;
     }
@@ -99,7 +105,7 @@ class StackLocalSpaceRegion : public StackSpaceRegion {
         this->m_frame->dump(os);
     }
 
-    [[nodiscard]] static bool classof(const MemSpaceRegion* R) {
+    [[nodiscard]] static bool classof(MemSpaceRegionRef R) {
         return R->get_kind() == SpaceKind::StackLocal;
     }
 
@@ -124,7 +130,7 @@ class StackArgSpaceRegion : public StackSpaceRegion {
         this->m_frame->dump(os);
     }
 
-    [[nodiscard]] static bool classof(const MemSpaceRegion* R) {
+    [[nodiscard]] static bool classof(MemSpaceRegionRef R) {
         return R->get_kind() == SpaceKind::StackArg;
     }
 
@@ -146,7 +152,7 @@ class CodeSpaceRegion : public MemSpaceRegion {
   public:
     void dump(llvm::raw_ostream& os) const override { os << "CodeSpaceRegion"; }
 
-    [[nodiscard]] static bool classof(const MemSpaceRegion* R) {
+    [[nodiscard]] static bool classof(MemSpaceRegionRef R) {
         return R->get_kind() == MemSpaceRegion::SpaceKind::Code;
     }
 
@@ -165,7 +171,7 @@ class HeapSpaceRegion : public MemSpaceRegion {
   public:
     void dump(llvm::raw_ostream& os) const override { os << "HeapSpaceRegion"; }
 
-    [[nodiscard]] static bool classof(const MemSpaceRegion* R) {
+    [[nodiscard]] static bool classof(MemSpaceRegionRef R) {
         return R->get_kind() == MemSpaceRegion::SpaceKind::Heap;
     }
 
@@ -182,7 +188,7 @@ class GlobalSpaceRegion : public MemSpaceRegion {
     ~GlobalSpaceRegion() override = default;
 
   public:
-    [[nodiscard]] static bool classof(const MemSpaceRegion* R) {
+    [[nodiscard]] static bool classof(MemSpaceRegionRef R) {
         return R->get_kind() == SpaceKind::GlobalExternal ||
                R->get_kind() == SpaceKind::GlobalInternal;
     }
@@ -203,7 +209,7 @@ class GlobalInternalSpaceRegion : public GlobalSpaceRegion {
         os << "GlobalInternalSpaceRegion";
     }
 
-    [[nodiscard]] static bool classof(const MemSpaceRegion* R) {
+    [[nodiscard]] static bool classof(MemSpaceRegionRef R) {
         return R->get_kind() == SpaceKind::GlobalInternal;
     }
 
@@ -228,7 +234,7 @@ class GlobalExternalSpaceRegion : public GlobalSpaceRegion {
         os << "GlobalExternalSpaceRegion";
     }
 
-    [[nodiscard]] static bool classof(const MemSpaceRegion* R) {
+    [[nodiscard]] static bool classof(MemSpaceRegionRef R) {
         return R->get_kind() == SpaceKind::GlobalExternal;
     }
 
@@ -253,7 +259,7 @@ class UnknownSpaceRegion : public MemSpaceRegion {
         os << "UnknownSpaceRegion";
     }
 
-    [[nodiscard]] static bool classof(const MemSpaceRegion* R) {
+    [[nodiscard]] static bool classof(MemSpaceRegionRef R) {
         return R->get_kind() == SpaceKind::Unknown;
     }
 
@@ -263,13 +269,11 @@ class UnknownSpaceRegion : public MemSpaceRegion {
 class MemRegion : public llvm::FoldingSetNode {
   protected:
     const RegionKind m_kind;
-    const MemSpaceRegion* m_space;
-    const MemRegion* m_parent;
+    MemSpaceRegionRef m_space;
+    MemRegionRef m_parent;
 
   protected:
-    MemRegion(RegionKind kind,
-              const MemSpaceRegion* space,
-              const MemRegion* parent)
+    MemRegion(RegionKind kind, MemSpaceRegionRef space, MemRegionRef parent)
         : m_kind(kind), m_space(space), m_parent(parent) {}
 
   public:
@@ -279,10 +283,8 @@ class MemRegion : public llvm::FoldingSetNode {
     [[nodiscard]] RegionKind get_kind() const { return m_kind; }
     [[nodiscard]] RegionManager& get_manager() const;
     [[nodiscard]] clang::ASTContext& get_ast_ctx() const;
-    [[nodiscard]] const MemSpaceRegion* get_memory_space() const {
-        return m_space;
-    }
-    [[nodiscard]] const MemRegion* get_parent() const { return m_parent; }
+    [[nodiscard]] MemSpaceRegionRef get_memory_space() const { return m_space; }
+    [[nodiscard]] MemRegionRef get_parent() const { return m_parent; }
 
     [[nodiscard]] bool has_stack_storage() const;
 
@@ -301,8 +303,8 @@ class MemRegion : public llvm::FoldingSetNode {
 
     static void profile(llvm::FoldingSetNodeID& id,
                         RegionKind kind,
-                        const MemSpaceRegion* space,
-                        const MemRegion* parent) {
+                        MemSpaceRegionRef space,
+                        MemRegionRef parent) {
         id.AddInteger(static_cast< unsigned >(kind));
         id.AddPointer(space);
         id.AddPointer(parent);
@@ -311,9 +313,7 @@ class MemRegion : public llvm::FoldingSetNode {
 
 class TypedRegion : public MemRegion {
   protected:
-    TypedRegion(RegionKind kind,
-                const MemSpaceRegion* space,
-                const MemRegion* parent)
+    TypedRegion(RegionKind kind, MemSpaceRegionRef space, MemRegionRef parent)
         : MemRegion(kind, space, parent) {}
 
   public:
@@ -323,14 +323,14 @@ class TypedRegion : public MemRegion {
     [[nodiscard]] virtual clang::QualType get_value_type() const = 0;
     [[nodiscard]] clang::QualType get_location_type() const;
 
-    [[nodiscard]] static bool classof(const MemRegion* R) {
+    [[nodiscard]] static bool classof(MemRegionRef R) {
         return R->get_kind() == RegionKind::TypedRegion;
     }
 
     static void profile(llvm::FoldingSetNodeID& id,
                         RegionKind kind,
-                        const MemSpaceRegion* space,
-                        const MemRegion* parent) {
+                        MemSpaceRegionRef space,
+                        MemRegionRef parent) {
         MemRegion::profile(id, kind, space, parent);
     }
 }; // class TypedRegion
@@ -344,7 +344,7 @@ class CXXThisRegion : public TypedRegion {
   private:
     CXXThisRegion(const clang::PointerType* this_ptr_type,
                   const StackArgSpaceRegion* arg_space,
-                  const MemRegion* parent)
+                  MemRegionRef parent)
         : TypedRegion(RegionKind::ThisObjRegion, arg_space, parent),
           m_this_ptr_type(this_ptr_type) {
         knight_assert_msg(this_ptr_type->getPointeeType()
@@ -360,7 +360,7 @@ class CXXThisRegion : public TypedRegion {
     static void profile(llvm::FoldingSetNodeID& id,
                         const clang::PointerType* this_ptr_type,
                         const StackArgSpaceRegion* arg_space,
-                        const MemRegion* parent) {
+                        MemRegionRef parent) {
         TypedRegion::profile(id, RegionKind::ThisObjRegion, arg_space, parent);
         id.AddPointer(this_ptr_type);
     }
@@ -372,7 +372,7 @@ class CXXThisRegion : public TypedRegion {
                 m_parent);
     }
 
-    [[nodiscard]] static bool classof(const MemRegion* R) {
+    [[nodiscard]] static bool classof(MemRegionRef R) {
         return R->get_kind() == RegionKind::ThisObjRegion;
     }
 
@@ -394,8 +394,8 @@ class CXXBaseObjRegion : public TypedRegion {
   private:
     CXXBaseObjRegion(const clang::CXXRecordDecl* base_rd,
                      bool is_virtual,
-                     const MemSpaceRegion* space,
-                     const MemRegion* parent)
+                     MemSpaceRegionRef space,
+                     MemRegionRef parent)
         : TypedRegion(RegionKind::BaseObjRegion, space, parent),
           m_base_rd_and_is_virtual(base_rd, is_virtual) {
         knight_assert_msg(base_rd != nullptr, "invalid base record decl");
@@ -418,8 +418,8 @@ class CXXBaseObjRegion : public TypedRegion {
     static void profile(llvm::FoldingSetNodeID& id,
                         const clang::CXXRecordDecl* base_rd,
                         bool is_virtual,
-                        const MemSpaceRegion* space,
-                        const MemRegion* parent) {
+                        MemSpaceRegionRef space,
+                        MemRegionRef parent) {
         TypedRegion::profile(id, RegionKind::BaseObjRegion, space, parent);
         id.AddPointer(base_rd);
         id.AddBoolean(is_virtual);
@@ -437,7 +437,7 @@ class CXXBaseObjRegion : public TypedRegion {
         m_parent->dump(os);
     }
 
-    [[nodiscard]] static bool classof(const MemRegion* R) {
+    [[nodiscard]] static bool classof(MemRegionRef R) {
         return R->get_kind() == RegionKind::BaseObjRegion;
     }
 
@@ -456,7 +456,7 @@ class CXXTempObjRegion : public TypedRegion {
   private:
     CXXTempObjRegion(const clang::Expr* src_expr,
                      const StackLocalSpaceRegion* space,
-                     const MemRegion* parent)
+                     MemRegionRef parent)
         : TypedRegion(RegionKind::TempObjRegion, space, parent),
           m_src_expr(src_expr) {
         knight_assert_msg(src_expr != nullptr, "invalid source expression");
@@ -474,8 +474,8 @@ class CXXTempObjRegion : public TypedRegion {
 
     static void profile(llvm::FoldingSetNodeID& id,
                         const clang::Expr* src_expr,
-                        const MemSpaceRegion* space,
-                        const MemRegion* parent) {
+                        MemSpaceRegionRef space,
+                        MemRegionRef parent) {
         TypedRegion::profile(id, RegionKind::TempObjRegion, space, parent);
         id.AddPointer(src_expr);
     }
@@ -490,7 +490,7 @@ class CXXTempObjRegion : public TypedRegion {
         m_src_expr->printPretty(os, nullptr, get_ast_ctx().getPrintingPolicy());
     }
 
-    [[nodiscard]] static bool classof(const MemRegion* R) {
+    [[nodiscard]] static bool classof(MemRegionRef R) {
         return R->get_kind() == RegionKind::TempObjRegion;
     }
 
@@ -527,7 +527,7 @@ class StringLitRegion : public TypedRegion {
 
     static void profile(llvm::FoldingSetNodeID& id,
                         const clang::StringLiteral* str_literal,
-                        const MemSpaceRegion* space) {
+                        MemSpaceRegionRef space) {
         TypedRegion::profile(id, RegionKind::StringLitRegion, space, nullptr);
         id.AddPointer(str_literal);
     }
@@ -540,7 +540,7 @@ class StringLitRegion : public TypedRegion {
         os << "string literal \"" << m_str_literal->getString() << "\"";
     }
 
-    [[nodiscard]] static bool classof(const MemRegion* R) {
+    [[nodiscard]] static bool classof(MemRegionRef R) {
         return R->get_kind() == RegionKind::StringLitRegion;
     }
 
@@ -556,8 +556,7 @@ class ElementRegion : public TypedRegion {
     clang::QualType m_element_type;
     // TODO(sym): add symbolic index value?
   private:
-    ElementRegion(const clang::QualType& element_type,
-                  const MemRegion* base_region)
+    ElementRegion(const clang::QualType& element_type, MemRegionRef base_region)
         : TypedRegion(RegionKind::ElemRegion,
                       base_region->get_memory_space(),
                       base_region),
@@ -578,7 +577,7 @@ class ElementRegion : public TypedRegion {
 
     static void profile(llvm::FoldingSetNodeID& id,
                         const clang::QualType& element_type,
-                        const MemRegion* base_region) {
+                        MemRegionRef base_region) {
         TypedRegion::profile(id,
                              RegionKind::ElemRegion,
                              base_region->get_memory_space(),
@@ -596,7 +595,7 @@ class ElementRegion : public TypedRegion {
         m_parent->dump(os);
     }
 
-    [[nodiscard]] static bool classof(const MemRegion* R) {
+    [[nodiscard]] static bool classof(MemRegionRef R) {
         return R->get_kind() == RegionKind::ElemRegion;
     }
 
@@ -608,9 +607,7 @@ class ElementRegion : public TypedRegion {
 
 class DeclRegion : public TypedRegion {
   protected:
-    DeclRegion(RegionKind kind,
-               const MemSpaceRegion* space,
-               const MemRegion* parent)
+    DeclRegion(RegionKind kind, MemSpaceRegionRef space, MemRegionRef parent)
         : TypedRegion(kind, space, parent) {}
 
   public:
@@ -622,15 +619,15 @@ class DeclRegion : public TypedRegion {
         return get_decl()->getType();
     }
 
-    [[nodiscard]] static bool classof(const MemRegion* R) {
+    [[nodiscard]] static bool classof(MemRegionRef R) {
         return R->get_kind() == RegionKind::DeclRegion;
     }
 
     static void profile(llvm::FoldingSetNodeID& id,
                         const clang::ValueDecl* decl,
                         RegionKind kind,
-                        const MemSpaceRegion* space,
-                        const MemRegion* parent) {
+                        MemSpaceRegionRef space,
+                        MemRegionRef parent) {
         TypedRegion::profile(id, kind, space, parent);
         id.AddPointer(decl);
     }
@@ -649,8 +646,8 @@ class VarRegion : public DeclRegion {
 
   private:
     VarRegion(const clang::VarDecl* var_decl,
-              const MemSpaceRegion* space,
-              const MemRegion* parent)
+              MemSpaceRegionRef space,
+              MemRegionRef parent)
         : DeclRegion(RegionKind::VarRegion, space, parent),
           m_var_decl(var_decl) {
         knight_assert_msg(var_decl != nullptr, "invalid variable declaration");
@@ -671,8 +668,8 @@ class VarRegion : public DeclRegion {
 
     static void profile(llvm::FoldingSetNodeID& id,
                         const clang::VarDecl* var_decl,
-                        const MemSpaceRegion* space,
-                        const MemRegion* parent) {
+                        MemSpaceRegionRef space,
+                        MemRegionRef parent) {
         DeclRegion::profile(id, var_decl, RegionKind::VarRegion, space, parent);
     }
 
@@ -684,7 +681,7 @@ class VarRegion : public DeclRegion {
         }
     }
 
-    [[nodiscard]] static bool classof(const MemRegion* R) {
+    [[nodiscard]] static bool classof(MemRegionRef R) {
         return R->get_kind() == RegionKind::VarRegion;
     }
 
@@ -704,7 +701,7 @@ class ArgumentRegion : public DeclRegion {
 
   private:
     ArgumentRegion(const StackArgSpaceRegion* arg_space,
-                   const MemRegion* parent,
+                   MemRegionRef parent,
                    const clang::ParmVarDecl* param_decl = nullptr,
                    clang::Expr* arg_expr = nullptr,
                    unsigned arg_idx = 0U)
@@ -746,7 +743,7 @@ class ArgumentRegion : public DeclRegion {
 
     void set_arg_index(unsigned arg_idx) { m_arg_idx = arg_idx; }
 
-    static bool classof(const MemRegion* R) {
+    static bool classof(MemRegionRef R) {
         return R->get_kind() == RegionKind::ArgRegion;
     }
 
@@ -756,7 +753,7 @@ class ArgumentRegion : public DeclRegion {
 
     static void profile(llvm::FoldingSetNodeID& id,
                         const StackArgSpaceRegion* arg_space,
-                        const MemRegion* parent,
+                        MemRegionRef parent,
                         const clang::ParmVarDecl* param_decl,
                         const clang::Expr* arg_expr,
                         unsigned arg_idx) {
@@ -810,8 +807,8 @@ class FieldRegion : public DeclRegion {
 
   private:
     FieldRegion(const clang::FieldDecl* field_decl,
-                const MemSpaceRegion* space,
-                const MemRegion* parent)
+                MemSpaceRegionRef space,
+                MemRegionRef parent)
         : DeclRegion(RegionKind::FieldRegion, space, parent),
           m_field_decl(field_decl) {
         knight_assert_msg(field_decl != nullptr, "invalid field declaration");
@@ -840,8 +837,8 @@ class FieldRegion : public DeclRegion {
 
     static void profile(llvm::FoldingSetNodeID& id,
                         const clang::FieldDecl* field_decl,
-                        const MemSpaceRegion* space,
-                        const MemRegion* parent) {
+                        MemSpaceRegionRef space,
+                        MemRegionRef parent) {
         DeclRegion::profile(id,
                             field_decl,
                             RegionKind::FieldRegion,
@@ -849,7 +846,7 @@ class FieldRegion : public DeclRegion {
                             parent);
     }
 
-    [[nodiscard]] static bool classof(const MemRegion* R) {
+    [[nodiscard]] static bool classof(MemRegionRef R) {
         return R->get_kind() == RegionKind::FieldRegion;
     }
 
@@ -868,7 +865,7 @@ class SymbolicRegion : public MemRegion {
   private:
     // TODO(sym): add symbolic value
   public:
-    SymbolicRegion(const MemSpaceRegion* space, const MemRegion* parent)
+    SymbolicRegion(MemSpaceRegionRef space, MemRegionRef parent)
         : MemRegion(RegionKind::SymRegion, space, parent) {}
 
   public:
@@ -876,13 +873,13 @@ class SymbolicRegion : public MemRegion {
 
     void dump(llvm::raw_ostream& os) const override { os << "symbolic"; }
 
-    [[nodiscard]] static bool classof(const MemRegion* R) {
+    [[nodiscard]] static bool classof(MemRegionRef R) {
         return R->get_kind() == RegionKind::SymRegion;
     }
 
     static void profile(llvm::FoldingSetNodeID& id,
-                        const MemSpaceRegion* space,
-                        const MemRegion* parent) {
+                        MemSpaceRegionRef space,
+                        MemRegionRef parent) {
         MemRegion::profile(id, RegionKind::SymRegion, space, parent);
     }
 
@@ -929,31 +926,31 @@ class RegionManager {
     const UnknownSpaceRegion* get_unknown_space();
 
     /// \brief Get a memory region
-    const SymbolicRegion* get_symbolic_region(const MemSpaceRegion* space,
-                                              const MemRegion* parent);
+    const SymbolicRegion* get_symbolic_region(MemSpaceRegionRef space,
+                                              MemRegionRef parent);
     const StringLitRegion* get_string_lit_region(
         const clang::StringLiteral* str, GlobalInternalSpaceRegion* space);
     const CXXBaseObjRegion* get_cxx_base_object_region(
         const clang::CXXRecordDecl* base_rd,
         bool is_virtual,
-        const MemSpaceRegion* space,
-        const MemRegion* parent);
+        MemSpaceRegionRef space,
+        MemRegionRef parent);
     const CXXTempObjRegion* get_cxx_temp_object_region(
         const clang::Expr* src_expr,
         const StackFrame* frame,
-        const MemRegion* parent = nullptr);
+        MemRegionRef parent = nullptr);
     const ElementRegion* get_element_region(clang::QualType element_type,
-                                            const MemRegion* base_region);
+                                            MemRegionRef base_region);
     const VarRegion* get_var_region(const clang::VarDecl* var_decl,
-                                    const MemSpaceRegion* space,
-                                    const MemRegion* parent);
+                                    MemSpaceRegionRef space,
+                                    MemRegionRef parent);
     const FieldRegion* get_field_region(const clang::FieldDecl* field_decl,
-                                        const MemSpaceRegion* space,
-                                        const MemRegion* parent);
+                                        MemSpaceRegionRef space,
+                                        MemRegionRef parent);
 
     const ArgumentRegion* get_top_level_stack_argument_region(
         const StackFrame* frame,
-        const MemRegion* parent,
+        MemRegionRef parent,
         const clang::ParmVarDecl* param_decl) {
         return get_argument_region(frame,
                                    parent,
@@ -964,14 +961,14 @@ class RegionManager {
 
     const ArgumentRegion* get_argument_region(
         const StackFrame* frame,
-        const MemRegion* parent,
+        MemRegionRef parent,
         const clang::ParmVarDecl* param_decl = nullptr,
         clang::Expr* arg_expr = nullptr,
         unsigned arg_idx = 0U);
     const CXXThisRegion* get_cxx_this_region(
         const clang::QualType& this_ptr_type,
         StackArgSpaceRegion* arg_space,
-        const MemRegion* parent);
+        MemRegionRef parent);
 
   private:
     template < typename Space, typename... Args >

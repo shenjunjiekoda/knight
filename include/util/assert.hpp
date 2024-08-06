@@ -22,7 +22,7 @@
 
 #    define knight_assert_msg(expr, msg) static_cast< void >(0)
 
-#    if __has_builtin(__builtin_unreachable) || knight_GNUC_PREREQ(4, 5, 0)
+#    if __has_builtin(__builtin_unreachable)
 #        define knight_unreachable(msg) __builtin_unreachable()
 #    elif defined(_MSC_VER)
 #        define knight_unreachable(msg) __assume(false)

@@ -1,0 +1,118 @@
+#!/usr/bin/python3
+
+# ===- install --------------------------------------------------------===#
+#
+# Copyright (c) 2024 Junjie Shen
+#
+# see https://github.com/shenjunjiekoda/knight/blob/main/LICENSE for
+# license information.
+#
+# ===------------------------------------------------------------------===#
+#
+#  This script setup and build knight.
+#
+# ===------------------------------------------------------------------===#
+
+import argparse
+import subprocess
+import sys
+import os
+from pathlib import Path
+import shutil
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Install and build the knight project."
+    )
+    parser.add_argument(
+        "--project-build-dir", type=Path, help="Path to the project build directory."
+    )
+    parser.add_argument(
+        "--llvm-build-dir", type=Path, help="Path to the LLVM build directory."
+    )
+    parser.add_argument(
+        "--cleanup",
+        action="store_true",
+        help="Clean up the project build directory before building.",
+    )
+    parser.add_argument("--c_compiler", type=str, help="Path to the C compiler.")
+    parser.add_argument("--cpp_compiler", type=str, help="Path to the C++ compiler.")
+
+    args = parser.parse_args()
+
+    # Determine the absolute path of the project root directory (assumes this script is in <project_root>/scripts)
+    abs_path = Path(__file__).resolve().parent.parent
+
+    # Determine the project build directory
+    if args.project_build_dir is None:
+        args.project_build_dir = abs_path / "build"
+
+    # Handle cleanup
+    if args.cleanup and args.project_build_dir.exists():
+        print(f"Cleaning up the directory {args.project_build_dir}")
+        shutil.rmtree(args.project_build_dir)
+
+    # Determine the LLVM build directory
+    if args.llvm_build_dir is None:
+        try:
+            llvm_bindir = subprocess.check_output(
+                ["llvm-config", "--bindir"], text=True
+            ).strip()
+            args.llvm_build_dir = Path(llvm_bindir).parent
+        except subprocess.CalledProcessError as e:
+            print("Failed to determine LLVM build directory using llvm-config:", e)
+            sys.exit(1)
+
+    # Create the build directory if it does not exist
+    os.makedirs(args.project_build_dir, exist_ok=True)
+
+    # Prepare the cmake command
+    cmake_command = [
+        "cmake",
+        "-DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE",
+        f"-DLLVM_BUILD_DIR:STRING={args.llvm_build_dir}",
+        "--no-warn-unused-cli",
+        f"-S{abs_path}",
+        f"-B{args.project_build_dir}",
+    ]
+
+    if args.c_compiler:
+        cmake_command.append(f"-DCMAKE_C_COMPILER:STRING={args.c_compiler}")
+    if args.cpp_compiler:
+        cmake_command.append(f"-DCMAKE_CXX_COMPILER:STRING={args.cpp_compiler}")
+
+    # Run cmake configure
+    print("Running CMake configuration...")
+    print(" ".join(cmake_command))
+    if subprocess.call(cmake_command) != 0:
+        print("CMake configuration failed.")
+        sys.exit(1)
+
+    # Run cmake build
+    print("Building the project...")
+    print(
+        " ".join(
+            ["cmake", "--build", str(args.project_build_dir), "-j", str(os.cpu_count())]
+        )
+    )
+    if (
+        subprocess.call(
+            ["cmake", "--build", str(args.project_build_dir), "-j", str(os.cpu_count())]
+        )
+        != 0
+    ):
+        print("CMake build failed.")
+        sys.exit(1)
+
+    # Add build/bin to PATH
+    print(f"Adding {args.project_build_dir}/bin to PATH")
+    os.environ["PATH"] += os.pathsep + str(args.project_build_dir / "bin")
+
+    # Run knight --help
+    print("Running knight --help to verify installation...")
+    subprocess.run(["knight", "--help"])
+
+
+if __name__ == "__main__":
+    main()

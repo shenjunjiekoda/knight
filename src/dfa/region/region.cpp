@@ -95,7 +95,7 @@ const UnknownSpaceRegion* RegionManager::get_unknown_space() {
 }
 
 const SymbolicRegion* RegionManager::get_symbolic_region(
-    const MemSpaceRegion* space, const MemRegion* parent) {
+    MemSpaceRegionRef space, MemRegionRef parent) {
     if (space == nullptr) {
         space = get_unknown_space();
     }
@@ -110,8 +110,8 @@ const StringLitRegion* RegionManager::get_string_lit_region(
 const CXXBaseObjRegion* RegionManager::get_cxx_base_object_region(
     const clang::CXXRecordDecl* base_rd,
     bool is_virtual,
-    const MemSpaceRegion* space,
-    const MemRegion* parent) {
+    MemSpaceRegionRef space,
+    MemRegionRef parent) {
     if (const auto* derived_region = llvm::dyn_cast< TypedRegion >(parent)) {
         knight_assert_msg(is_valid_base_record(base_rd,
                                                derived_region,
@@ -125,9 +125,7 @@ const CXXBaseObjRegion* RegionManager::get_cxx_base_object_region(
 }
 
 const CXXTempObjRegion* RegionManager::get_cxx_temp_object_region(
-    const clang::Expr* src_expr,
-    const StackFrame* frame,
-    const MemRegion* parent) {
+    const clang::Expr* src_expr, const StackFrame* frame, MemRegionRef parent) {
     return get_persistent_region<
         CXXTempObjRegion >(src_expr,
                            get_stack_local_space_region(frame),
@@ -135,14 +133,14 @@ const CXXTempObjRegion* RegionManager::get_cxx_temp_object_region(
 }
 
 const ElementRegion* RegionManager::get_element_region(
-    clang::QualType element_type, const MemRegion* base_region) {
+    clang::QualType element_type, MemRegionRef base_region) {
     element_type = element_type.getCanonicalType().getUnqualifiedType();
     return get_persistent_region< ElementRegion >(element_type, base_region);
 }
 
 const VarRegion* RegionManager::get_var_region(const clang::VarDecl* var_decl,
-                                               const MemSpaceRegion* space,
-                                               const MemRegion* parent) {
+                                               MemSpaceRegionRef space,
+                                               MemRegionRef parent) {
     var_decl = var_decl->getCanonicalDecl();
     if (const auto* def = var_decl->getDefinition()) {
         var_decl = def;
@@ -152,14 +150,14 @@ const VarRegion* RegionManager::get_var_region(const clang::VarDecl* var_decl,
 
 const FieldRegion* RegionManager::get_field_region(
     const clang::FieldDecl* field_decl,
-    const MemSpaceRegion* space,
-    const MemRegion* parent) {
+    MemSpaceRegionRef space,
+    MemRegionRef parent) {
     return get_persistent_region< FieldRegion >(field_decl, space, parent);
 }
 
 const ArgumentRegion* RegionManager::get_argument_region(
     const StackFrame* frame,
-    const MemRegion* parent,
+    MemRegionRef parent,
     const clang::ParmVarDecl* param_decl,
     clang::Expr* arg_expr,
     unsigned arg_idx) {
@@ -174,7 +172,7 @@ const ArgumentRegion* RegionManager::get_argument_region(
 const CXXThisRegion* RegionManager::get_cxx_this_region(
     const clang::QualType& this_ptr_type,
     StackArgSpaceRegion* arg_space,
-    const MemRegion* parent) {
+    MemRegionRef parent) {
     const auto* ptr_ty = this_ptr_type->getAs< clang::PointerType >();
     knight_assert(ptr_ty != nullptr);
 

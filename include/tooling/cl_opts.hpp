@@ -31,6 +31,8 @@ inline cl::OptionCategory knight_category("knight options");
 
 inline cl::extrahelp common_help_msg(CommonOptionsParser::HelpMessage);
 inline cl::extrahelp knight_help_desc(R"(
+Welcome to Knight!
+
 Knight is a static analysis tool that checks C/C++ code for vulnerabilities and coding errors.
 )");
 

@@ -38,7 +38,7 @@ SymIterator& SymIterator::operator++() {
     return *this;
 }
 
-SymbolRef SymIterator::operator*() {
+SExprRef SymIterator::operator*() {
     assert(!m_sym_exprs.empty() && "end iterator dereferenced");
     return m_sym_exprs.back();
 }

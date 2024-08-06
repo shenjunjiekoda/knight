@@ -14,9 +14,11 @@
 #pragma once
 
 #include <type_traits>
+#include <utility>
 
 #include "dfa/location_context.hpp"
 #include "dfa/stack_frame.hpp"
+#include "llvm/ADT/APSInt.h"
 #include "support/dumpable.hpp"
 #include "support/symbol.hpp"
 
@@ -32,6 +34,12 @@ namespace knight::dfa {
 /// \brief The kind of symbol expression.
 enum class SymExprKind {
     None,
+
+    SCALAR_BEGIN,
+    Int,
+    Float,
+    SCALAR_END,
+
     // symbol leaf node
     SYM_BEGIN,
     RegionSymbolVal,
@@ -46,11 +54,7 @@ enum class SymExprKind {
     UnarySymEx,
 
     // binary op
-    BINARY_BEGIN,
-    IntSym,
-    SymInt,
-    SymSym,
-    BINARY_END,
+    BinarySymEx
 
 }; // enum class SymKind
 
@@ -60,7 +64,7 @@ class SymExpr;
 class MemRegion;
 class TypedRegion;
 
-using SymbolRef = const SymExpr*;
+using SExprRef = const SymExpr*;
 
 class SymIterator {
   private:
@@ -71,7 +75,7 @@ class SymIterator {
     explicit SymIterator(const SymExpr* sym_expr);
 
     SymIterator& operator++();
-    SymbolRef operator*();
+    SExprRef operator*();
 
     bool operator==(const SymIterator& other) const;
     bool operator!=(const SymIterator& other) const;
@@ -111,6 +115,61 @@ class SymExpr {
     virtual void dump(llvm::raw_ostream& os) const {}
 }; // class SymExpr
 
+class Scalar : public SymExpr {
+  protected:
+    explicit Scalar(SymExprKind kind) : SymExpr(kind) {}
+
+  public:
+    ~Scalar() override = default;
+
+    [[nodiscard]] bool is_leaf() const override { return true; }
+    [[nodiscard]] virtual bool is_integer() const { return false; }
+    [[nodiscard]] virtual bool is_float() const { return false; }
+    [[nodiscard]] unsigned get_worst_complexity() const override { return 0U; }
+    [[nodiscard]] static bool classof(const SymExpr* sym_expr) {
+        return sym_expr->get_kind() >= SymExprKind::SCALAR_BEGIN &&
+               sym_expr->get_kind() <= SymExprKind::SCALAR_END;
+    }
+}; // class Scalar
+
+class ScalarInt : public Scalar {
+  private:
+    llvm::APSInt m_value;
+
+  public:
+    explicit ScalarInt(llvm::APSInt value)
+        : Scalar(SymExprKind::Int), m_value(std::move(value)) {}
+
+    [[nodiscard]] llvm::APSInt get_value() const { return m_value; }
+    [[nodiscard]] bool is_integer() const override { return true; }
+    [[nodiscard]] static bool classof(const SymExpr* sym_expr) {
+        return sym_expr->get_kind() == SymExprKind::Int;
+    }
+    [[nodiscard]] static bool classof(const Scalar* scalar) {
+        return scalar->get_kind() == SymExprKind::Int;
+    }
+
+}; // class Integer
+
+class ScalarFloat : public Scalar {
+  private:
+    llvm::APFloat m_value;
+
+  public:
+    explicit ScalarFloat(llvm::APFloat value)
+        : Scalar(SymExprKind::Float), m_value(std::move(value)) {}
+
+    [[nodiscard]] llvm::APFloat get_value() const { return m_value; }
+    [[nodiscard]] bool is_float() const override { return true; }
+    [[nodiscard]] static bool classof(const SymExpr* sym_expr) {
+        return sym_expr->get_kind() == SymExprKind::Float;
+    }
+    [[nodiscard]] static bool classof(const Scalar* scalar) {
+        return scalar->get_kind() == SymExprKind::Float;
+    }
+
+}; // class Float
+
 using SymID = unsigned;
 
 class Sym : public SymExpr {
@@ -131,14 +190,18 @@ class Sym : public SymExpr {
     [[nodiscard]] bool is_leaf() const override { return true; }
 
     [[nodiscard]] static bool classof(const SymExpr* sym_expr) {
-        return sym_expr->get_kind() > SymExprKind::SYM_BEGIN &&
-               sym_expr->get_kind() < SymExprKind::SYM_END;
+        return sym_expr->get_kind() >= SymExprKind::SYM_BEGIN &&
+               sym_expr->get_kind() <= SymExprKind::SYM_END;
     }
 }; // class Sym
 
+/// \brief A symbol representing a region value.
 class RegionSymVal : public Sym {
   private:
+    /// \brief The region that the symbol represents.
     const TypedRegion* m_region;
+
+    /// \brief The location context where the region is defined.
     const LocationContext* m_loc_ctx;
 
     /// \brief whether the region val is external or not, which
@@ -413,20 +476,19 @@ class UnarySymExpr : public SymExpr {
 
 }; // class UnarySymExpr
 
-template < typename LHSTy, typename RHSTy, SymExprKind Kind >
 class BinarySymExpr : public SymExpr {
   private:
-    LHSTy m_lhs;
-    RHSTy m_rhs;
+    const SymExpr* m_lhs;
+    const SymExpr* m_rhs;
     clang::BinaryOperator::Opcode m_opcode;
     clang::QualType m_type;
 
   public:
-    BinarySymExpr(LHSTy lhs,
-                  RHSTy rhs,
+    BinarySymExpr(const SymExpr* lhs,
+                  const SymExpr* rhs,
                   clang::BinaryOperator::Opcode opcode,
                   clang::QualType type)
-        : SymExpr(Kind),
+        : SymExpr(SymExprKind::BinarySymEx),
           m_lhs(lhs),
           m_rhs(rhs),
           m_opcode(opcode),
@@ -437,9 +499,9 @@ class BinarySymExpr : public SymExpr {
     ~BinarySymExpr() override = default;
 
   public:
-    [[nodiscard]] LHSTy get_lhs() const { return m_lhs; }
+    [[nodiscard]] const SymExpr* get_lhs() const { return m_lhs; }
 
-    [[nodiscard]] RHSTy get_rhs() const { return m_rhs; }
+    [[nodiscard]] const SymExpr* get_rhs() const { return m_rhs; }
 
     [[nodiscard]] clang::BinaryOperator::Opcode get_opcode() const {
         return m_opcode;
@@ -453,12 +515,8 @@ class BinarySymExpr : public SymExpr {
         }
         unsigned lhs_complexity = 0U;
         unsigned rhs_complexity = 0U;
-        if constexpr (is_sym_expr< LHSTy >::value) {
-            lhs_complexity = m_lhs->get_worst_complexity();
-        }
-        if constexpr (is_sym_expr< RHSTy >::value) {
-            rhs_complexity = m_rhs->get_worst_complexity();
-        }
+        lhs_complexity = m_lhs->get_worst_complexity();
+        rhs_complexity = m_rhs->get_worst_complexity();
 
         switch (m_opcode) {
             using enum clang::BinaryOperatorKind;
@@ -468,12 +526,8 @@ class BinarySymExpr : public SymExpr {
             default:
                 break;
         }
-        if (lhs_complexity == 0U) {
-            lhs_complexity = 1U;
-        }
-        if (rhs_complexity == 0U) {
-            rhs_complexity = 1U;
-        }
+        lhs_complexity = std::max(lhs_complexity, 1U);
+        rhs_complexity = std::max(rhs_complexity, 1U);
         return lhs_complexity * rhs_complexity;
     }
 
@@ -481,8 +535,8 @@ class BinarySymExpr : public SymExpr {
 
     static void profile(llvm::FoldingSetNodeID& id,
                         SymExprKind kind,
-                        LHSTy lhs,
-                        RHSTy rhs,
+                        const SymExpr* lhs,
+                        const SymExpr* rhs,
                         clang::BinaryOperator::Opcode opcode,
                         clang::QualType type) {
         id.AddInteger(static_cast< unsigned >(kind));
@@ -497,25 +551,19 @@ class BinarySymExpr : public SymExpr {
     }
 
     void dump(llvm::raw_ostream& os) const override {
-        DumpableTrait< LHSTy >::dump(os, m_lhs);
+        m_lhs->dump(os);
         os << " " << clang::BinaryOperator::getOpcodeStr(m_opcode) << " ";
-        DumpableTrait< RHSTy >::dump(os, m_rhs);
+        m_rhs->dump(os);
     }
 
     static bool classof(const SymExpr* sym_expr) {
-        return sym_expr->get_kind() >= SymExprKind::BINARY_BEGIN &&
-               sym_expr->get_kind() <= SymExprKind::BINARY_END;
+        return sym_expr->get_kind() >= SymExprKind::BinarySymEx;
     }
 
     static bool classof(const Sym* sym) {
-        return sym->get_kind() >= SymExprKind::BINARY_BEGIN &&
-               sym->get_kind() <= SymExprKind::BINARY_END;
+        return sym->get_kind() >= SymExprKind::BinarySymEx;
     }
 
 }; // class BinarySymExpr
-
-using IntSymExpr = BinarySymExpr< int, SymbolRef, SymExprKind::IntSym >;
-using SymIntExpr = BinarySymExpr< SymbolRef, int, SymExprKind::SymInt >;
-using SymSymExpr = BinarySymExpr< SymbolRef, SymbolRef, SymExprKind::SymSym >;
 
 } // namespace knight::dfa

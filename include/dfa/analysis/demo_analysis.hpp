@@ -48,7 +48,11 @@ class DemoAnalysis : public Analysis< DemoAnalysis,
         return_stmt->dumpColor();
         llvm::outs() << "\n";
 
-        auto map_dom = ctx.get_state()->get< DemoMapDomain >();
+        auto map_dom_opt = ctx.get_state()->get_ref< DemoMapDomain >();
+        if (!map_dom_opt) {
+            return;
+        }
+        auto& map_dom = *map_dom_opt;
         llvm::outs() << "state at return: ";
         map_dom->dump(llvm::outs());
         llvm::outs() << "\n";
@@ -74,7 +78,6 @@ class DemoAnalysis : public Analysis< DemoAnalysis,
 
     static void add_dependencies(AnalysisManager& mgr) {
         // add dependencies here
-        // mgr.add_domain_dependency< DemoAnalysis, DemoItvDom >();
         mgr.add_domain_dependency< DemoAnalysis, DemoMapDomain >();
     }
 

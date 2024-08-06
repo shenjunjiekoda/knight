@@ -33,21 +33,28 @@ void release_state(const ProgramState* state) {
     knight_assert(state->m_ref_cnt > 0);
     auto* s = const_cast< ProgramState* >(state);
     if (--s->m_ref_cnt == 0) {
-        auto& mgr = s->get_manager();
+        auto& mgr = s->get_state_manager();
         mgr.m_state_set.RemoveNode(s);
         s->~ProgramState();
         mgr.m_free_states.push_back(s);
     }
 }
 
-ProgramState::ProgramState(ProgramStateManager* mgr, DomValMap dom_val)
-    : m_mgr(mgr), m_ref_cnt(0), m_dom_val(std::move(dom_val)) {}
+ProgramState::ProgramState(ProgramStateManager* state_mgr,
+                           RegionManager* region_mgr,
+                           DomValMap dom_val)
+    : m_state_mgr(state_mgr),
+      m_region_mgr(region_mgr),
+      m_ref_cnt(0),
+      m_dom_val(std::move(dom_val)) {}
 
 ProgramState::ProgramState(ProgramState&& other) noexcept
-    : m_mgr(other.m_mgr), m_ref_cnt(0), m_dom_val(std::move(other.m_dom_val)) {}
+    : m_state_mgr(other.m_state_mgr),
+      m_ref_cnt(0),
+      m_dom_val(std::move(other.m_dom_val)) {}
 
-ProgramStateManager& ProgramState::get_manager() const {
-    return *m_mgr;
+ProgramStateManager& ProgramState::get_state_manager() const {
+    return *m_state_mgr;
 }
 
 template < typename Domain >
@@ -60,7 +67,7 @@ ProgramStateRef ProgramState::remove() const {
     auto id = get_domain_id(Domain::get_kind());
     auto dom_val = m_dom_val;
     dom_val.erase(id);
-    return get_manager()
+    return get_state_manager()
         .get_persistent_state_with_copy_and_dom_val_map(*this,
                                                         std::move(dom_val));
 }
@@ -69,7 +76,7 @@ template < typename Domain >
 ProgramStateRef ProgramState::set(SharedVal val) const {
     auto dom_val = m_dom_val;
     dom_val[get_domain_id(Domain::get_kind())] = std::move(val);
-    return get_manager()
+    return get_state_manager()
         .get_persistent_state_with_copy_and_dom_val_map(*this,
                                                         std::move(dom_val));
 }
@@ -79,7 +86,7 @@ ProgramStateRef ProgramState::normalize() const {
     for (auto& [id, val] : dom_val) {
         const_cast< AbsDomBase* >(val.get())->normalize();
     }
-    return get_manager()
+    return get_state_manager()
         .get_persistent_state_with_copy_and_dom_val_map(*this,
                                                         std::move(dom_val));
 }
@@ -96,11 +103,11 @@ bool ProgramState::is_top() const {
 }
 
 ProgramStateRef ProgramState::set_to_bottom() const {
-    return get_manager().get_bottom_state();
+    return get_state_manager().get_bottom_state();
 }
 
 ProgramStateRef ProgramState::set_to_top() const {
-    return get_manager().get_default_state();
+    return get_state_manager().get_default_state();
 }
 
 // NOLINTNEXTLINE
@@ -116,7 +123,7 @@ ProgramStateRef ProgramState::set_to_top() const {
             new_map[other_id] = SharedVal(new_val);              \
         }                                                        \
     }                                                            \
-    return get_manager()                                         \
+    return get_state_manager()                                   \
         .get_persistent_state_with_copy_and_dom_val_map(*this,   \
                                                         std ::move(new_map));
 // NOLINTNEXTLINE
@@ -130,7 +137,7 @@ ProgramStateRef ProgramState::set_to_top() const {
             map[other_id] = SharedVal(new_val);                \
         }                                                      \
     }                                                          \
-    return get_manager()                                       \
+    return get_state_manager()                                 \
         .get_persistent_state_with_copy_and_dom_val_map(*this, \
                                                         std ::move(map));
 
@@ -223,7 +230,7 @@ ProgramStateRef ProgramStateManager::get_default_state() {
             }
         }
     }
-    ProgramState state(this, std::move(dom_val));
+    ProgramState state(this, &m_region_mgr, std::move(dom_val));
 
     return get_persistent_state(state);
 }
@@ -239,7 +246,7 @@ ProgramStateRef ProgramStateManager::get_bottom_state() {
             }
         }
     }
-    ProgramState state(this, std::move(dom_val));
+    ProgramState state(this, &m_region_mgr, std::move(dom_val));
 
     return get_persistent_state(state);
 }
@@ -276,7 +283,9 @@ ProgramStateRef ProgramStateManager::
 ProgramStateRef ProgramStateManager::
     get_persistent_state_with_copy_and_dom_val_map(const ProgramState& state,
                                                    DomValMap dom_val) {
-    ProgramState new_state(state.m_mgr, std::move(dom_val));
+    ProgramState new_state(state.m_state_mgr,
+                           state.m_region_mgr,
+                           std::move(dom_val));
     return get_persistent_state(new_state);
 }
 

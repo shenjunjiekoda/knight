@@ -19,6 +19,7 @@
 #include "dfa/location_manager.hpp"
 #include "dfa/proc_cfg.hpp"
 #include "dfa/program_state.hpp"
+#include "dfa/region/region.hpp"
 #include "tooling/context.hpp"
 #include "tooling/diagnostic.hpp"
 #include "tooling/factory.hpp"
@@ -51,11 +52,15 @@ class KnightASTConsumer : public clang::ASTConsumer {
           m_checkers(std::move(checkers)),
           m_analysis(std::move(analysis)) {}
 
-    // TODO(enngine): add datadflow engine to run analysis and checkers here? on
+    // TODO(engine): add datadflow engine to run analysis and checkers here? on
     // the decl_group or tu?
     bool HandleTopLevelDecl(clang::DeclGroupRef decl_group) override {
+        auto region_mgr =
+            std::make_unique< dfa::RegionManager >(*m_ctx.get_ast_context(),
+                                                   m_ctx.get_allocator());
         auto state_mgr =
             std::make_unique< dfa::ProgramStateManager >(m_analysis_manager,
+                                                         *region_mgr,
                                                          m_ctx.get_allocator());
         for (auto* decl : decl_group) {
             auto* function =

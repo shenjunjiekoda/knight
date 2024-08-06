@@ -16,6 +16,9 @@
 #include "dfa/analysis_manager.hpp"
 #include "dfa/domain/dom_base.hpp"
 #include "dfa/domain/domains.hpp"
+#include "dfa/proc_cfg.hpp"
+#include "dfa/region/region.hpp"
+#include "dfa/symbol/symbol.hpp"
 
 #include <optional>
 #include <unordered_set>
@@ -60,16 +63,41 @@ class ProgramState : public llvm::FoldingSetNode {
     using DomValMap = llvm::DenseMap< DomID, SharedVal >;
     using ValRefSet = std::unordered_set< AbsValRef >;
 
+    // TODO(region-cache): move this to the analysis context or stay here?
+    using DeclRegionMap = llvm::DenseMap< ProcCFG::DeclRef, MemRegion* >;
+    using RegionSExprMap = llvm::DenseMap< MemRegionRef, SExprRef >;
+    using StmtSExprMap = llvm::DenseMap< ProcCFG::StmtRef, SExprRef >;
+
   private:
+    /// \brief used in the refeference counting.
     unsigned m_ref_cnt;
+
+    /// \brief domain value map. (domain id -> abstract value)
     DomValMap m_dom_val;
-    ProgramStateManager* m_mgr;
+
+    /// \brief decl region map. (clang decl -> memory region)
+    DeclRegionMap m_decl_region;
+
+    /// \brief region sexpr map. (memory region -> sexpr)
+    RegionSExprMap m_region_sexpr;
+
+    /// \brief stmt sexpr map. (clang stmt -> sexpr)
+    StmtSExprMap m_stmt_sexpr;
+
+    /// \brief state manager.
+    ProgramStateManager* m_state_mgr;
+
+    /// \brief region manager.
+    RegionManager* m_region_mgr;
 
   public:
-    ProgramState(ProgramStateManager* mgr, DomValMap dom_val);
+    ProgramState(ProgramStateManager* state_mgr,
+                 RegionManager* region_mgr,
+                 DomValMap dom_val);
 
     /// \brief Only move constructor is allowed.
     ProgramState(ProgramState&& other) noexcept;
+
     ProgramState(const ProgramState& other) = delete;
     void operator=(const ProgramState& other) = delete;
     void operator=(ProgramState&& other) = delete;
@@ -82,7 +110,12 @@ class ProgramState : public llvm::FoldingSetNode {
 
   public:
     /// \brief Return the state manager.
-    [[nodiscard]] ProgramStateManager& get_manager() const;
+    [[nodiscard]] ProgramStateManager& get_state_manager() const;
+
+    /// \brief Return the region manager.
+    [[nodiscard]] RegionManager& get_region_manager() const {
+        return *m_region_mgr;
+    }
 
     /// \brief Check if the given domain kind exists in the program state.
     ///
@@ -101,15 +134,18 @@ class ProgramState : public llvm::FoldingSetNode {
             static_cast< const Domain* >(it->second.get()));
     }
 
+    /// \brief Get the cloned abstract value with the given domain.
+    ///
+    /// \return cloned abstract value which is abled to be modified
+    /// and managed by the caller, or nullptr if the domain does not
+    /// exist in the state.
     template < typename Domain >
-    [[nodiscard]] std::shared_ptr< const Domain > get() const {
+    [[nodiscard]] Domain* get_clone() const {
         auto it = m_dom_val.find(get_domain_id(Domain::get_kind()));
         if (it == m_dom_val.end()) {
-            return std::static_pointer_cast< const Domain >(
-                Domain::default_val());
+            return nullptr;
         }
-        return std::static_pointer_cast< const Domain >(
-            it->second->clone_shared());
+        return std::static_pointer_cast< const Domain >(it->second->clone());
     }
 
     /// \brief Remove the given domain from the program state.
@@ -182,6 +218,9 @@ class ProgramStateManager {
     /// \brief Analysis manager.
     AnalysisManager& m_analysis_mgr;
 
+    /// \brief Region manager.
+    RegionManager& m_region_mgr;
+
     /// \brief  FoldingSet containing all the states created for analyzing
     ///  a particular function.  This is used to unique states.
     llvm::FoldingSet< ProgramState > m_state_set;
@@ -194,8 +233,11 @@ class ProgramStateManager {
 
   public:
     ProgramStateManager(AnalysisManager& analysis_mgr,
+                        RegionManager& region_mgr,
                         llvm::BumpPtrAllocator& alloc)
-        : m_analysis_mgr(analysis_mgr), m_alloc(alloc) {}
+        : m_analysis_mgr(analysis_mgr),
+          m_region_mgr(region_mgr),
+          m_alloc(alloc) {}
 
   public:
     [[nodiscard]] const DomIDs& dom_ids() const { return m_ids; }
