@@ -87,9 +87,6 @@ class CheckerManager {
     /// \brief knight context
     KnightContext& m_ctx;
 
-    /// \brief checker context
-    std::unique_ptr< CheckerContext > m_checker_ctx;
-
     /// \brief analysis manager
     AnalysisManager& m_analysis_mgr;
 
@@ -108,11 +105,7 @@ class CheckerManager {
 
   public:
     CheckerManager(KnightContext& ctx, AnalysisManager& analysis_mgr)
-        : m_ctx(ctx),
-          m_checker_ctx(std::make_unique< CheckerContext >(ctx)),
-          m_analysis_mgr(analysis_mgr) {}
-
-    CheckerContext& get_checker_context() const { return *m_checker_ctx; }
+        : m_ctx(ctx), m_analysis_mgr(analysis_mgr) {}
 
   public:
     /// \brief specialized checker management
@@ -164,21 +157,26 @@ class CheckerManager {
         return m_begin_function_checks;
     }
 
-    const std::vector< internal::CheckEndFunctionCallBack >&
+    [[nodiscard]] const std::vector< internal::CheckEndFunctionCallBack >&
     end_function_checks() const {
         return m_end_function_checks;
     }
 
-    const std::vector< internal::StmtCheckerInfo >& stmt_checks() const {
+    [[nodiscard]] const std::vector< internal::StmtCheckerInfo >& stmt_checks()
+        const {
         return m_stmt_checks;
     }
 
-    void run_checkers_for_stmt(internal::StmtRef stmt,
+    void run_checkers_for_stmt(CheckerContext& checker_ctx,
+                               internal::StmtRef stmt,
                                internal::CheckStmtKind check_kind);
-    void run_checkers_for_pre_stmt(internal::StmtRef stmt);
-    void run_checkers_for_post_stmt(internal::StmtRef stmt);
-    void run_checkers_for_begin_function();
-    void run_checkers_for_end_function(ProcCFG::NodeRef node);
+    void run_checkers_for_pre_stmt(CheckerContext& checker_ctx,
+                                   internal::StmtRef stmt);
+    void run_checkers_for_post_stmt(CheckerContext& checker_ctx,
+                                    internal::StmtRef stmt);
+    void run_checkers_for_begin_function(CheckerContext& checker_ctx);
+    void run_checkers_for_end_function(CheckerContext& checker_ctx,
+                                       ProcCFG::NodeRef node);
 
 }; // class CheckerManager
 

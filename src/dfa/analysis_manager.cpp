@@ -16,6 +16,7 @@
 #include "dfa/analysis/analysis_base.hpp"
 #include "dfa/analysis_context.hpp"
 #include "dfa/domain/domains.hpp"
+#include "dfa/program_state.hpp"
 #include "util/assert.hpp"
 
 #include <llvm/Support/raw_ostream.h>
@@ -85,11 +86,14 @@ std::vector< AnalysisID > get_subset_order(
 
 } // anonymous namespace
 
-AnalysisManager::AnalysisManager(KnightContext& ctx)
-    : m_ctx(ctx), m_analysis_ctx(std::make_unique< AnalysisContext >(ctx)) {}
-
-AnalysisContext& AnalysisManager::get_analysis_context() const {
-    return *m_analysis_ctx;
+AnalysisManager::AnalysisManager(KnightContext& ctx) : m_ctx(ctx) {
+    m_region_mgr =
+        std::make_unique< dfa::RegionManager >(*m_ctx.get_ast_context(),
+                                               m_ctx.get_allocator());
+    m_state_mgr =
+        std::make_unique< dfa::ProgramStateManager >(*this,
+                                                     *m_region_mgr,
+                                                     m_ctx.get_allocator());
 }
 
 bool AnalysisManager::is_analysis_required(AnalysisID id) const {
@@ -209,7 +213,9 @@ void AnalysisManager::register_for_end_function(
 }
 
 void AnalysisManager::run_analyses_for_stmt(
-    internal::StmtRef stmt, internal::VisitStmtKind visit_kind) {
+    AnalysisContext& analysis_ctx,
+    internal::StmtRef stmt,
+    internal::VisitStmtKind visit_kind) {
     AnalysisIDSet tgt_ids;
     std::unordered_map< AnalysisID, internal::AnalyzeStmtCallBack* > callbacks;
     for (auto& info : m_stmt_analyses) {
@@ -225,21 +231,25 @@ void AnalysisManager::run_analyses_for_stmt(
     }
 
     for (auto id : get_subset_order(m_analysis_full_order, tgt_ids)) {
-        (*callbacks[id])(stmt, *m_analysis_ctx);
+        (*callbacks[id])(stmt, analysis_ctx);
     }
 }
 
-void AnalysisManager::run_analyses_for_pre_stmt(internal::StmtRef stmt) {
-    run_analyses_for_stmt(stmt, internal::VisitStmtKind::Pre);
+void AnalysisManager::run_analyses_for_pre_stmt(AnalysisContext& analysis_ctx,
+                                                internal::StmtRef stmt) {
+    run_analyses_for_stmt(analysis_ctx, stmt, internal::VisitStmtKind::Pre);
 }
-void AnalysisManager::run_analyses_for_eval_stmt(internal::StmtRef stmt) {
-    run_analyses_for_stmt(stmt, internal::VisitStmtKind::Eval);
+void AnalysisManager::run_analyses_for_eval_stmt(AnalysisContext& analysis_ctx,
+                                                 internal::StmtRef stmt) {
+    run_analyses_for_stmt(analysis_ctx, stmt, internal::VisitStmtKind::Eval);
 }
-void AnalysisManager::run_analyses_for_post_stmt(internal::StmtRef stmt) {
-    run_analyses_for_stmt(stmt, internal::VisitStmtKind::Post);
+void AnalysisManager::run_analyses_for_post_stmt(AnalysisContext& analysis_ctx,
+                                                 internal::StmtRef stmt) {
+    run_analyses_for_stmt(analysis_ctx, stmt, internal::VisitStmtKind::Post);
 }
 
-void AnalysisManager::run_analyses_for_begin_function() {
+void AnalysisManager::run_analyses_for_begin_function(
+    AnalysisContext& analysis_ctx) {
     AnalysisIDSet tgt_ids;
     std::unordered_map< AnalysisID, internal::AnalyzeBeginFunctionCallBack* >
         callbacks;
@@ -251,10 +261,11 @@ void AnalysisManager::run_analyses_for_begin_function() {
         }
     }
     for (auto id : get_subset_order(m_analysis_full_order, tgt_ids)) {
-        (*callbacks[id])(*m_analysis_ctx);
+        (*callbacks[id])(analysis_ctx);
     }
 }
-void AnalysisManager::run_analyses_for_end_function(ProcCFG::NodeRef node) {
+void AnalysisManager::run_analyses_for_end_function(
+    AnalysisContext& analysis_ctx, ProcCFG::NodeRef node) {
     AnalysisIDSet tgt_ids;
     std::unordered_map< AnalysisID, internal::AnalyzeEndFunctionCallBack* >
         callbacks;
@@ -266,8 +277,12 @@ void AnalysisManager::run_analyses_for_end_function(ProcCFG::NodeRef node) {
         }
     }
     for (auto id : get_subset_order(m_analysis_full_order, tgt_ids)) {
-        (*callbacks[id])(node, *m_analysis_ctx);
+        (*callbacks[id])(node, analysis_ctx);
     }
+}
+
+dfa::ProgramStateManager& AnalysisManager::get_state_manager() const {
+    return *m_state_mgr;
 }
 
 } // namespace knight::dfa

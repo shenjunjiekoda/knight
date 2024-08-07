@@ -50,6 +50,7 @@ ProgramState::ProgramState(ProgramStateManager* state_mgr,
 
 ProgramState::ProgramState(ProgramState&& other) noexcept
     : m_state_mgr(other.m_state_mgr),
+      m_region_mgr(other.m_region_mgr),
       m_ref_cnt(0),
       m_dom_val(std::move(other.m_dom_val)) {}
 
@@ -267,6 +268,7 @@ ProgramStateRef ProgramStateManager::get_persistent_state(ProgramState& state) {
         m_free_states.pop_back();
     } else {
         new_state = m_alloc.Allocate< ProgramState >();
+        llvm::outs() << "Alloc new state " << new_state << "\n";
     }
     new (new_state) ProgramState(std::move(state));
     m_state_set.InsertNode(new_state, insert_pos);

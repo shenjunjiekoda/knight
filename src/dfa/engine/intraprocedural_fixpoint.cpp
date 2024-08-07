@@ -15,6 +15,7 @@
 #include "dfa/engine/intraprocedural_fixpoint.hpp"
 #include "dfa/analysis/analysis_base.hpp"
 #include "dfa/checker/checker_base.hpp"
+#include "dfa/checker_context.hpp"
 #include "dfa/engine/block_engine.hpp"
 #include "dfa/program_state.hpp"
 #include "llvm/Support/raw_ostream.h"
@@ -41,7 +42,8 @@ ProgramStateRef IntraProceduralFixpointIterator::transfer_node(
                                 m_analysis_mgr,
                                 pre_state,
                                 m_stmt_pre,
-                                m_stmt_post);
+                                m_stmt_post,
+                                m_frame);
     engine.exec();
     return pre_state;
 }
@@ -68,9 +70,12 @@ void IntraProceduralFixpointIterator::check_pre(
         auto it = m_stmt_pre.find(stmt);
         auto pre_state = it == m_stmt_pre.end() ? m_state_mgr.get_bottom_state()
                                                 : it->second;
-        m_checker_mgr.get_checker_context().set_current_state(pre_state);
 
-        m_checker_mgr.run_checkers_for_pre_stmt(stmt);
+        CheckerContext checker_ctx(m_ctx);
+        checker_ctx.set_current_state(pre_state);
+        checker_ctx.set_current_stack_frame(m_frame);
+
+        m_checker_mgr.run_checkers_for_pre_stmt(checker_ctx, stmt);
     }
 }
 
@@ -89,20 +94,38 @@ void IntraProceduralFixpointIterator::check_post(
         auto post_state = it == m_stmt_post.end()
                               ? m_state_mgr.get_bottom_state()
                               : it->second;
-        m_checker_mgr.get_checker_context().set_current_state(post_state);
-        m_checker_mgr.run_checkers_for_post_stmt(stmt);
+        CheckerContext checker_ctx(m_ctx);
+        checker_ctx.set_current_state(post_state);
+        checker_ctx.set_current_stack_frame(m_frame);
+        m_checker_mgr.run_checkers_for_post_stmt(checker_ctx, stmt);
     }
 }
 
 void IntraProceduralFixpointIterator::run() {
-    m_analysis_mgr.run_analyses_for_begin_function();
-    m_checker_mgr.run_checkers_for_begin_function();
+    auto initial_state = m_state_mgr.get_bottom_state();
 
-    FixPointIterator::run(m_state_mgr.get_bottom_state());
+    AnalysisContext analysis_ctx(m_ctx);
+    analysis_ctx.set_current_stack_frame(m_frame);
+    analysis_ctx.set_state(initial_state);
+
+    CheckerContext checker_ctx(m_ctx);
+    checker_ctx.set_current_state(initial_state);
+    checker_ctx.set_current_stack_frame(m_frame);
+
+    m_analysis_mgr.run_analyses_for_begin_function(analysis_ctx);
+
+    m_checker_mgr.run_checkers_for_begin_function(checker_ctx);
+
+    FixPointIterator::run(initial_state);
 
     NodeRef exit_node = ProcCFG::exit(get_cfg());
-    m_analysis_mgr.run_analyses_for_end_function(exit_node);
-    m_checker_mgr.run_checkers_for_end_function(exit_node);
+
+    auto exit_state = get_post(exit_node);
+    analysis_ctx.set_state(exit_state);
+    m_analysis_mgr.run_analyses_for_end_function(analysis_ctx, exit_node);
+
+    checker_ctx.set_current_state(exit_state);
+    m_checker_mgr.run_checkers_for_end_function(checker_ctx, exit_node);
 }
 
 } // namespace knight::dfa

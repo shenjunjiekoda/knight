@@ -29,7 +29,7 @@ class StackFrame;
 class CheckerContext {
   private:
     KnightContext& m_ctx;
-    const StackFrame* m_frame;
+    const StackFrame* m_frame{};
     ProgramStateRef m_state{};
 
   public:

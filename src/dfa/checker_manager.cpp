@@ -58,7 +58,8 @@ void CheckerManager::register_for_end_function(
     m_end_function_checks.emplace_back(cb);
 }
 
-void CheckerManager::run_checkers_for_stmt(internal::StmtRef stmt,
+void CheckerManager::run_checkers_for_stmt(CheckerContext& checker_ctx,
+                                           internal::StmtRef stmt,
                                            internal::CheckStmtKind check_kind) {
     for (auto& info : m_stmt_checks) {
         if (info.kind != check_kind || !info.match_cb(stmt)) {
@@ -67,33 +68,37 @@ void CheckerManager::run_checkers_for_stmt(internal::StmtRef stmt,
         auto& callback = info.anz_cb;
         auto id = callback.get_id();
         if (is_checker_required(id)) {
-            callback(stmt, *m_checker_ctx);
+            callback(stmt, checker_ctx);
         }
     }
 }
 
-void CheckerManager::run_checkers_for_pre_stmt(internal::StmtRef stmt) {
-    run_checkers_for_stmt(stmt, internal::CheckStmtKind::Pre);
+void CheckerManager::run_checkers_for_pre_stmt(CheckerContext& checker_ctx,
+                                               internal::StmtRef stmt) {
+    run_checkers_for_stmt(checker_ctx, stmt, internal::CheckStmtKind::Pre);
 }
 
-void CheckerManager::run_checkers_for_post_stmt(internal::StmtRef stmt) {
-    run_checkers_for_stmt(stmt, internal::CheckStmtKind::Post);
+void CheckerManager::run_checkers_for_post_stmt(CheckerContext& checker_ctx,
+                                                internal::StmtRef stmt) {
+    run_checkers_for_stmt(checker_ctx, stmt, internal::CheckStmtKind::Post);
 }
 
-void CheckerManager::run_checkers_for_begin_function() {
+void CheckerManager::run_checkers_for_begin_function(
+    CheckerContext& checker_ctx) {
     for (auto& callback : m_begin_function_checks) {
         auto id = callback.get_id();
         if (is_checker_required(id)) {
-            callback(*m_checker_ctx);
+            callback(checker_ctx);
         }
     }
 }
 
-void CheckerManager::run_checkers_for_end_function(ProcCFG::NodeRef node) {
+void CheckerManager::run_checkers_for_end_function(CheckerContext& checker_ctx,
+                                                   ProcCFG::NodeRef node) {
     for (auto& callback : m_end_function_checks) {
         auto id = callback.get_id();
         if (is_checker_required(id)) {
-            callback(node, *m_checker_ctx);
+            callback(node, checker_ctx);
         }
     }
 }

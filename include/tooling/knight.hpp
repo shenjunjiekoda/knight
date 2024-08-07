@@ -55,13 +55,6 @@ class KnightASTConsumer : public clang::ASTConsumer {
     // TODO(engine): add datadflow engine to run analysis and checkers here? on
     // the decl_group or tu?
     bool HandleTopLevelDecl(clang::DeclGroupRef decl_group) override {
-        auto region_mgr =
-            std::make_unique< dfa::RegionManager >(*m_ctx.get_ast_context(),
-                                                   m_ctx.get_allocator());
-        auto state_mgr =
-            std::make_unique< dfa::ProgramStateManager >(m_analysis_manager,
-                                                         *region_mgr,
-                                                         m_ctx.get_allocator());
         for (auto* decl : decl_group) {
             auto* function =
                 llvm::dyn_cast_or_null< clang::FunctionDecl >(decl);
@@ -98,16 +91,12 @@ class KnightASTConsumer : public clang::ASTConsumer {
                                        m_ctx.get_current_options().use_color);
             }
 
-            auto& m_analysis_ctx = m_analysis_manager.get_analysis_context();
-            auto& m_checker_ctx = m_checker_manager.get_checker_context();
-            m_analysis_ctx.set_current_stack_frame(frame);
-            m_checker_ctx.set_current_stack_frame(frame);
-
-            dfa::IntraProceduralFixpointIterator engine(m_ctx,
-                                                        m_analysis_manager,
-                                                        m_checker_manager,
-                                                        *state_mgr,
-                                                        frame);
+            dfa::IntraProceduralFixpointIterator
+                engine(m_ctx,
+                       m_analysis_manager,
+                       m_checker_manager,
+                       m_analysis_manager.get_state_manager(),
+                       frame);
             engine.run();
         }
 

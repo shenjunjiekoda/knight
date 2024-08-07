@@ -16,6 +16,7 @@
 #include "dfa/analysis/analyses.hpp"
 #include "dfa/domain/dom_base.hpp"
 #include "dfa/proc_cfg.hpp"
+#include "dfa/region/region.hpp"
 #include "tooling/context.hpp"
 #include "util/assert.hpp"
 
@@ -87,6 +88,8 @@ __attribute__((packed)); // struct StmtAnalysisInfo
 
 } // namespace internal
 
+class ProgramStateManager;
+
 /// \brief The analysis manager which holds all the registered analyses.
 ///
 class AnalysisManager {
@@ -94,9 +97,6 @@ class AnalysisManager {
 
   private:
     KnightContext& m_ctx;
-
-    /// \brief analysis context
-    std::unique_ptr< AnalysisContext > m_analysis_ctx;
 
     /// \brief analyses
     std::unordered_set< AnalysisID > m_analyses; // all analyses
@@ -110,6 +110,9 @@ class AnalysisManager {
     std::unordered_set< AnalysisID >
         m_required_analyses; // all analyses should be created,
     // shall be equivalent with enabled analyses key set.
+
+    std::unique_ptr< dfa::RegionManager > m_region_mgr;
+    std::unique_ptr< dfa::ProgramStateManager > m_state_mgr;
 
     /// \brief registered domains
     std::unordered_map< DomID, AnalysisID > m_domains;
@@ -130,6 +133,7 @@ class AnalysisManager {
 
   public:
     explicit AnalysisManager(KnightContext& ctx);
+    ~AnalysisManager() = default;
 
   public:
     /// \brief specialized analysis management
@@ -215,20 +219,29 @@ class AnalysisManager {
         return m_required_analyses;
     }
 
-    [[nodiscard]] AnalysisContext& get_analysis_context() const;
+    [[nodiscard]] dfa::RegionManager& get_region_manager() const {
+        return *m_region_mgr;
+    }
+    [[nodiscard]] dfa::ProgramStateManager& get_state_manager() const;
+    [[nodiscard]] KnightContext& get_context() const { return m_ctx; }
 
     void compute_all_required_analyses_by_dependencies();
     void compute_full_order_analyses_after_registry();
     [[nodiscard]] std::vector< AnalysisID > get_ordered_analyses(
         AnalysisIDSet ids) const;
 
-    void run_analyses_for_stmt(internal::StmtRef stmt,
+    void run_analyses_for_stmt(AnalysisContext& analysis_ctx,
+                               internal::StmtRef stmt,
                                internal::VisitStmtKind visit_kind);
-    void run_analyses_for_pre_stmt(internal::StmtRef stmt);
-    void run_analyses_for_eval_stmt(internal::StmtRef stmt);
-    void run_analyses_for_post_stmt(internal::StmtRef stmt);
-    void run_analyses_for_begin_function();
-    void run_analyses_for_end_function(ProcCFG::NodeRef node);
+    void run_analyses_for_pre_stmt(AnalysisContext& analysis_ctx,
+                                   internal::StmtRef stmt);
+    void run_analyses_for_eval_stmt(AnalysisContext& analysis_ctx,
+                                    internal::StmtRef stmt);
+    void run_analyses_for_post_stmt(AnalysisContext& analysis_ctx,
+                                    internal::StmtRef stmt);
+    void run_analyses_for_begin_function(AnalysisContext& analysis_ctx);
+    void run_analyses_for_end_function(AnalysisContext& analysis_ctx,
+                                       ProcCFG::NodeRef node);
 
 }; // class AnalysisManager
 

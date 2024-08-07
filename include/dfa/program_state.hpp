@@ -192,7 +192,8 @@ class ProgramState : public llvm::FoldingSetNode {
     ///  have the same domain value ptrs.
     static void Profile(llvm::FoldingSetNodeID& id, // NOLINT
                         const ProgramState* s) {
-        for (const auto& [_, val] : s->m_dom_val) {
+        for (const auto& [dom_id, val] : s->m_dom_val) {
+            id.AddInteger(dom_id);
             id.AddPointer(val.get());
         }
     }

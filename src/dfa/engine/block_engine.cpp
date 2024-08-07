@@ -119,14 +119,16 @@ void BlockExecutionEngine::exec_lifetime_ends(StmtRef trigger_stmt,
 /// \brief Transfer the stmt
 ProgramStateRef BlockExecutionEngine::exec_cfg_stmt(
     StmtRef stmt, const ProgramStateRef& state) {
-    m_analysis_manager.get_analysis_context().set_state(state);
+    AnalysisContext analysis_ctx(m_analysis_manager.get_context());
+    analysis_ctx.set_current_stack_frame(m_frame);
+    analysis_ctx.set_state(state);
     m_stmt_post[stmt] = state;
 
-    m_analysis_manager.run_analyses_for_pre_stmt(stmt);
-    m_analysis_manager.run_analyses_for_eval_stmt(stmt);
-    m_analysis_manager.run_analyses_for_post_stmt(stmt);
+    m_analysis_manager.run_analyses_for_pre_stmt(analysis_ctx, stmt);
+    m_analysis_manager.run_analyses_for_eval_stmt(analysis_ctx, stmt);
+    m_analysis_manager.run_analyses_for_post_stmt(analysis_ctx, stmt);
 
-    auto post_state = m_analysis_manager.get_analysis_context().get_state();
+    auto post_state = analysis_ctx.get_state();
     m_stmt_post[stmt] = post_state;
     return std::move(post_state);
 }
