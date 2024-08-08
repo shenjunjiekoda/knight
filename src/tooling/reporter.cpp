@@ -256,6 +256,7 @@ void DiagnosticReporter::report(const KnightDiagnostic& diagnostic) {
         report_note(note);
     }
 }
+// NOLINTEND(readability-function-cognitive-complexity)
 
 void DiagnosticReporter::apply_fixes() {
     using namespace clang;

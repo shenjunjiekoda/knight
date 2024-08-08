@@ -14,22 +14,23 @@
 #
 # ===------------------------------------------------------------------===#
 
-import os
 import argparse
+import json
+import os
 import subprocess
 import sys
-from pathlib import Path
-import json
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from threading import Lock
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from pathlib import Path
+from threading import Lock
 
 RESET_COLOR = "\033[0m"
 BLUE = "\033[34m"
 GREEN = "\033[32m"
 RED = "\033[31m"
 YELLOW = "\033[33m"
+GRAY = "\033[37m"
 
 
 def print_progress_bar(total, completed, lock):
@@ -46,7 +47,7 @@ def print_progress_bar(total, completed, lock):
     )
     with lock:
         sys.stdout.write(
-            f"\rProgress: |{bar}| {YELLOW}{percent:.1f}% Complete ({completed}/{total}){RESET_COLOR}"
+            f"\033[1A\rProgress: |{bar}| {YELLOW}{percent:.1f}% Complete ({completed}/{total}){RESET_COLOR}\n"
         )
         sys.stdout.flush()
 
@@ -64,7 +65,14 @@ def find_clang_tidy(executable):
 
 
 def run_clang_tidy_on_file(
-    clang_tidy, build_dir, file_path, header_filter, config_file, print_detail
+    clang_tidy,
+    build_dir,
+    file_path,
+    header_filter,
+    config_file,
+    print_detail,
+    error_log,
+    lock,
 ):
     """Run clang-tidy on a single file."""
     command = [
@@ -85,30 +93,24 @@ def run_clang_tidy_on_file(
         if print_detail and result.stderr:
             print(f"Standard Error for {file_path}:\n{result.stderr}", file=sys.stderr)
     except subprocess.CalledProcessError as e:
-        print(f"Error while processing {file_path}:\n{e.stderr}", file=sys.stderr)
+        with lock:
+            error_log.append((file_path, e.stdout, e.stderr, " ".join(command)))
 
 
 # Spinner function
 def spinner(lock, is_running):
     spinner_animation = ["|", "/", "-", "\\"]
     idx = 0
-    with lock:
-        sys.stdout.write("\r")
     while is_running():
         with lock:
             sys.stdout.write(
-                "\r"
-                + BLUE
-                + spinner_animation[idx % len(spinner_animation)]
-                + " Please wait..."
-                + RESET_COLOR
-                + " |"
+                f"\0337\033[2A\033[K{BLUE}{spinner_animation[idx % len(spinner_animation)]} Please wait...{RESET_COLOR}\0338"
             )
             sys.stdout.flush()
             idx += 1
         time.sleep(0.1)
     with lock:
-        sys.stdout.write("\r")
+        sys.stdout.write("\0337\033[2A\033[K\0338")
 
 
 def main():
@@ -166,6 +168,9 @@ def main():
     lock = Lock()
     completed_tasks = 0
     total_tasks = len(files_to_process)
+    error_log = []
+
+    print("\n")  # Ensure there's a blank line for the spinner
     print_progress_bar(total_tasks, completed_tasks, lock)
 
     # Spinner control
@@ -187,6 +192,8 @@ def main():
                 args.header_filter,
                 args.config_file,
                 args.print_detail,
+                error_log,
+                lock,
             ): file
             for file in files_to_process
         }
@@ -197,7 +204,22 @@ def main():
 
     spinner_running = False
     spinner_thread.join()
-    print("\nAll files processed.")
+
+    print("\n" + GRAY + ">" * 50 + RESET_COLOR)
+    print(f"{YELLOW}Total {total_tasks} files processed: {RESET_COLOR}")
+    print(f"Passed: {GREEN}{completed_tasks} √{RESET_COLOR}")
+    print(f"Error : {RED}{len(error_log)} ×{RESET_COLOR}")
+    print(GRAY + "<" * 50 + RESET_COLOR)
+
+    if error_log:
+        idx = 0
+        for file, out, error, command in error_log:
+            idx += 1
+            print("=" * 80)
+            print(f"\n# {RED}Error {idx}: {file}{RESET_COLOR}")
+            print(f"\n$ {command}")
+            print(f"stderr:\n{out}")
+            print(f"stderr:\n{error}")
 
 
 if __name__ == "__main__":
