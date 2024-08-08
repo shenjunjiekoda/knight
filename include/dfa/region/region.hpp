@@ -700,12 +700,11 @@ class ArgumentRegion : public DeclRegion {
     unsigned m_arg_idx;
 
   private:
-    ArgumentRegion(const StackArgSpaceRegion* arg_space,
-                   MemRegionRef parent,
-                   const clang::ParmVarDecl* param_decl = nullptr,
-                   clang::Expr* arg_expr = nullptr,
-                   unsigned arg_idx = 0U)
-        : DeclRegion(RegionKind::ArgRegion, arg_space, parent),
+    explicit ArgumentRegion(const StackArgSpaceRegion* arg_space,
+                            const clang::ParmVarDecl* param_decl = nullptr,
+                            clang::Expr* arg_expr = nullptr,
+                            unsigned arg_idx = 0U)
+        : DeclRegion(RegionKind::ArgRegion, arg_space, nullptr),
           m_param_decl(param_decl),
           m_arg_expr(arg_expr),
           m_arg_idx(arg_idx) {
@@ -949,11 +948,8 @@ class RegionManager {
                                         MemRegionRef parent);
 
     const ArgumentRegion* get_top_level_stack_argument_region(
-        const StackFrame* frame,
-        MemRegionRef parent,
-        const clang::ParmVarDecl* param_decl) {
+        const StackFrame* frame, const clang::ParmVarDecl* param_decl) {
         return get_argument_region(frame,
-                                   parent,
                                    param_decl,
                                    nullptr,
                                    param_decl->getFunctionScopeIndex());
@@ -961,14 +957,17 @@ class RegionManager {
 
     const ArgumentRegion* get_argument_region(
         const StackFrame* frame,
-        MemRegionRef parent,
         const clang::ParmVarDecl* param_decl = nullptr,
-        clang::Expr* arg_expr = nullptr,
+        const clang::Expr* arg_expr = nullptr,
         unsigned arg_idx = 0U);
     const CXXThisRegion* get_cxx_this_region(
         const clang::QualType& this_ptr_type,
         StackArgSpaceRegion* arg_space,
         MemRegionRef parent);
+
+  public:
+    const MemRegion* get_region(const clang::VarDecl* var_decl,
+                                const StackFrame* frame);
 
   private:
     template < typename Space, typename... Args >

@@ -2,7 +2,7 @@
 
 # Knight ![Language](https://img.shields.io/badge/language-c++-brightgreen)![License](https://img.shields.io/badge/license-MIT-yellow)
 
-*Knight* is a static analysis tool for c/c++ programs written in C++20.
+*Knight* is a static analysis tool for C/C++ programs written in C++20.
 
 # Install
 

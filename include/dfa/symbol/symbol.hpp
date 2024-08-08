@@ -38,6 +38,8 @@ enum class SymExprKind {
     SCALAR_BEGIN,
     Int,
     Float,
+    // TODO(scalar-sexpr): add more scalar types here
+    // TODO(scalar-sexpr): Shall we add a region type here?
     SCALAR_END,
 
     // symbol leaf node

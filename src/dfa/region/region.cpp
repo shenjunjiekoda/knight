@@ -16,6 +16,8 @@
 #include <clang/AST/DeclCXX.h>
 #include <clang/AST/Type.h>
 #include <llvm/Support/Casting.h>
+#include "clang/AST/Decl.h"
+#include "clang/AST/Expr.h"
 
 namespace knight::dfa {
 
@@ -157,13 +159,11 @@ const FieldRegion* RegionManager::get_field_region(
 
 const ArgumentRegion* RegionManager::get_argument_region(
     const StackFrame* frame,
-    MemRegionRef parent,
     const clang::ParmVarDecl* param_decl,
-    clang::Expr* arg_expr,
+    const clang::Expr* arg_expr,
     unsigned arg_idx) {
     return get_persistent_region< ArgumentRegion >(get_stack_arg_space_region(
                                                        frame),
-                                                   parent,
                                                    param_decl,
                                                    arg_expr,
                                                    arg_idx);
@@ -177,6 +177,51 @@ const CXXThisRegion* RegionManager::get_cxx_this_region(
     knight_assert(ptr_ty != nullptr);
 
     return get_persistent_region< CXXThisRegion >(ptr_ty, arg_space, parent);
+}
+
+const MemRegion* RegionManager::get_region(const clang::VarDecl* var_decl,
+                                           const StackFrame* frame) {
+    // TODO(var-region): impl
+    knight_assert(var_decl != nullptr);
+    var_decl = var_decl->getCanonicalDecl();
+    if (var_decl == nullptr) {
+        return nullptr;
+    }
+
+    if (const auto* param_decl = dyn_cast< clang::ParmVarDecl >(var_decl)) {
+        if (frame->is_top_frame()) {
+            return get_top_level_stack_argument_region(frame, param_decl);
+        }
+        const auto* current_decl = frame->get_decl();
+        const auto* current_arg_expr =
+            llvm::dyn_cast< clang::Expr >(frame->get_callsite_expr());
+        knight_assert_msg(current_decl != nullptr, "invalid frame");
+        knight_assert_msg(current_arg_expr != nullptr, "invalid frame");
+
+        if (const auto* current_function_decl =
+                llvm::dyn_cast< clang::FunctionDecl >(current_decl)) {
+            return get_argument_region(frame,
+                                       param_decl,
+                                       current_arg_expr,
+                                       current_function_decl->getNumParams() -
+                                           1);
+        }
+        knight_unreachable("unhandled frame decl type");
+    }
+    MemSpaceRegionRef space = nullptr;
+    if (var_decl->hasGlobalStorage()) {
+        if (var_decl->hasExternalStorage()) {
+            space = get_global_internal_space();
+        } else {
+            space = get_global_external_space();
+        }
+    } else if (var_decl->hasLocalStorage()) {
+        space = get_stack_local_space_region(frame);
+    } else {
+        knight_unreachable("unhandled storage class");
+    }
+
+    return get_var_region(var_decl, /*space=*/space, /*parent=*/nullptr);
 }
 
 } // namespace knight::dfa
