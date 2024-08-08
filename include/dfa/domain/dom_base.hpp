@@ -29,7 +29,7 @@ class AbsDomBase;
 using DomIDs = std::unordered_set< DomID >;
 using AbsValRef = AbsDomBase*;
 using AbsValConstRef = const AbsDomBase*;
-using SharedVal = std::shared_ptr< const AbsDomBase >;
+using SharedVal = std::shared_ptr< AbsDomBase >;
 
 /// \brief Base for all abstract domains
 ///

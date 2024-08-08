@@ -702,7 +702,7 @@ class ArgumentRegion : public DeclRegion {
   private:
     explicit ArgumentRegion(const StackArgSpaceRegion* arg_space,
                             const clang::ParmVarDecl* param_decl = nullptr,
-                            clang::Expr* arg_expr = nullptr,
+                            const clang::Expr* arg_expr = nullptr,
                             unsigned arg_idx = 0U)
         : DeclRegion(RegionKind::ArgRegion, arg_space, nullptr),
           m_param_decl(param_decl),
@@ -752,7 +752,6 @@ class ArgumentRegion : public DeclRegion {
 
     static void profile(llvm::FoldingSetNodeID& id,
                         const StackArgSpaceRegion* arg_space,
-                        MemRegionRef parent,
                         const clang::ParmVarDecl* param_decl,
                         const clang::Expr* arg_expr,
                         unsigned arg_idx) {
@@ -760,7 +759,7 @@ class ArgumentRegion : public DeclRegion {
                             param_decl,
                             RegionKind::ArgRegion,
                             arg_space,
-                            parent);
+                            nullptr);
         id.AddPointer(arg_expr);
         id.AddInteger(arg_idx);
     }
@@ -768,7 +767,6 @@ class ArgumentRegion : public DeclRegion {
     void Profile(llvm::FoldingSetNodeID& id) const override { // NOLINT
         profile(id,
                 llvm::cast< StackArgSpaceRegion >(m_space),
-                m_parent,
                 m_param_decl,
                 m_arg_expr,
                 m_arg_idx);

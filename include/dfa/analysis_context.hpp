@@ -25,16 +25,19 @@ class KnightContext;
 namespace dfa {
 
 class StackFrame;
+class RegionManager;
 
 class AnalysisContext {
   private:
     KnightContext& m_ctx;
-    const StackFrame* m_frame;
+    const StackFrame* m_frame{nullptr};
     ProgramStateRef m_state{nullptr};
+    RegionManager& m_region_manager;
 
   public:
-    explicit AnalysisContext(KnightContext& ctx) : m_ctx(ctx) {}
+    explicit AnalysisContext(KnightContext& ctx, RegionManager& region_manager);
 
+    [[nodiscard]] RegionManager& get_region_manager() const;
     [[nodiscard]] KnightContext& get_knight_context() const { return m_ctx; }
     [[nodiscard]] clang::ASTContext& get_ast_context() const;
     [[nodiscard]] clang::SourceManager& get_source_manager() const;

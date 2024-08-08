@@ -1,5 +1,5 @@
-void clang_analyzer_dump(int){}
-void clang_analyzer_dump(void*){}
+void clang_analyzer_dump(int) {}
+void clang_analyzer_dump(void*) {}
 
 // clang-format off
 void foo(int a, int* b, int** c, void* d, char *e) {

@@ -205,11 +205,9 @@ def main():
     spinner_running = False
     spinner_thread.join()
 
-    print("\n" + GRAY + ">" * 50 + RESET_COLOR)
     print(f"{YELLOW}Total {total_tasks} files processed: {RESET_COLOR}")
     print(f"Passed: {GREEN}{completed_tasks} √{RESET_COLOR}")
     print(f"Error : {RED}{len(error_log)} ×{RESET_COLOR}")
-    print(GRAY + "<" * 50 + RESET_COLOR)
 
     if error_log:
         idx = 0

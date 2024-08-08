@@ -54,13 +54,16 @@ struct IntrusiveRefCntPtrInfo< const knight::dfa::ProgramState > {
 namespace knight::dfa {
 
 using ProgramStateRef = llvm::IntrusiveRefCntPtr< const ProgramState >;
+using DomValMap = llvm::DenseMap< DomID, SharedVal >;
+
+ProgramStateRef get_persistent_state_with_copy_and_dom_val_map(
+    ProgramStateManager& manager, const ProgramState& state, DomValMap dom_val);
 
 // TODO(ProgramState): fix ProgramState to be immutable!!
 class ProgramState : public llvm::FoldingSetNode {
     friend class ProgramStateManager;
 
   public:
-    using DomValMap = llvm::DenseMap< DomID, SharedVal >;
     using ValRefSet = std::unordered_set< AbsValRef >;
 
     // TODO(region-cache): move this to the analysis context or stay here?
@@ -140,21 +143,33 @@ class ProgramState : public llvm::FoldingSetNode {
     /// and managed by the caller, or nullptr if the domain does not
     /// exist in the state.
     template < typename Domain >
-    [[nodiscard]] Domain* get_clone() const {
+    [[nodiscard]] std::shared_ptr< Domain > get_clone() const {
         auto it = m_dom_val.find(get_domain_id(Domain::get_kind()));
         if (it == m_dom_val.end()) {
-            return nullptr;
+            return std::static_pointer_cast< Domain >(Domain::default_val());
         }
-        return std::static_pointer_cast< const Domain >(it->second->clone());
+        std::shared_ptr< AbsDomBase > base_ptr(it->second->clone());
+        return std::static_pointer_cast< Domain >(base_ptr);
     }
 
     /// \brief Remove the given domain from the program state.
     template < typename Domain >
-    [[nodiscard]] ProgramStateRef remove() const;
+    [[nodiscard]] ProgramStateRef remove() const {
+        auto id = get_domain_id(Domain::get_kind());
+        auto dom_val = m_dom_val;
+        dom_val.erase(id);
+        return get_persistent_state_with_copy_and_dom_val_map(
+            get_state_manager(), *this, std::move(dom_val));
+    }
 
     /// \brief Set the given domain to the given abstract val.
     template < typename Domain >
-    [[nodiscard]] ProgramStateRef set(SharedVal val) const;
+    [[nodiscard]] ProgramStateRef set(SharedVal val) const {
+        auto dom_val = m_dom_val;
+        dom_val[get_domain_id(Domain::get_kind())] = std::move(val);
+        return get_persistent_state_with_copy_and_dom_val_map(
+            get_state_manager(), *this, std::move(dom_val));
+    }
 
   public:
     [[nodiscard]] ProgramStateRef normalize() const;
@@ -209,7 +224,6 @@ class ProgramState : public llvm::FoldingSetNode {
 class ProgramStateManager {
     friend class ProgramState;
 
-    using DomValMap = ProgramState::DomValMap;
     using ValRefSet = ProgramState::ValRefSet;
 
   private:

@@ -63,25 +63,6 @@ bool ProgramState::exists() const {
     return get_ref(Domain::get_kind()).has_value();
 }
 
-template < typename Domain >
-ProgramStateRef ProgramState::remove() const {
-    auto id = get_domain_id(Domain::get_kind());
-    auto dom_val = m_dom_val;
-    dom_val.erase(id);
-    return get_state_manager()
-        .get_persistent_state_with_copy_and_dom_val_map(*this,
-                                                        std::move(dom_val));
-}
-
-template < typename Domain >
-ProgramStateRef ProgramState::set(SharedVal val) const {
-    auto dom_val = m_dom_val;
-    dom_val[get_domain_id(Domain::get_kind())] = std::move(val);
-    return get_state_manager()
-        .get_persistent_state_with_copy_and_dom_val_map(*this,
-                                                        std::move(dom_val));
-}
-
 ProgramStateRef ProgramState::normalize() const {
     DomValMap dom_val = m_dom_val;
     for (auto& [id, val] : dom_val) {
@@ -268,7 +249,6 @@ ProgramStateRef ProgramStateManager::get_persistent_state(ProgramState& state) {
         m_free_states.pop_back();
     } else {
         new_state = m_alloc.Allocate< ProgramState >();
-        llvm::outs() << "Alloc new state " << new_state << "\n";
     }
     new (new_state) ProgramState(std::move(state));
     m_state_set.InsertNode(new_state, insert_pos);
@@ -289,6 +269,15 @@ ProgramStateRef ProgramStateManager::
                            state.m_region_mgr,
                            std::move(dom_val));
     return get_persistent_state(new_state);
+}
+
+ProgramStateRef get_persistent_state_with_copy_and_dom_val_map(
+    ProgramStateManager& manager,
+    const ProgramState& state,
+    DomValMap dom_val) {
+    return manager.get_persistent_state_with_copy_and_dom_val_map(state,
+                                                                  std::move(
+                                                                      dom_val));
 }
 
 } // namespace knight::dfa

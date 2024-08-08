@@ -16,6 +16,7 @@
 #include "dfa/domain/dom_base.hpp"
 #include "dfa/domain/domains.hpp"
 #include "dfa/domain/map/map_domain.hpp"
+#include "dfa/region/region.hpp"
 #include "util/assert.hpp"
 
 #include <clang/AST/Decl.h>
@@ -35,9 +36,8 @@ class DemoItvDom : public AbsDom< DemoItvDom > {
   public:
     DemoItvDom() : DemoItvDom(INT_MIN, INT_MAX) {}
     explicit DemoItvDom(int x) : DemoItvDom(x, x) {}
-    DemoItvDom(int l, int u) : m_lb(l), m_ub(u), m_is_bottom(false), AbsDom() {}
-    explicit DemoItvDom(Bottom)
-        : m_lb(0), m_ub(0), m_is_bottom(true), AbsDom() {}
+    DemoItvDom(int l, int u) : m_lb(l), m_ub(u), m_is_bottom(false) {}
+    explicit DemoItvDom(Bottom) : m_lb(0), m_ub(0), m_is_bottom(true) {}
 
     /// \brief specify the domain kind
     [[nodiscard]] static DomainKind get_kind() {
@@ -127,12 +127,16 @@ class DemoItvDom : public AbsDom< DemoItvDom > {
         if (is_bottom()) {
             os << "_|_";
         } else {
-            os << "[" << m_lb << ", " << m_ub << "]";
+            if (m_lb == m_ub) {
+                os << m_lb;
+            } else {
+                os << "[" << m_lb << ", " << m_ub << "]";
+            }
         }
     }
 }; // class DemoItvDom
 
 using DemoMapDomain =
-    MapDom< const clang::Decl*, DemoItvDom, DomainKind::DemoMapDom >;
+    MapDom< MemRegionRef, DemoItvDom, DomainKind::DemoMapDom >;
 
 } // namespace knight::dfa

@@ -21,7 +21,7 @@
 namespace knight::dfa {
 
 void BlockExecutionEngine::exec() {
-    const ProgramStateRef state = m_state;
+    ProgramStateRef state = m_state;
     for (const auto& elem : m_node->Elements) {
         switch (elem.getKind()) {
             using enum clang::CFGElement::Kind;
@@ -58,7 +58,7 @@ void BlockExecutionEngine::exec() {
             } break;
             case Statement: {
                 const auto& cfg_stmt = elem.castAs< clang::CFGStmt >();
-                exec_cfg_stmt(cfg_stmt.getStmt(), state);
+                state = exec_cfg_stmt(cfg_stmt.getStmt(), state);
             } break;
             case Constructor: {
                 knight_unreachable("constructor not implemented yet"); // NOLINT
@@ -119,7 +119,8 @@ void BlockExecutionEngine::exec_lifetime_ends(StmtRef trigger_stmt,
 /// \brief Transfer the stmt
 ProgramStateRef BlockExecutionEngine::exec_cfg_stmt(
     StmtRef stmt, const ProgramStateRef& state) {
-    AnalysisContext analysis_ctx(m_analysis_manager.get_context());
+    AnalysisContext analysis_ctx(m_analysis_manager.get_context(),
+                                 m_analysis_manager.get_region_manager());
     analysis_ctx.set_current_stack_frame(m_frame);
     analysis_ctx.set_state(state);
     m_stmt_post[stmt] = state;

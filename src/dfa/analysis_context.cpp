@@ -14,10 +14,19 @@
 #include "dfa/analysis_context.hpp"
 #include "dfa/analysis/analysis_base.hpp"
 #include "dfa/program_state.hpp"
+#include "dfa/region/region.hpp"
 #include "dfa/stack_frame.hpp"
 #include "tooling/context.hpp"
 
 namespace knight::dfa {
+
+AnalysisContext::AnalysisContext(KnightContext& ctx,
+                                 RegionManager& region_manager)
+    : m_ctx(ctx), m_region_manager(region_manager) {}
+
+RegionManager& AnalysisContext::get_region_manager() const {
+    return m_region_manager;
+}
 
 clang::ASTContext& AnalysisContext::get_ast_context() const {
     return *m_ctx.get_ast_context();

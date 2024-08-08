@@ -22,12 +22,25 @@ namespace knight {
 template < typename T >
 concept dumpable = requires(const T& obj, llvm::raw_ostream& os) {
     { obj.dump(os) } -> std::same_as< void >;
-}; // concept dumpable
+} || requires(const std::remove_pointer_t< T >* obj, llvm::raw_ostream& os) {
+    { obj->dump(os) } -> std::same_as< void >;
+};
 
 template < dumpable T >
 struct DumpableTrait {
-    static void dump(llvm::raw_ostream& os, const T& obj) { obj.dump(os); }
-}; // struct DumpableTrait
+    static void dump(llvm::raw_ostream& os, const T& obj) {
+        if constexpr (std::is_pointer_v< T >) {
+            if (obj) {
+                obj->dump(os);
+            } else {
+                os << "nullptr";
+            }
+        } else {
+            obj.dump(os);
+        }
+    }
+};
+// struct DumpableTrait< T* >
 
 template < typename T >
 struct is_dumpable : std::bool_constant< dumpable< T > > { // NOLINT

@@ -15,6 +15,7 @@
 
 #include "dfa/domain/dom_base.hpp"
 #include "dfa/domain/domains.hpp"
+#include "support/dumpable.hpp"
 
 namespace knight::dfa {
 
@@ -26,11 +27,10 @@ class MapDom : public AbsDom< MapDom< Key, SeparateValue, domain_kind > > {
   private:
     Map m_table;
     bool m_is_bottom = false;
-    bool m_is_top = false;
 
   public:
-    MapDom(bool is_bottom, bool is_top, Map table = {})
-        : m_is_bottom(is_bottom), m_is_top(is_top), m_table(std::move(table)) {}
+    explicit MapDom(bool is_bottom, Map table = {})
+        : m_is_bottom(is_bottom), m_table(std::move(table)) {}
 
     MapDom(const MapDom&) = default;
     MapDom(MapDom&&) = default;
@@ -39,14 +39,14 @@ class MapDom : public AbsDom< MapDom< Key, SeparateValue, domain_kind > > {
     ~MapDom() override = default;
 
   public:
-    [[nodiscard]] static MapDom top() { return MapDom(false, true); }
+    [[nodiscard]] static MapDom top() { return MapDom(false); }
 
-    [[nodiscard]] static MapDom bottom() { return MapDom(false, true); }
+    [[nodiscard]] static MapDom bottom() { return MapDom(true); }
 
     [[nodiscard]] const Map& get_table() const { return m_table; }
 
     void forget(const Key& key) {
-        if (this->is_bottom() || this->is_top()) {
+        if (this->is_bottom()) {
             return;
         }
         this->m_table.erase(key);
@@ -56,10 +56,6 @@ class MapDom : public AbsDom< MapDom< Key, SeparateValue, domain_kind > > {
         if (this->is_bottom()) {
             return *(static_cast< const SeparateValue* >(
                 SeparateValue::bottom_val().get()));
-        }
-        if (this->is_top()) {
-            return *(static_cast< const SeparateValue* >(
-                SeparateValue::default_val().get()));
         }
 
         auto it = m_table.find(key);
@@ -73,7 +69,8 @@ class MapDom : public AbsDom< MapDom< Key, SeparateValue, domain_kind > > {
     void set_value(const Key& key, const SeparateValue& value) {
         if (this->is_bottom()) {
             return;
-        } else if (value.is_bottom()) {
+        }
+        if (value.is_bottom()) {
             this->set_to_bottom();
         } else if (value.is_top()) {
             this->forget(key);
@@ -104,19 +101,15 @@ class MapDom : public AbsDom< MapDom< Key, SeparateValue, domain_kind > > {
   public:
     static DomainKind get_kind() { return domain_kind; }
 
-    static SharedVal default_val() {
-        return std::make_shared< MapDom >(true, false);
-    }
-    static SharedVal bottom_val() {
-        return std::make_shared< MapDom >(false, true);
-    }
+    static SharedVal default_val() { return std::make_shared< MapDom >(false); }
+    static SharedVal bottom_val() { return std::make_shared< MapDom >(true); }
 
     [[nodiscard]] AbsDomBase* clone() const override {
         Map table;
         for (auto& [key, value] : m_table) {
             table[key] = *(static_cast< SeparateValue* >(value.clone()));
         }
-        return new MapDom(m_is_bottom, m_is_top, table);
+        return new MapDom(m_is_bottom, table);
     }
 
     void normalize() override {
@@ -125,23 +118,19 @@ class MapDom : public AbsDom< MapDom< Key, SeparateValue, domain_kind > > {
         }
     }
 
-    [[nodiscard]] bool is_bottom() const override {
-        return m_is_bottom && !m_is_top;
-    }
+    [[nodiscard]] bool is_bottom() const override { return m_is_bottom; }
 
     [[nodiscard]] bool is_top() const override {
-        return !m_is_bottom && m_is_top;
+        return !m_is_bottom && m_table.empty();
     }
 
     void set_to_bottom() override {
         m_is_bottom = true;
-        m_is_top = false;
         Map().swap(m_table);
     }
 
     void set_to_top() override {
         m_is_bottom = false;
-        m_is_top = true;
         Map().swap(m_table);
     }
 
@@ -149,8 +138,8 @@ class MapDom : public AbsDom< MapDom< Key, SeparateValue, domain_kind > > {
         if (other.is_bottom()) {
             return;
         }
-        if (other.is_top()) {
-            this->set_to_top();
+        if (this->is_bottom()) {
+            *this = other;
             return;
         }
         for (auto& [key, value] : other.m_table) {
@@ -167,8 +156,8 @@ class MapDom : public AbsDom< MapDom< Key, SeparateValue, domain_kind > > {
         if (other.is_bottom()) {
             return;
         }
-        if (other.is_top()) {
-            this->set_to_top();
+        if (this->is_bottom()) {
+            *this = other;
             return;
         }
         for (auto& [key, value] : other.m_table) {
@@ -185,8 +174,8 @@ class MapDom : public AbsDom< MapDom< Key, SeparateValue, domain_kind > > {
         if (other.is_bottom()) {
             return;
         }
-        if (other.is_top()) {
-            this->set_to_top();
+        if (this->is_bottom()) {
+            *this = other;
             return;
         }
         for (auto& [key, value] : other.m_table) {
@@ -203,8 +192,8 @@ class MapDom : public AbsDom< MapDom< Key, SeparateValue, domain_kind > > {
         if (other.is_bottom()) {
             return;
         }
-        if (other.is_top()) {
-            this->set_to_top();
+        if (this->is_bottom()) {
+            *this = other;
             return;
         }
         for (auto& [key, value] : other.m_table) {
@@ -218,10 +207,10 @@ class MapDom : public AbsDom< MapDom< Key, SeparateValue, domain_kind > > {
     }
 
     void meet_with(const MapDom& other) {
-        if (this->is_bottom() || other.is_top()) {
+        if (this->is_bottom()) {
             return;
         }
-        if (other.is_bottom() || this->is_top()) {
+        if (other.is_bottom()) {
             *this = other;
             return;
         }
@@ -240,10 +229,10 @@ class MapDom : public AbsDom< MapDom< Key, SeparateValue, domain_kind > > {
     }
 
     void narrow_with(const MapDom& other) {
-        if (this->is_bottom() || other.is_top()) {
+        if (this->is_bottom()) {
             return;
         }
-        if (other.is_bottom() || this->is_top()) {
+        if (other.is_bottom()) {
             *this = other;
             return;
         }
@@ -262,10 +251,10 @@ class MapDom : public AbsDom< MapDom< Key, SeparateValue, domain_kind > > {
     }
 
     [[nodiscard]] bool leq(const MapDom& other) const {
-        if (this->is_bottom() || other.is_top()) {
+        if (this->is_bottom()) {
             return true;
         }
-        if (other.is_bottom() || this->is_top()) {
+        if (other.is_bottom()) {
             return false;
         }
         if (this->m_table.size() > other.m_table.size()) {
@@ -287,13 +276,7 @@ class MapDom : public AbsDom< MapDom< Key, SeparateValue, domain_kind > > {
         if (this->is_bottom()) {
             return other.is_bottom();
         }
-        if (this->is_top()) {
-            return other.is_top();
-        }
         if (other.is_bottom()) {
-            return false;
-        }
-        if (other.is_top()) {
             return false;
         }
         if (this->m_table.size() != other.m_table.size()) {
@@ -314,8 +297,6 @@ class MapDom : public AbsDom< MapDom< Key, SeparateValue, domain_kind > > {
     void dump(llvm::raw_ostream& os) const override {
         if (is_bottom()) {
             os << "_|_";
-        } else if (is_top()) {
-            os << "T";
         } else {
             os << "{";
             bool first = true;
@@ -323,8 +304,9 @@ class MapDom : public AbsDom< MapDom< Key, SeparateValue, domain_kind > > {
                 if (!first) {
                     os << ", ";
                 }
-                os << key << ": ";
-                value.dump(os);
+                DumpableTrait< Key >::dump(os, key);
+                os << ": ";
+                DumpableTrait< SeparateValue >::dump(os, value);
                 first = false;
             }
             os << "}";

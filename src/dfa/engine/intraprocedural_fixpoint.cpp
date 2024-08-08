@@ -45,7 +45,7 @@ ProgramStateRef IntraProceduralFixpointIterator::transfer_node(
                                 m_stmt_post,
                                 m_frame);
     engine.exec();
-    return pre_state;
+    return engine.get_state();
 }
 
 ProgramStateRef IntraProceduralFixpointIterator::transfer_edge(
@@ -102,15 +102,15 @@ void IntraProceduralFixpointIterator::check_post(
 }
 
 void IntraProceduralFixpointIterator::run() {
-    auto initial_state = m_state_mgr.get_bottom_state();
+    auto initial_state = m_state_mgr.get_default_state();
 
-    AnalysisContext analysis_ctx(m_ctx);
+    AnalysisContext analysis_ctx(m_ctx, m_analysis_mgr.get_region_manager());
     analysis_ctx.set_current_stack_frame(m_frame);
     analysis_ctx.set_state(initial_state);
 
     CheckerContext checker_ctx(m_ctx);
-    checker_ctx.set_current_state(initial_state);
     checker_ctx.set_current_stack_frame(m_frame);
+    checker_ctx.set_current_state(initial_state);
 
     m_analysis_mgr.run_analyses_for_begin_function(analysis_ctx);
 
