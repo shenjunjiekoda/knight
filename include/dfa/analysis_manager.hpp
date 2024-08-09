@@ -99,16 +99,16 @@ class AnalysisManager {
     KnightContext& m_ctx;
 
     /// \brief analyses
-    std::unordered_set< AnalysisID > m_analyses; // all analyses
+    AnalysisIDSet m_analyses; // all analyses
     std::vector< AnalysisID >
         m_analysis_full_order; // subject to analysis dependencies
-    std::unordered_map< AnalysisID, std::unordered_set< AnalysisID > >
-        m_analysis_dependencies; // all analysis dependencies
+    std::unordered_map< AnalysisID, AnalysisIDSet >
+        m_analysis_dependencies;          // all analysis dependencies
+    AnalysisIDSet m_priviledged_analysis; // priviledged analysis
 
     std::unordered_map< AnalysisID, std::unique_ptr< AnalysisBase > >
-        m_enabled_analyses; // enabled analysis shall be created.
-    std::unordered_set< AnalysisID >
-        m_required_analyses; // all analyses should be created,
+        m_enabled_analyses;            // enabled analysis shall be created.
+    AnalysisIDSet m_required_analyses; // all analyses should be created,
     // shall be equivalent with enabled analyses key set.
 
     std::unique_ptr< dfa::RegionManager > m_region_mgr;
@@ -159,8 +159,14 @@ class AnalysisManager {
 
     void add_required_analysis(AnalysisID id);
     void add_analysis_dependency(AnalysisID id, AnalysisID required_id);
-    [[nodiscard]] std::unordered_set< AnalysisID > get_analysis_dependencies(
-        AnalysisID id) const;
+    [[nodiscard]] AnalysisIDSet get_analysis_dependencies(AnalysisID id) const;
+
+    template < typename Analysis >
+    void set_analysis_priviledged() {
+        auto analysis_id = get_analysis_id(Analysis::get_kind());
+        m_priviledged_analysis.insert(analysis_id);
+        m_required_analyses.insert(analysis_id);
+    }
 
     void enable_analysis(std::unique_ptr< AnalysisBase > analysis);
     [[nodiscard]] bool is_analysis_required(AnalysisID id) const;
@@ -214,8 +220,7 @@ class AnalysisManager {
         return m_stmt_analyses;
     }
 
-    [[nodiscard]] const std::unordered_set< AnalysisID >&
-    get_required_analyses() const {
+    [[nodiscard]] const AnalysisIDSet& get_required_analyses() const {
         return m_required_analyses;
     }
 

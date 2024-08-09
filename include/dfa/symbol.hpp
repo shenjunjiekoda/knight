@@ -137,10 +137,11 @@ class Scalar : public SymExpr {
 class ScalarInt : public Scalar {
   private:
     llvm::APSInt m_value;
+    clang::QualType m_type;
 
   public:
-    explicit ScalarInt(llvm::APSInt value)
-        : Scalar(SymExprKind::Int), m_value(std::move(value)) {}
+    explicit ScalarInt(llvm::APSInt value, clang::QualType type)
+        : Scalar(SymExprKind::Int), m_value(std::move(value)), m_type(type) {}
 
     [[nodiscard]] llvm::APSInt get_value() const { return m_value; }
     [[nodiscard]] bool is_integer() const override { return true; }
@@ -151,15 +152,22 @@ class ScalarInt : public Scalar {
         return scalar->get_kind() == SymExprKind::Int;
     }
 
+    [[nodiscard]] clang::QualType get_type() const override { return m_type; }
+
+    void Profile(llvm::FoldingSetNodeID& id) const override { // NOLINT
+        id.Add(m_value);
+        id.Add(m_type);
+    }
 }; // class Integer
 
 class ScalarFloat : public Scalar {
   private:
     llvm::APFloat m_value;
+    clang::QualType m_type;
 
   public:
-    explicit ScalarFloat(llvm::APFloat value)
-        : Scalar(SymExprKind::Float), m_value(std::move(value)) {}
+    explicit ScalarFloat(llvm::APFloat value, clang::QualType type)
+        : Scalar(SymExprKind::Float), m_value(std::move(value)), m_type(type) {}
 
     [[nodiscard]] llvm::APFloat get_value() const { return m_value; }
     [[nodiscard]] bool is_float() const override { return true; }
@@ -170,6 +178,12 @@ class ScalarFloat : public Scalar {
         return scalar->get_kind() == SymExprKind::Float;
     }
 
+    [[nodiscard]] clang::QualType get_type() const override { return m_type; }
+
+    void Profile(llvm::FoldingSetNodeID& id) const override { // NOLINT
+        id.Add(m_value);
+        id.Add(m_type);
+    }
 }; // class Float
 
 using SymID = unsigned;

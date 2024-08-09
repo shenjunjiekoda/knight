@@ -51,7 +51,6 @@ class DemoAnalysis : public Analysis< DemoAnalysis,
         decl_stmt->dumpColor();
         llvm::outs() << "\n";
         auto state = ctx.get_state();
-        RegionManager& region_mgr = ctx.get_region_manager();
         for (const auto* decl : decl_stmt->decls()) {
             const auto* var_decl = dyn_cast_or_null< clang::VarDecl >(decl);
             if (var_decl == nullptr || var_decl->getInit() == nullptr) {
@@ -62,8 +61,13 @@ class DemoAnalysis : public Analysis< DemoAnalysis,
             var_decl->dumpColor();
             llvm::outs() << "\n";
 
-            const auto* var_region =
-                region_mgr.get_region(var_decl, ctx.get_current_stack_frame());
+            auto region_opt =
+                state->get_region(var_decl, ctx.get_current_stack_frame());
+            if (!region_opt) {
+                continue;
+            }
+
+            const auto* var_region = *region_opt;
             const auto* init_expr = var_decl->getInit()->IgnoreParenImpCasts();
 
             if (var_region == nullptr) {

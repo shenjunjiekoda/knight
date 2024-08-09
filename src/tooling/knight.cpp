@@ -106,6 +106,11 @@ std::unique_ptr< clang::ASTConsumer > KnightASTConsumerFactory::
     for (const auto& [id, _] : get_directly_enabled_analyses()) {
         m_analysis_manager->add_required_analysis(id);
     }
+
+    for (const auto& [id, _] : get_enabled_core_analyses()) {
+        m_analysis_manager->add_required_analysis(id);
+    }
+
     m_analysis_manager->compute_all_required_analyses_by_dependencies();
     auto analyses = m_factory->create_analyses(*m_analysis_manager, &m_ctx);
     m_analysis_manager->compute_full_order_analyses_after_registry();
@@ -134,6 +139,18 @@ KnightASTConsumerFactory::get_directly_enabled_analyses() const {
         enabled_analyses;
     for (const auto& [analysis, registry] : m_factory->analysis_registries()) {
         if (m_ctx.is_analysis_directly_enabled(analysis.second)) {
+            enabled_analyses.emplace_back(analysis);
+        }
+    }
+    return enabled_analyses;
+}
+
+std::vector< std::pair< dfa::AnalysisID, llvm::StringRef > >
+KnightASTConsumerFactory::get_enabled_core_analyses() const {
+    std::vector< std::pair< dfa::AnalysisID, llvm::StringRef > >
+        enabled_analyses;
+    for (const auto& [analysis, registry] : m_factory->analysis_registries()) {
+        if (m_ctx.is_core_analysis_enabled(analysis.second)) {
             enabled_analyses.emplace_back(analysis);
         }
     }

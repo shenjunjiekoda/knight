@@ -84,6 +84,11 @@ bool KnightContext::is_analysis_directly_enabled(
     return m_current_analysis_matcher->matches(analysis);
 }
 
+bool KnightContext::is_core_analysis_enabled(llvm::StringRef analysis) const {
+    // TODO: shall we use a more restrictive way to check core analysis?
+    return analysis.starts_with("core-");
+}
+
 std::optional< std::string > KnightContext::get_check_name(unsigned diag_id) {
     auto it = m_diag_id_to_checker_name.find(diag_id);
     if (it != m_diag_id_to_checker_name.end()) {

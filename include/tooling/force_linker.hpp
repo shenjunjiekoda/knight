@@ -13,12 +13,16 @@
 
 #pragma once
 
-#include <llvm/Support/Compiler.h>
-
 namespace knight {
 
+// NOLINTBEGIN
 extern volatile int DemoModuleAnchorSource;
-static int LLVM_ATTRIBUTE_UNUSED DemoModuleAnchorDestination =
+static int DemoModuleAnchorDestination [[maybe_unused]] =
     DemoModuleAnchorSource;
+
+extern volatile int CoreModuleAnchorSource;
+static int CoreModuleAnchorDestination [[maybe_unused]] =
+    CoreModuleAnchorSource;
+// NOLINTEND
 
 } // namespace knight

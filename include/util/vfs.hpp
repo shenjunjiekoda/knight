@@ -38,4 +38,7 @@ OverlayFileSystemRef create_base_vfs();
 /// relative/../path => <current-directory>/relative/../path
 std::string make_absolute(llvm::StringRef file);
 
+/// \brief Check if a file exists in a VFS.
+bool exists(llvm::StringRef file, const FileSystemRef& fs);
+
 } // namespace knight::fs

@@ -36,12 +36,13 @@ using namespace knight;
 using namespace knight::cl_opts;
 
 using ErrCode = uint8_t;
-constexpr ErrCode NormalExit = 0;
-constexpr ErrCode OptParseFailure = 1;
-constexpr ErrCode BaseVfsCreateFailure = 2;
-constexpr ErrCode VfsFileFailure = 3;
-constexpr ErrCode NoInputFiles = 4;
-constexpr ErrCode CompileErrorFound = 5;
+constexpr ErrCode NormalExit = 0U;
+constexpr ErrCode OptParseFailure = 1U;
+constexpr ErrCode BaseVfsCreateFailure = 2U;
+constexpr ErrCode VfsFileFailure = 3U;
+constexpr ErrCode NoInputFiles = 4U;
+constexpr ErrCode InputNotExists = 5U;
+constexpr ErrCode CompileErrorFound = 6U;
 
 llvm::IntrusiveRefCntPtr< llvm::vfs::OverlayFileSystem > get_vfs(
     ErrCode& code) {
@@ -106,6 +107,17 @@ std::vector< std::string > get_directly_enabled_analyses() {
     return analyses;
 }
 
+bool ensure_input_files_exist(const std::vector< std::string >& files,
+                              const fs::FileSystemRef& vfs) {
+    return llvm::all_of(files, [&vfs](const auto& file) {
+        bool res = vfs->exists(fs::make_absolute(file));
+        if (!res) {
+            llvm::errs() << "Errors: input `" << file << "` not found!\n";
+        }
+        return res;
+    });
+}
+
 void print_enabled_checkers(
     const std::vector< std::string >& enabled_checkers) {
     auto size = enabled_checkers.size();
@@ -157,7 +169,7 @@ int main(int argc, const char** argv) {
 
     auto opts_provider = get_opts_provider();
     auto input_path = std::string("dummy");
-    const auto& src_path_lst = opts_parser->getSourcePathList();
+    auto src_path_lst = opts_parser->getSourcePathList();
     if (!src_path_lst.empty()) {
         input_path = fs::make_absolute(src_path_lst.front());
     }
@@ -186,6 +198,11 @@ int main(int argc, const char** argv) {
         return NoInputFiles;
     }
 
+    llvm::transform(src_path_lst, src_path_lst.begin(), fs::make_absolute);
+    if (!ensure_input_files_exist(src_path_lst, base_vfs)) {
+        return InputNotExists;
+    }
+
     KnightContext ctx(std::move(opts_provider));
     KnightDriver driver(ctx,
                         opts_parser->getCompilations(),
@@ -198,7 +215,9 @@ int main(int argc, const char** argv) {
             llvm::any_of(diags, [](const auto& diag) {
                 return diag.DiagLevel == KnightDiagnostic::Error;
             })) {
+        llvm::errs().changeColor(llvm::raw_ostream::Colors::RED, true);
         llvm::errs() << "Error: compilation failed.\n";
+        llvm::errs().resetColor();
         return CompileErrorFound;
     }
 

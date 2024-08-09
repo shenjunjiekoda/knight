@@ -18,7 +18,7 @@
 #include "dfa/domain/domains.hpp"
 #include "dfa/proc_cfg.hpp"
 #include "dfa/region/region.hpp"
-#include "dfa/symbol/symbol.hpp"
+#include "dfa/symbol.hpp"
 
 #include <optional>
 #include <unordered_set>
@@ -55,9 +55,15 @@ namespace knight::dfa {
 
 using ProgramStateRef = llvm::IntrusiveRefCntPtr< const ProgramState >;
 using DomValMap = llvm::DenseMap< DomID, SharedVal >;
+using RegionSExprMap = llvm::DenseMap< MemRegionRef, SExprRef >;
+using StmtSExprMap = llvm::DenseMap< ProcCFG::StmtRef, SExprRef >;
+
+namespace internal {
 
 ProgramStateRef get_persistent_state_with_copy_and_dom_val_map(
     ProgramStateManager& manager, const ProgramState& state, DomValMap dom_val);
+
+} // namespace internal
 
 // TODO(ProgramState): fix ProgramState to be immutable!!
 class ProgramState : public llvm::FoldingSetNode {
@@ -66,20 +72,12 @@ class ProgramState : public llvm::FoldingSetNode {
   public:
     using ValRefSet = std::unordered_set< AbsValRef >;
 
-    // TODO(region-cache): move this to the analysis context or stay here?
-    using DeclRegionMap = llvm::DenseMap< ProcCFG::DeclRef, MemRegion* >;
-    using RegionSExprMap = llvm::DenseMap< MemRegionRef, SExprRef >;
-    using StmtSExprMap = llvm::DenseMap< ProcCFG::StmtRef, SExprRef >;
-
   private:
     /// \brief used in the refeference counting.
     unsigned m_ref_cnt;
 
     /// \brief domain value map. (domain id -> abstract value)
     DomValMap m_dom_val;
-
-    /// \brief decl region map. (clang decl -> memory region)
-    DeclRegionMap m_decl_region;
 
     /// \brief region sexpr map. (memory region -> sexpr)
     RegionSExprMap m_region_sexpr;
@@ -96,7 +94,9 @@ class ProgramState : public llvm::FoldingSetNode {
   public:
     ProgramState(ProgramStateManager* state_mgr,
                  RegionManager* region_mgr,
-                 DomValMap dom_val);
+                 DomValMap dom_val,
+                 RegionSExprMap region_sexpr,
+                 StmtSExprMap stmt_sexpr);
 
     /// \brief Only move constructor is allowed.
     ProgramState(ProgramState&& other) noexcept;
@@ -120,11 +120,23 @@ class ProgramState : public llvm::FoldingSetNode {
         return *m_region_mgr;
     }
 
+  public:
+    std::optional< MemRegionRef > get_region(ProcCFG::DeclRef decl,
+                                             const StackFrame*) const;
+    ProgramStateRef set_region_sexpr(MemRegionRef region, SExprRef sexpr) const;
+    ProgramStateRef set_stmt_sexpr(ProcCFG::StmtRef stmt, SExprRef sexpr) const;
+
+    std::optional< SExprRef > get_region_sexpr(MemRegionRef region) const;
+    std::optional< SExprRef > get_stmt_sexpr(ProcCFG::StmtRef stmt) const;
+
+  public:
     /// \brief Check if the given domain kind exists in the program state.
     ///
     /// \return True if the domain kind exists, false otherwise.
     template < typename Domain >
-    [[nodiscard]] bool exists() const;
+    [[nodiscard]] bool exists() const {
+        return get_ref(Domain::get_kind()).has_value();
+    }
 
     /// \brief Get the abstract cal with the given domain.
     template < typename Domain >
@@ -158,8 +170,10 @@ class ProgramState : public llvm::FoldingSetNode {
         auto id = get_domain_id(Domain::get_kind());
         auto dom_val = m_dom_val;
         dom_val.erase(id);
-        return get_persistent_state_with_copy_and_dom_val_map(
-            get_state_manager(), *this, std::move(dom_val));
+        return internal::
+            get_persistent_state_with_copy_and_dom_val_map(get_state_manager(),
+                                                           *this,
+                                                           std::move(dom_val));
     }
 
     /// \brief Set the given domain to the given abstract val.
@@ -167,8 +181,10 @@ class ProgramState : public llvm::FoldingSetNode {
     [[nodiscard]] ProgramStateRef set(SharedVal val) const {
         auto dom_val = m_dom_val;
         dom_val[get_domain_id(Domain::get_kind())] = std::move(val);
-        return get_persistent_state_with_copy_and_dom_val_map(
-            get_state_manager(), *this, std::move(dom_val));
+        return internal::
+            get_persistent_state_with_copy_and_dom_val_map(get_state_manager(),
+                                                           *this,
+                                                           std::move(dom_val));
     }
 
   public:
@@ -210,6 +226,14 @@ class ProgramState : public llvm::FoldingSetNode {
         for (const auto& [dom_id, val] : s->m_dom_val) {
             id.AddInteger(dom_id);
             id.AddPointer(val.get());
+        }
+        for (const auto& [region, sexpr] : s->m_region_sexpr) {
+            id.AddPointer(region);
+            id.AddPointer(sexpr);
+        }
+        for (const auto& [stmt, sexpr] : s->m_stmt_sexpr) {
+            id.AddPointer(stmt);
+            id.AddPointer(sexpr);
         }
     }
 
@@ -269,6 +293,10 @@ class ProgramStateManager {
         ProgramState& state, DomValMap dom_val);
     ProgramStateRef get_persistent_state_with_copy_and_dom_val_map(
         const ProgramState& state, DomValMap dom_val);
+    ProgramStateRef get_persistent_state_with_copy_and_region_sexpr_map(
+        const ProgramState& state, RegionSExprMap region_sexpr);
+    ProgramStateRef get_persistent_state_with_copy_and_stmt_sexpr_map(
+        const ProgramState& state, StmtSExprMap stmt_sexpr);
 
   private:
     friend void retain_state(const ProgramState* state);

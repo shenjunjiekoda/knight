@@ -16,12 +16,14 @@
 #include "dfa/checker/checker_base.hpp"
 #include "dfa/domain/dom_base.hpp"
 #include "dfa/domain/domains.hpp"
+#include "dfa/region/region.hpp"
 #include "util/assert.hpp"
 
 #include <llvm/ADT/BitVector.h>
 #include <llvm/ADT/STLExtras.h>
 
 #include <memory>
+#include <optional>
 
 namespace knight::dfa {
 
@@ -42,25 +44,72 @@ void release_state(const ProgramState* state) {
 
 ProgramState::ProgramState(ProgramStateManager* state_mgr,
                            RegionManager* region_mgr,
-                           DomValMap dom_val)
+                           DomValMap dom_val,
+                           RegionSExprMap region_sexpr,
+                           StmtSExprMap stmt_sexpr)
     : m_state_mgr(state_mgr),
       m_region_mgr(region_mgr),
       m_ref_cnt(0),
-      m_dom_val(std::move(dom_val)) {}
+      m_dom_val(std::move(dom_val)),
+      m_region_sexpr(std::move(region_sexpr)),
+      m_stmt_sexpr(std::move(stmt_sexpr)) {}
 
 ProgramState::ProgramState(ProgramState&& other) noexcept
     : m_state_mgr(other.m_state_mgr),
       m_region_mgr(other.m_region_mgr),
       m_ref_cnt(0),
-      m_dom_val(std::move(other.m_dom_val)) {}
+      m_dom_val(std::move(other.m_dom_val)),
+      m_region_sexpr(std::move(other.m_region_sexpr)),
+      m_stmt_sexpr(std::move(other.m_stmt_sexpr)) {}
 
 ProgramStateManager& ProgramState::get_state_manager() const {
     return *m_state_mgr;
 }
 
-template < typename Domain >
-bool ProgramState::exists() const {
-    return get_ref(Domain::get_kind()).has_value();
+std::optional< MemRegionRef > ProgramState::get_region(
+    ProcCFG::DeclRef decl, const StackFrame* frame) const {
+    if (llvm::isa< clang::VarDecl >(decl)) {
+        return get_region_manager().get_region(llvm::cast< clang::VarDecl >(
+                                                   decl),
+                                               frame);
+    }
+    llvm::errs() << "unhandled decl type: " << decl->getDeclKindName() << "\n";
+    return std::nullopt;
+}
+
+ProgramStateRef ProgramState::set_region_sexpr(MemRegionRef region,
+                                               SExprRef sexpr) const {
+    auto region_sexpr = m_region_sexpr;
+    region_sexpr[region] = sexpr;
+    return get_state_manager()
+        .get_persistent_state_with_copy_and_region_sexpr_map(*this,
+                                                             region_sexpr);
+}
+
+ProgramStateRef ProgramState::set_stmt_sexpr(ProcCFG::StmtRef stmt,
+                                             SExprRef sexpr) const {
+    auto stmt_sexpr = m_stmt_sexpr;
+    stmt_sexpr[stmt] = sexpr;
+    return get_state_manager()
+        .get_persistent_state_with_copy_and_stmt_sexpr_map(*this, stmt_sexpr);
+}
+
+std::optional< SExprRef > ProgramState::get_region_sexpr(
+    MemRegionRef region) const {
+    auto it = m_region_sexpr.find(region);
+    if (it != m_region_sexpr.end()) {
+        return it->second;
+    }
+    return std::nullopt;
+}
+
+std::optional< SExprRef > ProgramState::get_stmt_sexpr(
+    ProcCFG::StmtRef stmt) const {
+    auto it = m_stmt_sexpr.find(stmt);
+    if (it != m_stmt_sexpr.end()) {
+        return it->second;
+    }
+    return std::nullopt;
 }
 
 ProgramStateRef ProgramState::normalize() const {
@@ -212,7 +261,11 @@ ProgramStateRef ProgramStateManager::get_default_state() {
             }
         }
     }
-    ProgramState state(this, &m_region_mgr, std::move(dom_val));
+    ProgramState state(this,
+                       &m_region_mgr,
+                       std::move(dom_val),
+                       RegionSExprMap{},
+                       StmtSExprMap{});
 
     return get_persistent_state(state);
 }
@@ -228,7 +281,11 @@ ProgramStateRef ProgramStateManager::get_bottom_state() {
             }
         }
     }
-    ProgramState state(this, &m_region_mgr, std::move(dom_val));
+    ProgramState state(this,
+                       &m_region_mgr,
+                       std::move(dom_val),
+                       RegionSExprMap{},
+                       StmtSExprMap{});
 
     return get_persistent_state(state);
 }
@@ -267,11 +324,36 @@ ProgramStateRef ProgramStateManager::
                                                    DomValMap dom_val) {
     ProgramState new_state(state.m_state_mgr,
                            state.m_region_mgr,
-                           std::move(dom_val));
+                           std::move(dom_val),
+                           state.m_region_sexpr,
+                           state.m_stmt_sexpr);
     return get_persistent_state(new_state);
 }
 
-ProgramStateRef get_persistent_state_with_copy_and_dom_val_map(
+ProgramStateRef ProgramStateManager::
+    get_persistent_state_with_copy_and_region_sexpr_map(
+        const ProgramState& state, RegionSExprMap region_sexpr) {
+    ProgramState new_state(state.m_state_mgr,
+                           state.m_region_mgr,
+                           state.m_dom_val,
+                           std::move(region_sexpr),
+                           state.m_stmt_sexpr);
+
+    return get_persistent_state(new_state);
+}
+ProgramStateRef ProgramStateManager::
+    get_persistent_state_with_copy_and_stmt_sexpr_map(const ProgramState& state,
+                                                      StmtSExprMap stmt_sexpr) {
+    ProgramState new_state(state.m_state_mgr,
+                           state.m_region_mgr,
+                           state.m_dom_val,
+                           state.m_region_sexpr,
+                           std::move(stmt_sexpr));
+
+    return get_persistent_state(new_state);
+}
+
+ProgramStateRef internal::get_persistent_state_with_copy_and_dom_val_map(
     ProgramStateManager& manager,
     const ProgramState& state,
     DomValMap dom_val) {

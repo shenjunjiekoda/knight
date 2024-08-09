@@ -11,7 +11,7 @@
 //
 //===------------------------------------------------------------------===//
 
-#include "dfa/symbol/symbol.hpp"
+#include "dfa/symbol.hpp"
 #include "dfa/region/region.hpp"
 #include "dfa/stack_frame.hpp"
 

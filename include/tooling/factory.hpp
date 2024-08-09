@@ -127,17 +127,21 @@ class KnightFactory {
     CheckerRefs create_checkers(dfa::CheckerManager& mgr,
                                 KnightContext* context) const;
 
-    const AnalysisRegistryFnMap& analysis_registries() const {
+    [[nodiscard]] const AnalysisRegistryFnMap& analysis_registries() const {
         return m_analysis_registry;
     }
 
-    bool analysis_registry_empty() const { return m_analysis_registry.empty(); }
+    [[nodiscard]] bool analysis_registry_empty() const {
+        return m_analysis_registry.empty();
+    }
 
-    const CheckerRegistryFnMap& checker_registries() const {
+    [[nodiscard]] const CheckerRegistryFnMap& checker_registries() const {
         return m_checker_registry;
     }
 
-    bool checker_registry_empty() const { return m_checker_registry.empty(); }
+    [[nodiscard]] bool checker_registry_empty() const {
+        return m_checker_registry.empty();
+    }
 
 }; // class KnightFactory
 

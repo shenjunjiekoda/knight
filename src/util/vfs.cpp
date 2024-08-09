@@ -45,4 +45,8 @@ std::string make_absolute(llvm::StringRef file) {
     return abs_path.str().str();
 }
 
+bool exists(llvm::StringRef file, const FileSystemRef& fs) {
+    return fs->exists(file);
+}
+
 } // namespace knight::fs

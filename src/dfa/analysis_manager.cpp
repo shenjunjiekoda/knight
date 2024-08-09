@@ -29,12 +29,18 @@ namespace knight::dfa {
 namespace {
 
 std::vector< AnalysisID > compute_topological_order(
-    const std::unordered_map< AnalysisID, std::unordered_set< AnalysisID > >&
-        dependencies,
-    const std::unordered_set< AnalysisID >& all_ids) {
+    const std::unordered_map< AnalysisID, AnalysisIDSet >& dependencies,
+    const AnalysisIDSet& all_ids,
+    const AnalysisIDSet& privileged_ids) {
     std::unordered_map< AnalysisID, int > in_degree;
     std::queue< AnalysisID > zero_in_degree;
     std::vector< AnalysisID > sorted_ids;
+
+    // Firstly, add privileged analyses to the sorted list.
+    // TODO: shall we add privileged analysis ordering by dependencies here?
+    for (const auto& id : privileged_ids) {
+        sorted_ids.push_back(id);
+    }
 
     for (const auto& id : all_ids) {
         in_degree[id] = 0;
@@ -55,7 +61,10 @@ std::vector< AnalysisID > compute_topological_order(
     while (!zero_in_degree.empty()) {
         const AnalysisID current = zero_in_degree.front();
         zero_in_degree.pop();
-        sorted_ids.push_back(current);
+        if (std::find(sorted_ids.begin(), sorted_ids.end(), current) ==
+            sorted_ids.end()) {
+            sorted_ids.push_back(current);
+        }
         auto it = dependencies.find(current);
         if (it == dependencies.end()) {
             continue;
@@ -143,8 +152,9 @@ void AnalysisManager::compute_all_required_analyses_by_dependencies() {
 }
 
 void AnalysisManager::compute_full_order_analyses_after_registry() {
-    m_analysis_full_order =
-        compute_topological_order(m_analysis_dependencies, m_analyses);
+    m_analysis_full_order = compute_topological_order(m_analysis_dependencies,
+                                                      m_analyses,
+                                                      m_priviledged_analysis);
 }
 
 void AnalysisManager::enable_analysis(

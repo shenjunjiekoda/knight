@@ -128,16 +128,21 @@ class KnightASTConsumerFactory {
             nullptr);
 
     /// \brief Create an AST consumer for the given file.
-    std::unique_ptr< clang::ASTConsumer > create_ast_consumer(
+    [[nodiscard]] std::unique_ptr< clang::ASTConsumer > create_ast_consumer(
         clang::CompilerInstance& ci, llvm::StringRef file);
 
     /// \brief Get the list of enabled checks.
-    std::vector< std::pair< dfa::CheckerID, llvm::StringRef > >
+    [[nodiscard]] std::vector< std::pair< dfa::CheckerID, llvm::StringRef > >
     get_enabled_checks() const;
 
     /// \brief Get the list of directly enabled analyses.
-    std::vector< std::pair< dfa::AnalysisID, llvm::StringRef > >
+    [[nodiscard]] std::vector< std::pair< dfa::AnalysisID, llvm::StringRef > >
     get_directly_enabled_analyses() const;
+
+    /// \brief Get the list of enabled core analyses.
+    [[nodiscard]] std::vector< std::pair< dfa::AnalysisID, llvm::StringRef > >
+    get_enabled_core_analyses() const;
+
 }; // class KnightASTConsumerFactory
 
 class KnightDriver {
