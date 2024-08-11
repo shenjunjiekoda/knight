@@ -176,6 +176,26 @@ int main(int argc, const char** argv) {
 
     auto opts = opts_provider->get_options_for(input_path);
 
+    bool useClangTidy = false;
+    for (int i = 1; i < argc; ++i) {
+        if (std::string(argv[i]) == "--use-clang-tidy") {
+            useClangTidy = true;
+            break;
+        }
+    }
+
+    knight::ClangTidyRunner clangTidyRunner;
+    for (const auto& file : files) {
+        auto knightResults = runKnightAnalysis(file);
+        
+        if (useClangTidy) {
+            auto clangTidyResults = clangTidyRunner.run(file);
+            mergeResults(knightResults, clangTidyResults);
+        }
+
+        reportResults(knightResults);
+    }
+    
     llvm::InitializeAllTargetInfos();
     llvm::InitializeAllTargetMCs();
     llvm::InitializeAllAsmParsers();
