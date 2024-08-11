@@ -28,6 +28,7 @@
 #include "tooling/knight.hpp"
 #include "tooling/options.hpp"
 #include "util/vfs.hpp"
+#include "knight/ClangTidyRunner.h"
 
 using namespace llvm;
 using namespace clang;
