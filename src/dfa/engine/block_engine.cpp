@@ -23,6 +23,7 @@ namespace knight::dfa {
 void BlockExecutionEngine::exec() {
     ProgramStateRef state = m_state;
     for (const auto& elem : m_node->Elements) {
+        m_current_elem_idx++;
         switch (elem.getKind()) {
             using enum clang::CFGElement::Kind;
             default:
@@ -78,6 +79,13 @@ void BlockExecutionEngine::exec() {
     }
 }
 
+[[nodiscard]] const LocationContext* BlockExecutionEngine::
+    get_location_context() const {
+    return m_location_manager.create_location_context(m_frame,
+                                                      m_current_elem_idx,
+                                                      m_node);
+}
+
 /// \brief Transfer C++ base or member initializer from constructor's
 /// initialization list.
 void BlockExecutionEngine::exec_cxx_ctor_initializer(
@@ -120,8 +128,9 @@ void BlockExecutionEngine::exec_lifetime_ends(StmtRef trigger_stmt,
 ProgramStateRef BlockExecutionEngine::exec_cfg_stmt(
     StmtRef stmt, const ProgramStateRef& state) {
     AnalysisContext analysis_ctx(m_analysis_manager.get_context(),
-                                 m_analysis_manager.get_region_manager());
-    analysis_ctx.set_current_stack_frame(m_frame);
+                                 m_analysis_manager.get_region_manager(),
+                                 m_frame,
+                                 get_location_context());
     analysis_ctx.set_state(state);
     m_stmt_post[stmt] = state;
 

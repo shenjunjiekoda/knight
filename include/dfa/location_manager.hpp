@@ -46,7 +46,7 @@ class LocationManager {
                                        unsigned stmt_idx);
     const LocationContext* create_location_context(
         [[gnu::nonnull]] const StackFrame* stack_frame,
-        unsigned element_id,
+        int element_id,
         const clang::CFGBlock* block);
 
   private:

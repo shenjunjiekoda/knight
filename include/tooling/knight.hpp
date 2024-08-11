@@ -95,6 +95,7 @@ class KnightASTConsumer : public clang::ASTConsumer {
                 engine(m_ctx,
                        m_analysis_manager,
                        m_checker_manager,
+                       m_location_manager,
                        m_analysis_manager.get_state_manager(),
                        frame);
             engine.run();

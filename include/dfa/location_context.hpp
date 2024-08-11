@@ -24,13 +24,13 @@ class LocationContext : public llvm::FoldingSetNode {
   private:
     const LocationManager* m_location_manager;
     const StackFrame* m_stack_frame;
-    unsigned m_element_id;
+    int m_element_id;
     const clang::CFGBlock* m_block;
 
   public:
     LocationContext([[gnu::nonnull]] const LocationManager* manager,
                     [[gnu::nonnull]] const StackFrame* stack_frame,
-                    unsigned element_id,
+                    int element_id,
                     [[gnu::nonnull]] const clang::CFGBlock* block);
 
     ~LocationContext() = default;
@@ -43,8 +43,8 @@ class LocationContext : public llvm::FoldingSetNode {
 
     [[gnu::returns_nonnull, nodiscard]] const LocationManager*
     get_location_manager() const;
-
-    [[nodiscard]] unsigned get_element_id() const { return m_element_id; }
+    [[nodiscard]] bool is_element() const { return m_element_id >= 0; }
+    [[nodiscard]] int get_element_id() const { return m_element_id; }
 
     [[gnu::returns_nonnull, nodiscard]] const clang::CFGBlock* get_block()
         const {
@@ -52,6 +52,7 @@ class LocationContext : public llvm::FoldingSetNode {
     }
 
     [[nodiscard]] clang::CFGElement get_element() const {
+        knight_assert(is_element());
         return m_block->Elements[m_element_id];
     }
 

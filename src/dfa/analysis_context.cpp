@@ -21,8 +21,13 @@
 namespace knight::dfa {
 
 AnalysisContext::AnalysisContext(KnightContext& ctx,
-                                 RegionManager& region_manager)
-    : m_ctx(ctx), m_region_manager(region_manager) {}
+                                 RegionManager& region_manager,
+                                 const StackFrame* frame,
+                                 const LocationContext* loc_ctx)
+    : m_ctx(ctx),
+      m_region_manager(region_manager),
+      m_frame(frame),
+      m_location_context(loc_ctx) {}
 
 RegionManager& AnalysisContext::get_region_manager() const {
     return m_region_manager;
@@ -50,6 +55,10 @@ const clang::Decl* AnalysisContext::get_current_decl() const {
 
 const StackFrame* AnalysisContext::get_current_stack_frame() const {
     return m_frame;
+}
+
+const LocationContext* AnalysisContext::get_current_location_context() const {
+    return m_location_context;
 }
 
 void AnalysisContext::set_current_stack_frame(const StackFrame* frame) {

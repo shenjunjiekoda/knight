@@ -18,7 +18,7 @@ namespace knight::dfa {
 
 LocationContext::LocationContext(const LocationManager* manager,
                                  const StackFrame* stack_frame,
-                                 unsigned element_id,
+                                 int element_id,
                                  const clang::CFGBlock* block)
     : m_location_manager(manager),
       m_stack_frame(stack_frame),
@@ -83,7 +83,7 @@ const StackFrame* LocationManager::create_from_node(
 
 const LocationContext* LocationManager::create_location_context(
     const StackFrame* stack_frame,
-    unsigned element_id,
+    int element_id,
     const clang::CFGBlock* block) {
     llvm::FoldingSetNodeID id;
     LocationContext::profile(id, stack_frame, element_id, block);

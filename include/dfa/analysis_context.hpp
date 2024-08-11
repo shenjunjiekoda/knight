@@ -16,6 +16,7 @@
 #include <clang/AST/ASTContext.h>
 #include <clang/AST/DeclBase.h>
 
+#include "dfa/location_context.hpp"
 #include "dfa/program_state.hpp"
 
 namespace knight {
@@ -30,12 +31,17 @@ class RegionManager;
 class AnalysisContext {
   private:
     KnightContext& m_ctx;
-    const StackFrame* m_frame{nullptr};
+    const StackFrame* m_frame;
+    const LocationContext* m_location_context;
+
     ProgramStateRef m_state{nullptr};
     RegionManager& m_region_manager;
 
   public:
-    explicit AnalysisContext(KnightContext& ctx, RegionManager& region_manager);
+    explicit AnalysisContext(KnightContext& ctx,
+                             RegionManager& region_manager,
+                             const StackFrame* frame,
+                             const LocationContext* loc_ctx);
 
     [[nodiscard]] RegionManager& get_region_manager() const;
     [[nodiscard]] KnightContext& get_knight_context() const { return m_ctx; }
@@ -43,6 +49,7 @@ class AnalysisContext {
     [[nodiscard]] clang::SourceManager& get_source_manager() const;
     [[nodiscard]] const clang::Decl* get_current_decl() const;
     [[nodiscard]] const StackFrame* get_current_stack_frame() const;
+    [[nodiscard]] const LocationContext* get_current_location_context() const;
     [[nodiscard]] ProgramStateRef get_state() const;
     void set_current_stack_frame(const StackFrame* frame);
     void set_state(ProgramStateRef state);

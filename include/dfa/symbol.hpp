@@ -87,7 +87,7 @@ class SymIterator {
 }; // class SymIterator
 
 /// Numerical symbol(Integer for now).
-class SymExpr {
+class SymExpr : public llvm::FoldingSetNode {
   protected:
     SymExprKind m_kind;
     mutable unsigned m_complexity{0U};
@@ -154,9 +154,16 @@ class ScalarInt : public Scalar {
 
     [[nodiscard]] clang::QualType get_type() const override { return m_type; }
 
+    static void profile(llvm::FoldingSetNodeID& id,
+                        const llvm::APSInt& value,
+                        clang::QualType type) {
+        id.AddInteger(static_cast< unsigned >(SymExprKind::Int));
+        id.Add(value);
+        id.Add(type);
+    }
+
     void Profile(llvm::FoldingSetNodeID& id) const override { // NOLINT
-        id.Add(m_value);
-        id.Add(m_type);
+        ScalarInt::profile(id, m_value, m_type);
     }
 }; // class Integer
 
@@ -179,10 +186,16 @@ class ScalarFloat : public Scalar {
     }
 
     [[nodiscard]] clang::QualType get_type() const override { return m_type; }
+    static void profile(llvm::FoldingSetNodeID& id,
+                        const llvm::APFloat& value,
+                        clang::QualType type) {
+        id.AddInteger(static_cast< unsigned >(SymExprKind::Float));
+        id.Add(value);
+        id.Add(type);
+    }
 
     void Profile(llvm::FoldingSetNodeID& id) const override { // NOLINT
-        id.Add(m_value);
-        id.Add(m_type);
+        ScalarFloat::profile(id, m_value, m_type);
     }
 }; // class Float
 

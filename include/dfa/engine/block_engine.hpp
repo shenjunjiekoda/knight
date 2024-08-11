@@ -14,6 +14,8 @@
 #pragma once
 
 #include "dfa/analysis_manager.hpp"
+#include "dfa/location_context.hpp"
+#include "dfa/location_manager.hpp"
 #include "dfa/proc_cfg.hpp"
 #include "dfa/program_state.hpp"
 #include "dfa/stack_frame.hpp"
@@ -37,16 +39,20 @@ class BlockExecutionEngine {
     GraphRef m_cfg;
     NodeRef m_node;
     AnalysisManager& m_analysis_manager;
+    LocationManager& m_location_manager;
 
     ProgramStateRef m_state;
     StmtResultCache& m_stmt_pre;
     StmtResultCache& m_stmt_post;
     const StackFrame* m_frame;
 
+    int m_current_elem_idx = -1;
+
   public:
     BlockExecutionEngine(GraphRef cfg,
                          NodeRef node,
                          AnalysisManager& analysis_manager,
+                         LocationManager& location_manager,
                          ProgramStateRef in_state,
                          StmtResultCache& stmt_pre,
                          StmtResultCache& stmt_post,
@@ -54,6 +60,7 @@ class BlockExecutionEngine {
         : m_cfg(cfg),
           m_node(node),
           m_analysis_manager(analysis_manager),
+          m_location_manager(location_manager),
           m_state(std::move(in_state)),
           m_stmt_pre(stmt_pre),
           m_stmt_post(stmt_post),
@@ -66,6 +73,8 @@ class BlockExecutionEngine {
     [[nodiscard]] ProgramStateRef get_state() const { return m_state; }
 
   private:
+    [[nodiscard]] const LocationContext* get_location_context() const;
+
     /// \brief Transfer C++ base or member initializer from constructor's
     /// initialization list.
     void exec_cxx_ctor_initializer(clang::CXXCtorInitializer* initializer);
