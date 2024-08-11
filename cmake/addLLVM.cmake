@@ -19,7 +19,9 @@ message(STATUS "-> bin dir: ${LLVM_TOOLS_BINARY_DIR}")
 
 find_library(LLVM_LIBS NAMES llvm libllvm HINTS ${LLVM_LIBRARY_DIRS} NO_DEFAULT_PATH)
 
-if(NOT LINK_LLVM_DYLIB AND NOT ${LLVM_LIBS})
+if(LINK_LLVM_DYLIB)
+  set(LLVM_LIBS "LLVM")
+elseif(NOT ${LLVM_LIBS})
   llvm_map_components_to_libnames(LLVM_LIBS ${LLVM_TARGETS_TO_BUILD}
     core support option frontendopenmp)
 endif()

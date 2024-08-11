@@ -17,7 +17,7 @@ endif()
 
 find_library(CLANG_LIBS NAMES clang libclang HINTS ${CLANG_LIBRARY_DIRS} NO_DEFAULT_PATH)
 
-if(NOT LINK_CLANG_DYLIB AND NOT ${CLANG_LIBS})
+if(NOT ${CLANG_LIBS})
   set(CLANG_LIBS
     clangAST
     clangASTMatchers
