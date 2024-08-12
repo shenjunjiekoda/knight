@@ -135,9 +135,11 @@ const CXXTempObjRegion* RegionManager::get_cxx_temp_object_region(
 }
 
 const ElementRegion* RegionManager::get_element_region(
-    clang::QualType element_type, MemRegionRef base_region) {
+    clang::QualType element_type, MemRegionRef base_region, SExprRef idx) {
     element_type = element_type.getCanonicalType().getUnqualifiedType();
-    return get_persistent_region< ElementRegion >(element_type, base_region);
+    return get_persistent_region< ElementRegion >(element_type,
+                                                  base_region,
+                                                  idx);
 }
 
 const VarRegion* RegionManager::get_var_region(const clang::VarDecl* var_decl,

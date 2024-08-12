@@ -248,7 +248,9 @@ class RegionSymVal : public Sym {
     [[nodiscard]] bool is_external() const { return m_is_external; }
 
     static void profile(llvm::FoldingSetNodeID& id,
+                        [[maybe_unused]] SymID sid,
                         const TypedRegion* region,
+                        [[maybe_unused]] const LocationContext* loc_ctx,
                         bool is_external) {
         id.AddInteger(static_cast< unsigned >(SymExprKind::RegionSymbolVal));
         id.AddPointer(region);
@@ -256,7 +258,11 @@ class RegionSymVal : public Sym {
     }
 
     void Profile(llvm::FoldingSetNodeID& profile) const override { // NOLINT
-        RegionSymVal::profile(profile, m_region, m_is_external);
+        RegionSymVal::profile(profile,
+                              get_id(),
+                              m_region,
+                              m_loc_ctx,
+                              m_is_external);
     }
 
     [[nodiscard]] llvm::StringRef get_kind_name() const override {
@@ -266,6 +272,11 @@ class RegionSymVal : public Sym {
     void dump(llvm::raw_ostream& os) const override;
     [[gnu::returns_nonnull, nodiscard]] const MemRegion* get_src_region()
         const override;
+    [[gnu::returns_nonnull, nodiscard]] const LocationContext* get_loc_ctx()
+        const {
+        return m_loc_ctx;
+    }
+
     [[nodiscard]] clang::QualType get_type() const override;
 
     static bool classof(const SymExpr* sym_expr) {

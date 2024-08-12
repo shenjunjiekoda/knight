@@ -27,6 +27,7 @@ namespace dfa {
 
 class StackFrame;
 class RegionManager;
+class SymbolManager;
 
 class AnalysisContext {
   private:
@@ -36,14 +37,17 @@ class AnalysisContext {
 
     ProgramStateRef m_state{nullptr};
     RegionManager& m_region_manager;
+    SymbolManager& m_sym_manager;
 
   public:
     explicit AnalysisContext(KnightContext& ctx,
                              RegionManager& region_manager,
                              const StackFrame* frame,
+                             SymbolManager& sym_manager,
                              const LocationContext* loc_ctx);
 
     [[nodiscard]] RegionManager& get_region_manager() const;
+    [[nodiscard]] SymbolManager& get_symbol_manager() const;
     [[nodiscard]] KnightContext& get_knight_context() const { return m_ctx; }
     [[nodiscard]] clang::ASTContext& get_ast_context() const;
     [[nodiscard]] clang::SourceManager& get_source_manager() const;

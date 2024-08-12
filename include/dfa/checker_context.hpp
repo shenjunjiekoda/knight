@@ -18,6 +18,7 @@
 
 #include "dfa/location_context.hpp"
 #include "dfa/program_state.hpp"
+#include "dfa/symbol_manager.hpp"
 
 namespace knight {
 
@@ -34,11 +35,17 @@ class CheckerContext {
     ProgramStateRef m_state{nullptr};
     const LocationContext* m_location_context;
 
+    SymbolManager& m_sym_manager;
+
   public:
     explicit CheckerContext(KnightContext& ctx,
                             const StackFrame* frame,
+                            SymbolManager& sym_manager,
                             const LocationContext* loc_ctx)
-        : m_ctx(ctx), m_frame(frame), m_location_context(loc_ctx) {}
+        : m_ctx(ctx),
+          m_frame(frame),
+          m_location_context(loc_ctx),
+          m_sym_manager(sym_manager) {}
 
     [[nodiscard]] KnightContext& get_knight_context() const { return m_ctx; }
     [[nodiscard]] clang::ASTContext& get_ast_context() const;
@@ -48,6 +55,9 @@ class CheckerContext {
     [[nodiscard]] const StackFrame* get_current_stack_frame() const;
     [[nodiscard]] const LocationContext* get_location_context() const {
         return m_location_context;
+    }
+    [[nodiscard]] SymbolManager& get_symbol_manager() const {
+        return m_sym_manager;
     }
 
     void set_current_state(ProgramStateRef state) {

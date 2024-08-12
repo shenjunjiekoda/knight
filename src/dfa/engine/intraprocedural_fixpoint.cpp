@@ -27,6 +27,7 @@ IntraProceduralFixpointIterator::IntraProceduralFixpointIterator(
     knight::KnightContext& ctx,
     AnalysisManager& analysis_mgr,
     CheckerManager& checker_mgr,
+    SymbolManager& symbol_mgr,
     LocationManager& location_mgr,
     ProgramStateManager& state_mgr,
     const StackFrame* frame)
@@ -34,6 +35,7 @@ IntraProceduralFixpointIterator::IntraProceduralFixpointIterator(
       m_ctx(ctx),
       m_analysis_mgr(analysis_mgr),
       m_checker_mgr(checker_mgr),
+      m_symbol_mgr(symbol_mgr),
       m_location_mgr(location_mgr),
       m_state_mgr(state_mgr),
       WtoBasedFixPointIterator(frame, state_mgr.get_bottom_state()) {}
@@ -44,6 +46,7 @@ ProgramStateRef IntraProceduralFixpointIterator::transfer_node(
         AnalysisContext analysis_ctx(m_ctx,
                                      m_analysis_mgr.get_region_manager(),
                                      m_frame,
+                                     m_symbol_mgr,
                                      m_location_mgr
                                          .create_location_context(m_frame,
                                                                   -1,
@@ -55,6 +58,7 @@ ProgramStateRef IntraProceduralFixpointIterator::transfer_node(
         AnalysisContext analysis_ctx(m_ctx,
                                      m_analysis_mgr.get_region_manager(),
                                      m_frame,
+                                     m_symbol_mgr,
                                      m_location_mgr
                                          .create_location_context(m_frame,
                                                                   -1,
@@ -66,6 +70,7 @@ ProgramStateRef IntraProceduralFixpointIterator::transfer_node(
     BlockExecutionEngine engine(get_cfg(),
                                 node,
                                 m_analysis_mgr,
+                                m_symbol_mgr,
                                 m_location_mgr,
                                 pre_state,
                                 m_stmt_pre,
@@ -84,7 +89,7 @@ ProgramStateRef IntraProceduralFixpointIterator::transfer_edge(
 
 void IntraProceduralFixpointIterator::check_pre(
     NodeRef node, [[maybe_unused]] const ProgramStateRef& state) {
-    CheckerContext checker_ctx(m_ctx, m_frame, nullptr);
+    CheckerContext checker_ctx(m_ctx, m_frame, m_symbol_mgr, nullptr);
     int elem_idx = -1;
 
     auto set_loc = [&]() {
@@ -125,7 +130,7 @@ void IntraProceduralFixpointIterator::check_pre(
 
 void IntraProceduralFixpointIterator::check_post(
     NodeRef node, [[maybe_unused]] const ProgramStateRef& state) {
-    CheckerContext checker_ctx(m_ctx, m_frame, nullptr);
+    CheckerContext checker_ctx(m_ctx, m_frame, m_symbol_mgr, nullptr);
     int elem_idx = -1;
 
     auto set_loc = [&]() {

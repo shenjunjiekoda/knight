@@ -130,6 +130,7 @@ ProgramStateRef BlockExecutionEngine::exec_cfg_stmt(
     AnalysisContext analysis_ctx(m_analysis_manager.get_context(),
                                  m_analysis_manager.get_region_manager(),
                                  m_frame,
+                                 m_sym_manager,
                                  get_location_context());
     analysis_ctx.set_state(state);
     m_stmt_post[stmt] = state;

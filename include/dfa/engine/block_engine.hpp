@@ -19,6 +19,7 @@
 #include "dfa/proc_cfg.hpp"
 #include "dfa/program_state.hpp"
 #include "dfa/stack_frame.hpp"
+#include "dfa/symbol_manager.hpp"
 
 #include <clang/AST/DeclCXX.h>
 #include <clang/AST/ExprCXX.h>
@@ -39,6 +40,7 @@ class BlockExecutionEngine {
     GraphRef m_cfg;
     NodeRef m_node;
     AnalysisManager& m_analysis_manager;
+    SymbolManager& m_sym_manager;
     LocationManager& m_location_manager;
 
     ProgramStateRef m_state;
@@ -52,6 +54,7 @@ class BlockExecutionEngine {
     BlockExecutionEngine(GraphRef cfg,
                          NodeRef node,
                          AnalysisManager& analysis_manager,
+                         SymbolManager& symbol_manager,
                          LocationManager& location_manager,
                          ProgramStateRef in_state,
                          StmtResultCache& stmt_pre,
@@ -60,6 +63,7 @@ class BlockExecutionEngine {
         : m_cfg(cfg),
           m_node(node),
           m_analysis_manager(analysis_manager),
+          m_sym_manager(symbol_manager),
           m_location_manager(location_manager),
           m_state(std::move(in_state)),
           m_stmt_pre(stmt_pre),

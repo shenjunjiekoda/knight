@@ -31,6 +31,7 @@ namespace knight::dfa {
 
 class ProgramState;
 class ProgramStateManager;
+class SymbolManager;
 
 void retain_state(const ProgramState* state);
 void release_state(const ProgramState* state);
@@ -123,6 +124,12 @@ class ProgramState : public llvm::FoldingSetNode {
   public:
     std::optional< MemRegionRef > get_region(ProcCFG::DeclRef decl,
                                              const StackFrame*) const;
+    std::optional< MemRegionRef > get_region(ProcCFG::StmtRef expr,
+                                             const StackFrame*) const;
+    std::optional< SExprRef > try_get_sexpr(ProcCFG::StmtRef expr,
+                                            const LocationContext*,
+                                            SymbolManager&) const;
+
     ProgramStateRef set_region_sexpr(MemRegionRef region, SExprRef sexpr) const;
     ProgramStateRef set_stmt_sexpr(ProcCFG::StmtRef stmt, SExprRef sexpr) const;
 

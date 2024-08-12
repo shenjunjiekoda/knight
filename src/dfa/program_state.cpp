@@ -16,7 +16,9 @@
 #include "dfa/checker/checker_base.hpp"
 #include "dfa/domain/dom_base.hpp"
 #include "dfa/domain/domains.hpp"
+#include "dfa/location_context.hpp"
 #include "dfa/region/region.hpp"
+#include "dfa/symbol_manager.hpp"
 #include "util/assert.hpp"
 
 #include <llvm/ADT/BitVector.h>
@@ -74,6 +76,45 @@ std::optional< MemRegionRef > ProgramState::get_region(
                                                frame);
     }
     llvm::errs() << "unhandled decl type: " << decl->getDeclKindName() << "\n";
+    return std::nullopt;
+}
+
+std::optional< SExprRef > ProgramState::try_get_sexpr(
+    ProcCFG::StmtRef expr,
+    const LocationContext* loc_ctx,
+    SymbolManager& sym_mgr) const {
+    if (auto res = get_stmt_sexpr(expr)) {
+        return res;
+    }
+
+    auto region_opt = get_region(expr, loc_ctx->get_stack_frame());
+    if (!region_opt.has_value()) {
+        return std::nullopt;
+    }
+
+    auto region_sexpr_opt = get_region_sexpr(region_opt.value());
+    if (!region_sexpr_opt.has_value()) {
+        if (const auto* typed_region =
+                llvm::dyn_cast< TypedRegion >(region_opt.value())) {
+            // Use region sval as sexpr if we did not bind this region
+            // before.
+            return sym_mgr.get_region_sym_val(typed_region, loc_ctx);
+        }
+    }
+    return region_sexpr_opt;
+}
+
+std::optional< MemRegionRef > ProgramState::get_region(
+    ProcCFG::StmtRef expr, const StackFrame* frame) const {
+    if (const auto* decl_ref_expr =
+            llvm::dyn_cast< clang::DeclRefExpr >(expr)) {
+        const auto* decl = decl_ref_expr->getDecl();
+        if (decl == nullptr) {
+            return std::nullopt;
+        }
+
+        return get_region(decl, frame);
+    }
     return std::nullopt;
 }
 

@@ -19,6 +19,7 @@
 #include "dfa/proc_cfg.hpp"
 #include "dfa/program_state.hpp"
 #include "dfa/stack_frame.hpp"
+#include "dfa/symbol_manager.hpp"
 #include "support/graph.hpp"
 
 namespace knight::dfa {
@@ -38,6 +39,7 @@ class IntraProceduralFixpointIterator final
     KnightContext& m_ctx;
     CheckerManager& m_checker_mgr;
     AnalysisManager& m_analysis_mgr;
+    SymbolManager& m_symbol_mgr;
     LocationManager& m_location_mgr;
     ProgramStateManager& m_state_mgr;
     const StackFrame* m_frame;
@@ -49,6 +51,7 @@ class IntraProceduralFixpointIterator final
     IntraProceduralFixpointIterator(knight::KnightContext& ctx,
                                     AnalysisManager& analysis_mgr,
                                     CheckerManager& checker_mgr,
+                                    SymbolManager& symbol_mgr,
                                     LocationManager& location_mgr,
                                     ProgramStateManager& state_mgr,
                                     const StackFrame* frame);

@@ -25,6 +25,7 @@
 
 #include "dfa/region/regions.hpp"
 #include "dfa/stack_frame.hpp"
+#include "dfa/symbol.hpp"
 
 namespace knight::dfa {
 
@@ -63,6 +64,10 @@ class MemSpaceRegion {
         id.AddInteger(static_cast< unsigned >(m_kind));
     }
     virtual void dump(llvm::raw_ostream& os) const = 0;
+    [[nodiscard]] bool is_stack_local() const {
+        return m_kind == SpaceKind::StackLocal;
+    }
+
 }; // class MemSpaceRegion
 
 class StackSpaceRegion : public MemSpaceRegion {
@@ -555,12 +560,17 @@ class ElementRegion : public TypedRegion {
   private:
     clang::QualType m_element_type;
     // TODO(sym): add symbolic index value?
+    SExprRef m_idx;
+
   private:
-    ElementRegion(const clang::QualType& element_type, MemRegionRef base_region)
+    ElementRegion(const clang::QualType& element_type,
+                  MemRegionRef base_region,
+                  SExprRef idx)
         : TypedRegion(RegionKind::ElemRegion,
                       base_region->get_memory_space(),
                       base_region),
-          m_element_type(element_type) {
+          m_element_type(element_type),
+          m_idx(idx) {
         knight_assert_msg(!element_type.isNull(), "invalid element type");
     }
 
@@ -575,19 +585,22 @@ class ElementRegion : public TypedRegion {
         return m_element_type;
     }
 
+    [[nodiscard]] SExprRef get_index() const { return m_idx; }
+
     static void profile(llvm::FoldingSetNodeID& id,
                         const clang::QualType& element_type,
-                        MemRegionRef base_region) {
+                        MemRegionRef base_region,
+                        SExprRef idx) {
         TypedRegion::profile(id,
                              RegionKind::ElemRegion,
                              base_region->get_memory_space(),
                              base_region);
         id.Add(element_type);
-        // TODO(idx): add idx profile
+        id.AddPointer(idx);
     }
 
     void Profile(llvm::FoldingSetNodeID& id) const override { // NOLINT
-        profile(id, m_element_type, m_parent);
+        profile(id, m_element_type, m_parent, m_idx);
     }
 
     void dump(llvm::raw_ostream& os) const override {
@@ -937,7 +950,8 @@ class RegionManager {
         const StackFrame* frame,
         MemRegionRef parent = nullptr);
     const ElementRegion* get_element_region(clang::QualType element_type,
-                                            MemRegionRef base_region);
+                                            MemRegionRef base_region,
+                                            SExprRef idx);
     const VarRegion* get_var_region(const clang::VarDecl* var_decl,
                                     MemSpaceRegionRef space,
                                     MemRegionRef parent);

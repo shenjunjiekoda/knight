@@ -13,6 +13,8 @@
 
 #pragma once
 
+#include "dfa/location_context.hpp"
+#include "dfa/region/region.hpp"
 #include "symbol.hpp"
 
 namespace knight::dfa {
@@ -21,6 +23,7 @@ class SymbolManager {
   private:
     llvm::BumpPtrAllocator& m_allocator;
     llvm::FoldingSet< SymExpr > m_sexpr_set;
+    SymID m_sym_cnt = 0U;
 
   public:
     explicit SymbolManager(llvm::BumpPtrAllocator& allocator)
@@ -34,6 +37,17 @@ class SymbolManager {
     const ScalarFloat* get_scalar_float(const llvm::APFloat& value,
                                         clang::QualType type) {
         return get_persistent_sepxr< ScalarFloat >(value, type);
+    }
+
+    const RegionSymVal* get_region_sym_val(const TypedRegion* typed_region,
+                                           const LocationContext* loc_ctx) {
+        m_sym_cnt++;
+        const auto* space = typed_region->get_memory_space();
+        bool is_external = space == nullptr || space->is_stack_local();
+        return get_persistent_sepxr< RegionSymVal >(m_sym_cnt,
+                                                    typed_region,
+                                                    loc_ctx,
+                                                    is_external);
     }
 
   private:

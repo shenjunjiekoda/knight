@@ -16,6 +16,7 @@
 #include "dfa/program_state.hpp"
 #include "dfa/region/region.hpp"
 #include "dfa/stack_frame.hpp"
+#include "dfa/symbol_manager.hpp"
 #include "tooling/context.hpp"
 
 namespace knight::dfa {
@@ -23,14 +24,20 @@ namespace knight::dfa {
 AnalysisContext::AnalysisContext(KnightContext& ctx,
                                  RegionManager& region_manager,
                                  const StackFrame* frame,
+                                 SymbolManager& sym_manager,
                                  const LocationContext* loc_ctx)
     : m_ctx(ctx),
       m_region_manager(region_manager),
       m_frame(frame),
+      m_sym_manager(sym_manager),
       m_location_context(loc_ctx) {}
 
 RegionManager& AnalysisContext::get_region_manager() const {
     return m_region_manager;
+}
+
+SymbolManager& AnalysisContext::get_symbol_manager() const {
+    return m_sym_manager;
 }
 
 clang::ASTContext& AnalysisContext::get_ast_context() const {
