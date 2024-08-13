@@ -29,6 +29,13 @@ enum class AnalysisKind {
 #include "analyses.def"
 }; // enum class AnalysisKind
 
+enum class AnalysisKind {
+    None,
+    #define ANALYSIS_DEF(KIND, NAME, ID, DESC) KIND,
+    #include "analyses.def"
+    ResourceLeakAnalysis,
+}; // enum class AnalysisKind
+
 inline llvm::StringRef get_analysis_name(AnalysisKind kind) {
     switch (kind) {
 #undef ANALYSIS_DEF
