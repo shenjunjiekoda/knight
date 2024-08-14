@@ -65,7 +65,7 @@ void RegionSymVal::dump(llvm::raw_ostream& os) const {
        << get_region() << '>';
 }
 
-const MemRegion* RegionSymVal::get_src_region() const {
+std::optional< const MemRegion* > RegionSymVal::get_as_region() const {
     return m_region;
 }
 
@@ -99,7 +99,7 @@ void SymbolConjured::dump(llvm::raw_ostream& os) const {
     } else {
         os << " at unknown stmt";
     }
-    os << ", #" << m_visit_cnt << "}";
+    os << "}";
 }
 
 unsigned UnarySymExpr::get_worst_complexity() const {

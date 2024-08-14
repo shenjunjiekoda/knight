@@ -153,6 +153,27 @@ std::optional< SExprRef > ProgramState::get_stmt_sexpr(
     return std::nullopt;
 }
 
+std::optional< SExprRef > ProgramState::get_stmt_sexpr(
+    ProcCFG::StmtRef stmt, const StackFrame* frame) const {
+    if (auto res = get_stmt_sexpr(stmt)) {
+        return res;
+    }
+    if (auto region_opt = get_region(stmt, frame)) {
+        return get_region_sexpr(region_opt.value());
+    }
+    return std::nullopt;
+}
+
+SExprRef ProgramState::get_stmt_sexpr_or_conjured(ProcCFG::StmtRef stmt,
+                                                  const clang::QualType& type,
+                                                  const StackFrame* frame,
+                                                  SymbolManager& mgr) const {
+    if (auto res = get_stmt_sexpr(stmt, frame)) {
+        return res.value();
+    }
+    return mgr.get_symbol_conjured(stmt, type, frame);
+}
+
 ProgramStateRef ProgramState::normalize() const {
     DomValMap dom_val = m_dom_val;
     for (auto& [id, val] : dom_val) {

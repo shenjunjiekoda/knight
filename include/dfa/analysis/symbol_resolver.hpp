@@ -77,19 +77,64 @@ class SymbolResolver
         auto state = m_ctx->get_state();
         auto* lhs = binary_operator->getLHS();
         auto* rhs = binary_operator->getRHS();
+        auto& sym_mgr = m_ctx->get_symbol_manager();
+
+        SExprRef rhs_sexpr =
+            state->get_stmt_sexpr_or_conjured(rhs,
+                                              m_ctx->get_current_stack_frame(),
+                                              sym_mgr);
 
         switch (binary_operator->getOpcode()) {
             case clang::BO_Assign: {
                 if (auto region_opt =
                         state->get_region(lhs,
                                           m_ctx->get_current_stack_frame())) {
-                    // TODO(assign-region): handle region binding
+                    state =
+                        state->set_region_sexpr(region_opt.value(), rhs_sexpr);
                 }
+                state = state->set_stmt_sexpr(binary_operator, rhs_sexpr);
+            } break;
+            case clang::BO_Add:
+                [[fallthrough]];
+            case clang::BO_Sub:
+                [[fallthrough]];
+            case clang::BO_Mul:
+                [[fallthrough]];
+            case clang::BO_Div:
+                [[fallthrough]];
+            case clang::BO_Rem:
+                [[fallthrough]];
+            case clang::BO_Shl:
+                [[fallthrough]];
+            case clang::BO_Shr:
+                [[fallthrough]];
+            case clang::BO_LT:
+                [[fallthrough]];
+            case clang::BO_GT:
+                [[fallthrough]];
+            case clang::BO_LE:
+                [[fallthrough]];
+            case clang::BO_GE:
+                [[fallthrough]];
+            case clang::BO_EQ:
+                [[fallthrough]];
+            case clang::BO_NE: {
+                SExprRef lhs_sexpr = state->get_stmt_sexpr_or_conjured(
+                    lhs,
+                    m_ctx->get_current_stack_frame(),
+                    m_ctx->get_symbol_manager());
+                SExprRef res = sym_mgr.normalize(
+                    sym_mgr.get_binary_sym_expr(lhs_sexpr,
+                                                rhs_sexpr,
+                                                binary_operator->getOpcode(),
+                                                binary_operator->getType()));
+                state = state->set_stmt_sexpr(binary_operator, res);
             } break;
             default:
-                // knight_unreachable("unhanlded binary operator kind"); // NOLINT
+                knight_unreachable("unhanlded binary operator kind"); // NOLINT
                 break;
         }
+        m_ctx->set_state(state);
     }
 
     void VisitDeclStmt(const clang::DeclStmt* decl_stmt) const {

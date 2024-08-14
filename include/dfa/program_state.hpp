@@ -18,6 +18,7 @@
 #include "dfa/domain/domains.hpp"
 #include "dfa/proc_cfg.hpp"
 #include "dfa/region/region.hpp"
+#include "dfa/stack_frame.hpp"
 #include "dfa/symbol.hpp"
 
 #include <optional>
@@ -135,6 +136,17 @@ class ProgramState : public llvm::FoldingSetNode {
 
     std::optional< SExprRef > get_region_sexpr(MemRegionRef region) const;
     std::optional< SExprRef > get_stmt_sexpr(ProcCFG::StmtRef stmt) const;
+    std::optional< SExprRef > get_stmt_sexpr(ProcCFG::StmtRef stmt,
+                                             const StackFrame* frame) const;
+    SExprRef get_stmt_sexpr_or_conjured(ProcCFG::StmtRef stmt,
+                                        const clang::QualType& type,
+                                        const StackFrame* frame,
+                                        SymbolManager& mgr) const;
+    SExprRef get_stmt_sexpr_or_conjured(const clang::Expr* expr,
+                                        const StackFrame* frame,
+                                        SymbolManager& mgr) const {
+        return get_stmt_sexpr_or_conjured(expr, expr->getType(), frame, mgr);
+    }
 
   public:
     /// \brief Check if the given domain kind exists in the program state.

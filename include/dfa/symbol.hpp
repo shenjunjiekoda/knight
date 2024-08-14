@@ -13,6 +13,7 @@
 
 #pragma once
 
+#include <optional>
 #include <type_traits>
 #include <utility>
 
@@ -108,7 +109,9 @@ class SymExpr : public llvm::FoldingSetNode {
         return llvm::make_range(SymIterator(this), SymIterator());
     }
 
-    virtual const MemRegion* get_src_region() const { return nullptr; }
+    virtual std::optional< const MemRegion* > get_as_region() const {
+        return std::nullopt;
+    }
 
     virtual bool is_leaf() const { return false; }
 
@@ -270,7 +273,7 @@ class RegionSymVal : public Sym {
     }
 
     void dump(llvm::raw_ostream& os) const override;
-    [[gnu::returns_nonnull, nodiscard]] const MemRegion* get_src_region()
+    [[nodiscard]] std::optional< const MemRegion* > get_as_region()
         const override;
     [[gnu::returns_nonnull, nodiscard]] const LocationContext* get_loc_ctx()
         const {
@@ -329,7 +332,6 @@ class SymbolConjured : public Sym {
   private:
     const clang::Stmt* m_stmt;
     clang::QualType m_type;
-    unsigned m_visit_cnt;
     const StackFrame* m_frame;
     const void* m_tag;
 
@@ -337,13 +339,11 @@ class SymbolConjured : public Sym {
     SymbolConjured(SymID id,
                    const clang::Stmt* stmt,
                    clang::QualType type,
-                   unsigned visit_cnt,
                    const StackFrame* frame,
                    const void* tag = nullptr)
         : Sym(id, SymExprKind::SymbolConjured),
           m_stmt(stmt),
           m_type(type),
-          m_visit_cnt(visit_cnt),
           m_frame(frame),
           m_tag(tag) {
         knight_assert_msg(is_valid_type_for_sym_expr(type), "Invalid type");
@@ -357,8 +357,6 @@ class SymbolConjured : public Sym {
 
     [[nodiscard]] clang::QualType get_type() const override { return m_type; }
 
-    [[nodiscard]] unsigned get_visit_cnt() const { return m_visit_cnt; }
-
     [[gnu::returns_nonnull]] const StackFrame* get_frame() const {
         return m_frame;
     }
@@ -366,24 +364,23 @@ class SymbolConjured : public Sym {
     [[nodiscard]] const void* get_tag() const { return m_tag; }
 
     static void profile(llvm::FoldingSetNodeID& id,
+                        [[maybe_unused]] SymID sid,
                         const clang::Stmt* stmt,
                         clang::QualType type,
-                        unsigned visit_cnt,
                         const StackFrame* frame,
                         const void* tag = nullptr) {
         id.AddInteger(static_cast< unsigned >(SymExprKind::SymbolConjured));
         id.AddPointer(stmt);
         id.Add(type);
-        id.AddInteger(visit_cnt);
         id.AddPointer(frame);
         id.AddPointer(tag);
     }
 
     void Profile(llvm::FoldingSetNodeID& profile) const override { // NOLINT
         SymbolConjured::profile(profile,
+                                get_id(),
                                 m_stmt,
                                 m_type,
-                                m_visit_cnt,
                                 m_frame,
                                 m_tag);
     }
@@ -574,12 +571,10 @@ class BinarySymExpr : public SymExpr {
     [[nodiscard]] bool is_leaf() const override { return true; }
 
     static void profile(llvm::FoldingSetNodeID& id,
-                        SymExprKind kind,
                         const SymExpr* lhs,
                         const SymExpr* rhs,
                         clang::BinaryOperator::Opcode opcode,
                         clang::QualType type) {
-        id.AddInteger(static_cast< unsigned >(kind));
         id.AddPointer(lhs);
         id.AddPointer(rhs);
         id.AddInteger(static_cast< unsigned >(opcode));
@@ -587,7 +582,7 @@ class BinarySymExpr : public SymExpr {
     }
 
     void Profile(llvm::FoldingSetNodeID& profile) const override { // NOLINT
-        BinarySymExpr::profile(profile, m_kind, m_lhs, m_rhs, m_opcode, m_type);
+        BinarySymExpr::profile(profile, m_lhs, m_rhs, m_opcode, m_type);
     }
 
     void dump(llvm::raw_ostream& os) const override {
