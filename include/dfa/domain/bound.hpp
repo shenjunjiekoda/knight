@@ -186,12 +186,24 @@ class Bound {
                                  const Bound< T >& c);
 
     template < typename T >
+    friend const Bound< T >& min(const Bound< T >& a,
+                                 const Bound< T >& b,
+                                 const Bound< T >& c,
+                                 const Bound< T >& d);
+
+    template < typename T >
     friend const Bound< T >& max(const Bound< T >& lhs, const Bound< T >& rhs);
 
     template < typename T >
     friend const Bound< T >& max(const Bound< T >& a,
                                  const Bound< T >& b,
                                  const Bound< T >& c);
+
+    template < typename T >
+    friend const Bound< T >& max(const Bound< T >& a,
+                                 const Bound< T >& b,
+                                 const Bound< T >& c,
+                                 const Bound< T >& d);
 
     template < typename T >
     inline Bound< T > abs(const Bound< T >& b);
@@ -278,6 +290,14 @@ inline const Bound< Num >& min(const Bound< Num >& a,
 }
 
 template < typename Num >
+inline const Bound< Num >& min(const Bound< Num >& a,
+                               const Bound< Num >& b,
+                               const Bound< Num >& c,
+                               const Bound< Num >& d) {
+    return min(min(a, b, c), d);
+}
+
+template < typename Num >
 inline const Bound< Num >& max(const Bound< Num >& a, const Bound< Num >& b) {
     return (a > b) ? a : b;
 }
@@ -287,6 +307,14 @@ inline const Bound< Num >& max(const Bound< Num >& a,
                                const Bound< Num >& b,
                                const Bound< Num >& c) {
     return max(max(a, b), c);
+}
+
+template < typename Num >
+inline const Bound< Num >& max(const Bound< Num >& a,
+                               const Bound< Num >& b,
+                               const Bound< Num >& c,
+                               const Bound< Num >& d) {
+    return max(max(a, b, c), d);
 }
 
 template < typename Num >

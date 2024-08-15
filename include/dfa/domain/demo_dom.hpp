@@ -35,9 +35,13 @@ class DemoItvDom : public AbsDom< DemoItvDom > {
 
   public:
     DemoItvDom() : DemoItvDom(INT_MIN, INT_MAX) {}
+
     explicit DemoItvDom(int x) : DemoItvDom(x, x) {}
+
     DemoItvDom(int l, int u) : m_lb(l), m_ub(u), m_is_bottom(false) {}
-    explicit DemoItvDom(Bottom) : m_lb(0), m_ub(0), m_is_bottom(true) {}
+
+    explicit DemoItvDom(Bottom) // NOLINT
+        : m_lb(0), m_ub(0), m_is_bottom(true) {}
 
     /// \brief specify the domain kind
     [[nodiscard]] static DomainKind get_kind() {
