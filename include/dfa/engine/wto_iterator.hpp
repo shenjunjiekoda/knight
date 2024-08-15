@@ -300,14 +300,14 @@ class WtoIterator final : public WtoComponentVisitor< G, GraphTrait > {
                                        head,
                                        this->m_fp_iterator.get_post(pred));
                 if (wto.get_nesting(pred) <= nesting) {
-                    new_state_front = new_state_front->join(std::move(head_in));
+                    new_state_front = new_state_front->join(head_in);
                 } else {
-                    new_state_back = new_state_back->join(std::move(head_in));
+                    new_state_back = new_state_back->join(head_in);
                 }
             }
 
             new_state_front =
-                new_state_front->join_at_loop_head(std::move(new_state_back));
+                new_state_front->join_at_loop_head(new_state_back);
             new_state_front = new_state_front->normalize();
             if (kind == IterationKind::Increasing) {
                 ProgramStateRef increased =

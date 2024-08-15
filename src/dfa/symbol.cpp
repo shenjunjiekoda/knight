@@ -17,30 +17,61 @@
 
 #include <clang/AST/Expr.h>
 
+#include <queue>
+
 namespace knight::dfa {
 
 bool is_valid_type_for_sym_expr(clang::QualType type) {
     return !type.isNull() && !type->isVoidType();
 }
 
-void SymIterator::expand() {
-    // TODO(sym): implement this
+void SymIterator::resolve(SExprRef sym_expr) {
+    std::queue< SExprRef > sym_exprs;
+    sym_exprs.push(sym_expr);
+
+    while (!sym_exprs.empty()) {
+        SExprRef back = sym_exprs.back();
+        sym_exprs.pop();
+        switch (back->get_kind()) {
+            using enum SymExprKind;
+            case RegionSymbolVal:
+            case RegionSymbolExtent:
+            case SymbolConjured: {
+                if (std::find(m_syms.begin(), m_syms.end(), back) ==
+                    m_syms.end()) {
+                    m_syms.push_back(cast< Sym >(back));
+                }
+            } break;
+            case CastSym: {
+                sym_exprs.push(cast< CastSymExpr >(back)->get_operand());
+            } break;
+            case UnarySymEx: {
+                sym_exprs.push(cast< UnarySymExpr >(back)->get_operand());
+            } break;
+            case BinarySymEx: {
+                sym_exprs.push(cast< BinarySymExpr >(back)->get_lhs());
+                sym_exprs.push(cast< BinarySymExpr >(back)->get_rhs());
+            } break;
+            default:
+                break;
+        }
+    }
 }
 
 SymIterator::SymIterator(const SymExpr* sym_expr) {
-    m_sym_exprs.push_back(sym_expr);
+    resolve(sym_expr);
 }
 
 SymIterator& SymIterator::operator++() {
-    assert(!m_sym_exprs.empty() &&
-           "iterator incremented past the end of the symbol expression");
-    expand();
+    assert(!m_syms.empty() &&
+           "iterator incremented past the end of the symbol set");
+    m_syms.pop_back();
     return *this;
 }
 
-SExprRef SymIterator::operator*() {
-    assert(!m_sym_exprs.empty() && "end iterator dereferenced");
-    return m_sym_exprs.back();
+const Sym* SymIterator::operator*() {
+    assert(!m_syms.empty() && "end iterator dereferenced");
+    return m_syms.back();
 }
 
 RegionSymVal::RegionSymVal(SymID id,

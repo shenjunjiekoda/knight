@@ -102,7 +102,11 @@ class DemoItvDom : public AbsDom< DemoItvDom > {
     }
 
     void meet_with(const DemoItvDom& other) {
-        if (is_bottom() || other.is_bottom()) {
+        if (is_bottom()) {
+            return;
+        }
+        if (other.is_bottom()) {
+            set_to_bottom();
             return;
         }
         m_lb = std::max(m_lb, other.m_lb);
@@ -113,7 +117,7 @@ class DemoItvDom : public AbsDom< DemoItvDom > {
         if (is_bottom() || other.is_top()) {
             return true;
         }
-        return m_lb <= other.m_lb && m_ub >= other.m_ub;
+        return m_lb >= other.m_lb && m_ub <= other.m_ub;
     }
 
     [[nodiscard]] bool equals(const DemoItvDom& other) const {

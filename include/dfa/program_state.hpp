@@ -214,6 +214,13 @@ class ProgramState : public llvm::FoldingSetNode {
     [[nodiscard]] ProgramStateRef set_to_bottom() const;
     [[nodiscard]] ProgramStateRef set_to_top() const;
 
+    /// TODO(symbol): if a region `reg` have different values in `se1`
+    /// and `se2`, join shall assign a symbolic value `sval` to `reg`.
+    /// And `sval` shall join the constraint of `se1` and `se2`.
+    ///
+    /// We can add the constraint `sval = se1` and `sval = se2` to two
+    /// states and join them, and `reg` will be assigned `sval` in the
+    /// joined state.
     [[nodiscard]] ProgramStateRef join(const ProgramStateRef& other) const;
     [[nodiscard]] ProgramStateRef join_at_loop_head(
         const ProgramStateRef& other) const;

@@ -66,25 +66,26 @@ bool is_valid_type_for_sym_expr(clang::QualType type);
 class SymExpr;
 class MemRegion;
 class TypedRegion;
+class Sym;
 
 using SExprRef = const SymExpr*;
 
 class SymIterator {
   private:
-    std::vector< const SymExpr* > m_sym_exprs;
+    std::vector< const Sym* > m_syms;
 
   public:
     SymIterator() = default;
-    explicit SymIterator(const SymExpr* sym_expr);
+    explicit SymIterator(SExprRef sym_expr);
 
     SymIterator& operator++();
-    SExprRef operator*();
+    const Sym* operator*();
 
     bool operator==(const SymIterator& other) const;
     bool operator!=(const SymIterator& other) const;
 
   private:
-    void expand();
+    void resolve(SExprRef sym_expr);
 }; // class SymIterator
 
 /// Numerical symbol(Integer for now).
