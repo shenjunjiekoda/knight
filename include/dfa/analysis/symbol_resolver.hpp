@@ -18,13 +18,13 @@
 #include "dfa/region/region.hpp"
 #include "dfa/symbol.hpp"
 #include "dfa/symbol_manager.hpp"
-#include "llvm/ADT/APSInt.h"
 #include "tooling/context.hpp"
 
 #include <clang/AST/Decl.h>
 #include <clang/AST/Expr.h>
 #include <clang/AST/Stmt.h>
 #include <clang/AST/StmtVisitor.h>
+#include <llvm/ADT/APSInt.h>
 #include <llvm/Support/raw_ostream.h>
 
 namespace knight::dfa {

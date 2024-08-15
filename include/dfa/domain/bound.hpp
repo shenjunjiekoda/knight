@@ -13,6 +13,9 @@
 
 #pragma once
 
+#include <llvm/ADT/APFloat.h>
+#include <llvm/ADT/APSInt.h>
+
 #include <llvm/Support/raw_ostream.h>
 
 #include "util/assert.hpp"
@@ -324,5 +327,8 @@ inline Bound< Num > abs(const Bound< Num >& b) {
     }
     return -b;
 }
+
+using ZBound = Bound< llvm::APSInt >;
+using QBound = Bound< llvm::APFloat >;
 
 } // namespace knight::dfa

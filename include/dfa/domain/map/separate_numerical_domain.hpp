@@ -20,16 +20,15 @@
 namespace knight::dfa {
 
 template < typename Num,
-           typename Var,
            derived_dom SeparateNumericalValue,
            DomainKind DomKind >
 class SeparateNumericalDom
     : public AbsDom<
-          SeparateNumericalDom< Num, Var, SeparateNumericalValue, DomKind > > {
+          SeparateNumericalDom< Num, SeparateNumericalValue, DomKind > > {
   public:
-    using VarRef = Var::Ref;
-    using Map = std::unordered_map< VarRef, SeparateNumericalValue >;
-    using LinearExpr = LinearExpr< Num, Var >;
+    using Var = Variable< Num >;
+    using Map = std::unordered_map< Var, SeparateNumericalValue >;
+    using LinearExpr = LinearExpr< Num >;
 
   private:
     Map m_table;
@@ -57,14 +56,14 @@ class SeparateNumericalDom
 
     const Map& get_table() const { return m_table; }
 
-    void forget(const VarRef& key) {
+    void forget(const Var& key) {
         if (this->is_bottom() || this->is_top()) {
             return;
         }
         this->m_table.erase(key);
     }
 
-    SeparateNumericalValue get_value(const VarRef& key) const {
+    SeparateNumericalValue get_value(const Var& key) const {
         if (this->is_bottom()) {
             return *(static_cast< SeparateNumericalValue* >(
                 SeparateNumericalValue::bottom_val().get()));
@@ -82,7 +81,7 @@ class SeparateNumericalDom
             SeparateNumericalValue::default_val().get()));
     }
 
-    void set_value(const VarRef& key, const SeparateNumericalValue& value) {
+    void set_value(const Var& key, const SeparateNumericalValue& value) {
         if (this->is_bottom()) {
             return;
         }
@@ -95,7 +94,7 @@ class SeparateNumericalDom
         }
     }
 
-    void meet_value(const VarRef& key, const SeparateNumericalValue& value) {
+    void meet_value(const Var& key, const SeparateNumericalValue& value) {
         if (this->is_bottom()) {
             return;
         }
@@ -391,16 +390,14 @@ class SeparateNumericalDom
     }
 
     /// \brief Assign `x = n`
-    void transfer_assign_constant(VarRef x, const Num& n) {
+    void transfer_assign_constant(Var x, const Num& n) {
         this->set_value(x, Value(n));
     }
 
     /// \brief Assign `x = y`
-    void transfer_assign_variable(VarRef x, VarRef y) {
+    void transfer_assign_variable(Var x, Var y) {
         this->set_value(x, this->get_value(y));
     }
-
-    void transfer_assign_linear_expr(VarRef x, const LinearExpr& expr) {}
 
 }; // class SeparateNumericalDom
 

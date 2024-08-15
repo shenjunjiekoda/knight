@@ -539,4 +539,7 @@ inline Interval< Num > operator^(const Interval< Num >& lhs,
     return IntervalT::top();
 }
 
+using ZInterval = Interval< llvm::APSInt >;
+using QInterval = Interval< llvm::APFloat >;
+
 } // namespace knight::dfa

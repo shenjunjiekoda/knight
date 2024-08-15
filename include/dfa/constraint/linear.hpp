@@ -15,6 +15,7 @@
 
 #include <llvm/Support/raw_ostream.h>
 
+#include "dfa/symbol.hpp"
 #include "support/dumpable.hpp"
 #include "util/assert.hpp"
 
@@ -24,12 +25,17 @@
 
 namespace knight::dfa {
 
-template < typename Num, typename Var >
+template < typename Num >
+struct Variable {
+    SymbolRef m_symbol;
+}; // struct Variable < Num >
+
+template < typename Num >
 class LinearExpr {
   public:
-    using VarRef = Var::Ref;
-    using VarSet = std::unordered_set< VarRef >;
-    using Map = std::unordered_map< VarRef, Num >;
+    using Var = Variable< Num >;
+    using VarSet = std::unordered_set< Var >;
+    using Map = std::unordered_map< Var, Num >;
 
   private:
     Map m_terms;
@@ -38,12 +44,12 @@ class LinearExpr {
   public:
     LinearExpr() = default;
     explicit LinearExpr(Num n) : m_constant(std::move(n)) {}
-    explicit LinearExpr(VarRef var) { this->m_terms.emplace(var, Num(1)); }
+    explicit LinearExpr(Var var) { m_terms.emplace(var, Num(1)); }
 
     /// \brief k * var
     LinearExpr(Num k, Var var) {
         if (k != 0) {
-            this->m_terms.emplace(var, std::move(k));
+            m_terms.emplace(var, std::move(k));
         }
     }
 
@@ -62,7 +68,7 @@ class LinearExpr {
     void plus(const Num& n) { this->m_constant += n; }
 
     /// \brief Plus variable
-    void plus(VarRef var) { this->plus(1, var); }
+    void plus(Var var) { this->plus(1, var); }
 
     /// \brief Plus k * var
     void plus(const Num& factor, Var var) {
@@ -105,17 +111,16 @@ class LinearExpr {
         return is_constant() && get_constant_term() == cst;
     }
 
-    [[nodiscard]] Num get_factor_of(VarRef var) const {
+    [[nodiscard]] Num get_factor_of(Var var) const {
         auto it = this->m_terms.find(var);
         if (it != this->m_terms.end()) {
             return it->second;
-        } else {
-            return Num(0);
         }
+        return Num(0);
     }
 
     void operator+=(const Num& n) { this->m_constant += n; }
-    void operator+=(VarRef var) { this->plus(var); }
+    void operator+=(Var var) { this->plus(var); }
 
     /// \brief Plus a linear expression
     void operator+=(const LinearExpr& expr) {
@@ -129,7 +134,7 @@ class LinearExpr {
     void operator-=(const Num& n) { this->m_constant -= n; }
 
     /// \brief Substract a variable
-    void operator-=(VarRef var) { this->plus(-1, var); }
+    void operator-=(SExprRef var) { this->plus(-1, var); }
 
     /// \brief Substract a linear expression
     void operator-=(const LinearExpr& expr) {
@@ -172,7 +177,7 @@ class LinearExpr {
     }
 
     /// \brief return the single var x or std::nullopt if not a single var
-    [[nodiscard]] std::optional< VarRef > get_as_single_variable() const {
+    [[nodiscard]] std::optional< Var > get_as_single_variable() const {
         if (this->m_constant == 0 && this->m_terms.size() == 1) {
             auto it = this->m_terms.begin();
             if (it->second == 1) {
@@ -202,7 +207,7 @@ class LinearExpr {
             } else if (factor != 1) {
                 os << factor;
             }
-            DumpableTrait< VarRef >::dump(os, var);
+            DumpableTrait< Var >::dump(os, var);
             is_first = false;
         }
         if (this->m_constant > 0 && !this->m_terms.empty()) {
@@ -214,148 +219,148 @@ class LinearExpr {
     }
 }; // class LinearExpr
 
-template < typename Num, typename Var >
-[[nodiscard]] inline LinearExpr< Num, Var > operator*(typename Var::Ref var,
-                                                      Num factor) {
-    return LinearExpr< Num, Var >(std::move(factor), var);
+template < typename Num >
+[[nodiscard]] inline LinearExpr< Num > operator*(Variable< Num > var,
+                                                 Num factor) {
+    return LinearExpr< Num >(std::move(factor), var);
 }
 
-template < typename Num, typename Var >
-[[nodiscard]] inline LinearExpr< Num, Var > operator*(Num factor,
-                                                      typename Var::Ref var) {
-    return LinearExpr< Num, Var >(std::move(factor), var);
+template < typename Num >
+[[nodiscard]] inline LinearExpr< Num > operator*(Num factor,
+                                                 Variable< Num > var) {
+    return LinearExpr< Num >(std::move(factor), var);
 }
 
-template < typename Num, typename Var >
-[[nodiscard]] inline LinearExpr< Num, Var > operator*(
-    LinearExpr< Num, Var > linear_expr, const Num& k) {
+template < typename Num >
+[[nodiscard]] inline LinearExpr< Num > operator*(LinearExpr< Num > linear_expr,
+                                                 const Num& k) {
     linear_expr *= k;
     return linear_expr;
 }
 
-template < typename Num, typename Var >
-[[nodiscard]] inline LinearExpr< Num, Var > operator*(
-    const Num& k, LinearExpr< Num, Var > linear_expr) {
+template < typename Num >
+[[nodiscard]] inline LinearExpr< Num > operator*(
+    const Num& k, LinearExpr< Num > linear_expr) {
     linear_expr *= k;
     return linear_expr;
 }
 
-template < typename Num, typename Var >
-[[nodiscard]] inline LinearExpr< Num, Var > operator+(typename Var::Ref var,
-                                                      const Num& n) {
-    LinearExpr< Num, Var > single_var_expr(var);
+template < typename Num >
+[[nodiscard]] inline LinearExpr< Num > operator+(Variable< Num > var,
+                                                 const Num& n) {
+    LinearExpr< Num > single_var_expr(var);
     single_var_expr += n;
     return single_var_expr;
 }
 
-template < typename Num, typename Var >
-[[nodiscard]] inline LinearExpr< Num, Var > operator+(const Num& n,
-                                                      typename Var::Ref var) {
-    LinearExpr< Num, Var > single_var_expr(var);
+template < typename Num >
+[[nodiscard]] inline LinearExpr< Num > operator+(const Num& n,
+                                                 Variable< Num > var) {
+    LinearExpr< Num > single_var_expr(var);
     single_var_expr += n;
     return single_var_expr;
 }
 
-template < typename Num, typename Var >
-[[nodiscard]] inline LinearExpr< Num, Var > operator+(typename Var::Ref x,
-                                                      typename Var::Ref y) {
-    LinearExpr< Num, Var > single_var_expr(x);
+template < typename Num >
+[[nodiscard]] inline LinearExpr< Num > operator+(Variable< Num > x,
+                                                 Variable< Num > y) {
+    LinearExpr< Num > single_var_expr(x);
     single_var_expr += y;
     return single_var_expr;
 }
 
-template < typename Num, typename Var >
-[[nodiscard]] inline LinearExpr< Num, Var > operator+(
-    LinearExpr< Num, Var > linear_expr, const Num& n) {
+template < typename Num >
+[[nodiscard]] inline LinearExpr< Num > operator+(LinearExpr< Num > linear_expr,
+                                                 const Num& n) {
     linear_expr += n;
     return linear_expr;
 }
 
-template < typename Num, typename Var >
-[[nodiscard]] inline LinearExpr< Num, Var > operator+(
-    const Num& n, LinearExpr< Num, Var > linear_expr) {
+template < typename Num >
+[[nodiscard]] inline LinearExpr< Num > operator+(
+    const Num& n, LinearExpr< Num > linear_expr) {
     linear_expr += n;
     return linear_expr;
 }
 
-template < typename Num, typename Var >
-[[nodiscard]] inline LinearExpr< Num, Var > operator+(
-    LinearExpr< Num, Var > linear_expr, typename Var::Ref x) {
+template < typename Num >
+[[nodiscard]] inline LinearExpr< Num > operator+(LinearExpr< Num > linear_expr,
+                                                 Variable< Num > x) {
     linear_expr += x;
     return linear_expr;
 }
 
-template < typename Num, typename Var >
-[[nodiscard]] inline LinearExpr< Num, Var > operator+(
-    typename Var::Ref linear_expr, LinearExpr< Num, Var > x) {
-    x += linear_expr;
+template < typename Num >
+[[nodiscard]] inline LinearExpr< Num > operator+(
+    Variable< Num > x, LinearExpr< Num > linear_expr) {
+    linear_expr += x;
     return x;
 }
 
-template < typename Num, typename Var >
-[[nodiscard]] inline LinearExpr< Num, Var > operator+(
-    LinearExpr< Num, Var > x, const LinearExpr< Num, Var >& y) {
+template < typename Num >
+[[nodiscard]] inline LinearExpr< Num > operator+(LinearExpr< Num > x,
+                                                 const LinearExpr< Num >& y) {
     x += y;
     return x;
 }
 
-template < typename Num, typename Var >
-[[nodiscard]] inline LinearExpr< Num, Var > operator-(typename Var::Ref var,
-                                                      const Num& n) {
-    LinearExpr< Num, Var > single_var_expr(var);
+template < typename Num >
+[[nodiscard]] inline LinearExpr< Num > operator-(Variable< Num > var,
+                                                 const Num& n) {
+    LinearExpr< Num > single_var_expr(var);
     single_var_expr -= n;
     return single_var_expr;
 }
 
-template < typename Num, typename Var >
-[[nodiscard]] inline LinearExpr< Num, Var > operator-(const Num& n,
-                                                      typename Var::Ref var) {
-    LinearExpr< Num, Var > single_var_expr(-1, var);
+template < typename Num >
+[[nodiscard]] inline LinearExpr< Num > operator-(const Num& n,
+                                                 Variable< Num > var) {
+    LinearExpr< Num > single_var_expr(-1, var);
     single_var_expr += n;
     return single_var_expr;
 }
 
-template < typename Num, typename Var >
-[[nodiscard]] inline LinearExpr< Num, Var > operator-(typename Var::Ref x,
-                                                      typename Var::Ref y) {
-    LinearExpr< Num, Var > single_var_expr(x);
+template < typename Num >
+[[nodiscard]] inline LinearExpr< Num > operator-(Variable< Num > x,
+                                                 Variable< Num > y) {
+    LinearExpr< Num > single_var_expr(x);
     single_var_expr -= y;
     return single_var_expr;
 }
 
-template < typename Num, typename Var >
-[[nodiscard]] inline LinearExpr< Num, Var > operator-(
-    LinearExpr< Num, Var > linear_expr, const Num& n) {
+template < typename Num >
+[[nodiscard]] inline LinearExpr< Num > operator-(LinearExpr< Num > linear_expr,
+                                                 const Num& n) {
     linear_expr -= n;
     return linear_expr;
 }
 
-template < typename Num, typename Var >
-[[nodiscard]] inline LinearExpr< Num, Var > operator-(
-    LinearExpr< Num, Var > linear_expr, typename Var::Ref x) {
+template < typename Num >
+[[nodiscard]] inline LinearExpr< Num > operator-(LinearExpr< Num > linear_expr,
+                                                 Variable< Num > x) {
     linear_expr -= x;
     return linear_expr;
 }
 
-template < typename Num, typename Var >
-[[nodiscard]] inline LinearExpr< Num, Var > operator-(
-    const Num& n, LinearExpr< Num, Var > linear_expr) {
+template < typename Num >
+[[nodiscard]] inline LinearExpr< Num > operator-(
+    const Num& n, LinearExpr< Num > linear_expr) {
     linear_expr *= -1;
     linear_expr += n;
     return linear_expr;
 }
 
-template < typename Num, typename Var >
-[[nodiscard]] inline LinearExpr< Num, Var > operator-(
-    typename Var::Ref x, LinearExpr< Num, Var > linear_expr) {
+template < typename Num >
+[[nodiscard]] inline LinearExpr< Num > operator-(
+    Variable< Num > x, LinearExpr< Num > linear_expr) {
     linear_expr *= -1;
     linear_expr += x;
     return linear_expr;
 }
 
-template < typename Num, typename Var >
-[[nodiscard]] inline LinearExpr< Num, Var > operator-(
-    LinearExpr< Num, Var > x, const LinearExpr< Num, Var >& y) {
+template < typename Num >
+[[nodiscard]] inline LinearExpr< Num > operator-(LinearExpr< Num > x,
+                                                 const LinearExpr< Num >& y) {
     x -= y;
     return x;
 }
@@ -369,13 +374,13 @@ enum class LinearConstraintKind {
     LCK_Inequality,  // <=
 }; // enum class LinearConstraintLinearConstraintKind
 
-template < typename Num, typename Var >
+template < typename Num >
 class LinearConstraint {
   public:
     using enum LinearConstraintKind;
-    using VarRef = Var::Ref;
-    using VarSet = std::unordered_set< VarRef >;
-    using LinearExpr = knight::dfa::LinearExpr< Var, Num >;
+    using LinearExpr = knight::dfa::LinearExpr< Num >;
+    using Var = Variable< Num >;
+    using VarSet = std::unordered_set< Var >;
 
   private:
     LinearExpr m_linear_expr;
@@ -456,7 +461,7 @@ class LinearConstraint {
     [[nodiscard]] bool is_disequation() const {
         return this->m_kind == LCK_Disequation;
     }
-    [[nodiscard]] bool is_Inequality() const {
+    [[nodiscard]] bool is_inequality() const {
         return this->m_kind == LCK_Inequality;
     }
 
@@ -474,7 +479,7 @@ class LinearConstraint {
         return this->m_linear_expr.num_variable_terms();
     }
 
-    [[nodiscard]] Num get_factor_of(VarRef var) const {
+    [[nodiscard]] Num get_factor_of(Var var) const {
         return this->m_linear_expr.get_factor_of(var);
     }
     [[nodiscard]] VarSet get_var_set() const {
@@ -516,195 +521,179 @@ class LinearConstraint {
     }
 }; // class LinearConstraint
 
-template < typename Num, typename Var >
-[[nodiscard]] inline LinearConstraint< Num, Var > operator<=(
-    LinearExpr< Num, Var > linear_expr, const Num& n) {
-    return LinearConstraint< Num, Var >(std::move(linear_expr) - n,
-                                        LinearConstraintKind::LCK_Inequality);
+template < typename Num >
+[[nodiscard]] inline LinearConstraint< Num > operator<=(
+    LinearExpr< Num > linear_expr, const Num& n) {
+    return LinearConstraint< Num >(std::move(linear_expr) - n,
+                                   LinearConstraintKind::LCK_Inequality);
 }
 
-template < typename Num, typename Var >
-[[nodiscard]] inline LinearConstraint< Num, Var > operator<=(
-    LinearExpr< Num, Var > x, typename Var::Ref y) {
-    return LinearConstraint< Num, Var >(std::move(x) - std::move(y),
-                                        LinearConstraintKind::LCK_Inequality);
+template < typename Num >
+[[nodiscard]] inline LinearConstraint< Num > operator<=(LinearExpr< Num > x,
+                                                        Variable< Num > y) {
+    return LinearConstraint< Num >(std::move(x) - std::move(y),
+                                   LinearConstraintKind::LCK_Inequality);
 }
 
-template < typename Num, typename Var >
-[[nodiscard]] inline LinearConstraint< Num, Var > operator<=(
-    typename Var::Ref x, const Num& n) {
-    return LinearConstraint< Num,
-                             Var >(std::move(x) - n,
-                                   LinearConstraint< Num, Var >::Inequality);
+template < typename Num >
+[[nodiscard]] inline LinearConstraint< Num > operator<=(Variable< Num > x,
+                                                        const Num& n) {
+    return LinearConstraint< Num >(std::move(x) - n,
+                                   LinearConstraint< Num >::Inequality);
 }
 
-template < typename Num, typename Var >
-[[nodiscard]] inline LinearConstraint< Num, Var > operator<=(
-    typename Var::Ref x, typename Var::Ref y) {
-    return LinearConstraint< Num,
-                             Var >(std::move(x) - std::move(y),
-                                   LinearConstraint< Num, Var >::Inequality);
+template < typename Num >
+[[nodiscard]] inline LinearConstraint< Num > operator<=(Variable< Num > x,
+                                                        Variable< Num > y) {
+    return LinearConstraint< Num >(std::move(x) - std::move(y),
+                                   LinearConstraint< Num >::Inequality);
 }
 
-template < typename Num, typename Var >
-[[nodiscard]] inline LinearConstraint< Num, Var > operator<=(
-    typename Var::Ref x, LinearExpr< Num, Var > y) {
-    return LinearConstraint< Num,
-                             Var >(std::move(x) - std::move(y),
-                                   LinearConstraint< Num, Var >::Inequality);
+template < typename Num >
+[[nodiscard]] inline LinearConstraint< Num > operator<=(Variable< Num > x,
+                                                        LinearExpr< Num > y) {
+    return LinearConstraint< Num >(std::move(x) - std::move(y),
+                                   LinearConstraint< Num >::Inequality);
 }
 
-template < typename Num, typename Var >
-[[nodiscard]] inline LinearConstraint< Num, Var > operator<=(
-    LinearExpr< Num, Var > x, const LinearExpr< Num, Var >& y) {
-    return LinearConstraint< Num,
-                             Var >(std::move(x) - y,
-                                   LinearConstraint< Num, Var >::Inequality);
+template < typename Num >
+[[nodiscard]] inline LinearConstraint< Num > operator<=(
+    LinearExpr< Num > x, const LinearExpr< Num >& y) {
+    return LinearConstraint< Num >(std::move(x) - y,
+                                   LinearConstraint< Num >::Inequality);
 }
 
-template < typename Num, typename Var >
-[[nodiscard]] inline LinearConstraint< Num, Var > operator>=(
-    LinearExpr< Num, Var > linear_expr, const Num& n) {
-    return LinearConstraint< Num,
-                             Var >(n - std::move(linear_expr),
-                                   LinearConstraint< Num, Var >::Inequality);
+template < typename Num >
+[[nodiscard]] inline LinearConstraint< Num > operator>=(
+    LinearExpr< Num > linear_expr, const Num& n) {
+    return LinearConstraint< Num >(n - std::move(linear_expr),
+                                   LinearConstraint< Num >::Inequality);
 }
 
-template < typename Num, typename Var >
-[[nodiscard]] inline LinearConstraint< Num, Var > operator>=(
-    LinearExpr< Num, Var > linear_expr, typename Var::Ref x) {
-    return LinearConstraint< Num,
-                             Var >(std::move(x) - std::move(linear_expr),
-                                   LinearConstraint< Num, Var >::Inequality);
+template < typename Num >
+[[nodiscard]] inline LinearConstraint< Num > operator>=(
+    LinearExpr< Num > linear_expr, Variable< Num > x) {
+    return LinearConstraint< Num >(std::move(x) - std::move(linear_expr),
+                                   LinearConstraint< Num >::Inequality);
 }
 
-template < typename Num, typename Var >
-[[nodiscard]] inline LinearConstraint< Num, Var > operator>=(
-    typename Var::Ref x, const Num& n) {
-    return LinearConstraint< Num,
-                             Var >(n - std::move(x),
-                                   LinearConstraint< Num, Var >::Inequality);
+template < typename Num >
+[[nodiscard]] inline LinearConstraint< Num > operator>=(Variable< Num > x,
+                                                        const Num& n) {
+    return LinearConstraint< Num >(n - std::move(x),
+                                   LinearConstraint< Num >::Inequality);
 }
 
-template < typename Num, typename Var >
-[[nodiscard]] inline LinearConstraint< Num, Var > operator>=(
-    typename Var::Ref x, typename Var::Ref y) {
-    return LinearConstraint< Num,
-                             Var >(std::move(y) - std::move(x),
-                                   LinearConstraint< Num, Var >::Inequality);
+template < typename Num >
+[[nodiscard]] inline LinearConstraint< Num > operator>=(Variable< Num > x,
+                                                        Variable< Num > y) {
+    return LinearConstraint< Num >(std::move(y) - std::move(x),
+                                   LinearConstraint< Num >::Inequality);
 }
 
-template < typename Num, typename Var >
-[[nodiscard]] inline LinearConstraint< Num, Var > operator>=(
-    typename Var::Ref x, LinearExpr< Num, Var > linear_expr) {
-    return LinearConstraint< Num,
-                             Var >(std::move(linear_expr) - std::move(x),
-                                   LinearConstraint< Num, Var >::Inequality);
+template < typename Num >
+[[nodiscard]] inline LinearConstraint< Num > operator>=(
+    Variable< Num > x, LinearExpr< Num > linear_expr) {
+    return LinearConstraint< Num >(std::move(linear_expr) - std::move(x),
+                                   LinearConstraint< Num >::Inequality);
 }
 
-template < typename Num, typename Var >
-[[nodiscard]] inline LinearConstraint< Num, Var > operator>=(
-    const LinearExpr< Num, Var >& x, LinearExpr< Num, Var > y) {
-    return LinearConstraint< Num,
-                             Var >(std::move(y) - x,
-                                   LinearConstraint< Num, Var >::Inequality);
+template < typename Num >
+[[nodiscard]] inline LinearConstraint< Num > operator>=(
+    const LinearExpr< Num >& x, LinearExpr< Num > y) {
+    return LinearConstraint< Num >(std::move(y) - x,
+                                   LinearConstraint< Num >::Inequality);
 }
 
-template < typename Num, typename Var >
-[[nodiscard]] inline LinearConstraint< Num, Var > operator==(
-    LinearExpr< Num, Var > linear_expr, const Num& n) {
-    return LinearConstraint< Num, Var >(std::move(linear_expr) - n,
-                                        LinearConstraint< Num, Var >::Equality);
+template < typename Num >
+[[nodiscard]] inline LinearConstraint< Num > operator==(
+    LinearExpr< Num > linear_expr, const Num& n) {
+    return LinearConstraint< Num >(std::move(linear_expr) - n,
+                                   LinearConstraint< Num >::Equality);
 }
 
-template < typename Num, typename Var >
-[[nodiscard]] inline LinearConstraint< Num, Var > operator==(
-    LinearExpr< Num, Var > linear_expr, typename Var::Ref x) {
-    return LinearConstraint< Num, Var >(std::move(linear_expr) - std::move(x),
-                                        LinearConstraint< Num, Var >::Equality);
+template < typename Num >
+[[nodiscard]] inline LinearConstraint< Num > operator==(
+    LinearExpr< Num > linear_expr, Variable< Num > x) {
+    return LinearConstraint< Num >(std::move(linear_expr) - std::move(x),
+                                   LinearConstraint< Num >::Equality);
 }
 
-template < typename Num, typename Var >
-[[nodiscard]] inline LinearConstraint< Num, Var > operator==(
-    typename Var::Ref x, const Num& n) {
-    return LinearConstraint< Num, Var >(std::move(x) - n,
-                                        LinearConstraint< Num, Var >::Equality);
+template < typename Num >
+[[nodiscard]] inline LinearConstraint< Num > operator==(Variable< Num > x,
+                                                        const Num& n) {
+    return LinearConstraint< Num >(std::move(x) - n,
+                                   LinearConstraint< Num >::Equality);
 }
 
-template < typename Num, typename Var >
-[[nodiscard]] inline LinearConstraint< Num, Var > operator==(
-    typename Var::Ref x, typename Var::Ref y) {
-    return LinearConstraint< Num, Var >(std::move(x) - std::move(y),
-                                        LinearConstraint< Num, Var >::Equality);
+template < typename Num >
+[[nodiscard]] inline LinearConstraint< Num > operator==(Variable< Num > x,
+                                                        Variable< Num > y) {
+    return LinearConstraint< Num >(std::move(x) - std::move(y),
+                                   LinearConstraint< Num >::Equality);
 }
 
-template < typename Num, typename Var >
-[[nodiscard]] inline LinearConstraint< Num, Var > operator==(
-    typename Var::Ref x, LinearExpr< Num, Var > linear_expr) {
-    return LinearConstraint< Num, Var >(std::move(linear_expr) - std::move(x),
-                                        LinearConstraint< Num, Var >::Equality);
+template < typename Num >
+[[nodiscard]] inline LinearConstraint< Num > operator==(
+    Variable< Num > x, LinearExpr< Num > linear_expr) {
+    return LinearConstraint< Num >(std::move(linear_expr) - std::move(x),
+                                   LinearConstraint< Num >::Equality);
 }
 
-template < typename Num, typename Var >
-[[nodiscard]] inline LinearConstraint< Num, Var > operator==(
-    LinearExpr< Num, Var > x, const LinearExpr< Num, Var >& y) {
-    return LinearConstraint< Num, Var >(std::move(x) - y,
-                                        LinearConstraint< Num, Var >::Equality);
+template < typename Num >
+[[nodiscard]] inline LinearConstraint< Num > operator==(
+    LinearExpr< Num > x, const LinearExpr< Num >& y) {
+    return LinearConstraint< Num >(std::move(x) - y,
+                                   LinearConstraint< Num >::Equality);
 }
 
-template < typename Num, typename Var >
-[[nodiscard]] inline LinearConstraint< Num, Var > operator!=(
-    LinearExpr< Num, Var > linear_expr, const Num& n) {
-    return LinearConstraint< Num,
-                             Var >(std::move(linear_expr) - n,
-                                   LinearConstraint< Num, Var >::Disequation);
+template < typename Num >
+[[nodiscard]] inline LinearConstraint< Num > operator!=(
+    LinearExpr< Num > linear_expr, const Num& n) {
+    return LinearConstraint< Num >(std::move(linear_expr) - n,
+                                   LinearConstraint< Num >::Disequation);
 }
 
-template < typename Num, typename Var >
-[[nodiscard]] inline LinearConstraint< Num, Var > operator!=(
-    LinearExpr< Num, Var > linear_expr, typename Var::Ref x) {
-    return LinearConstraint< Num,
-                             Var >(std::move(linear_expr) - std::move(x),
-                                   LinearConstraint< Num, Var >::Disequation);
+template < typename Num >
+[[nodiscard]] inline LinearConstraint< Num > operator!=(
+    LinearExpr< Num > linear_expr, Variable< Num > x) {
+    return LinearConstraint< Num >(std::move(linear_expr) - std::move(x),
+                                   LinearConstraint< Num >::Disequation);
 }
 
-template < typename Num, typename Var >
-[[nodiscard]] inline LinearConstraint< Num, Var > operator!=(
-    typename Var::Ref x, const Num& n) {
-    return LinearConstraint< Num,
-                             Var >(std::move(x) - n,
-                                   LinearConstraint< Num, Var >::Disequation);
+template < typename Num >
+[[nodiscard]] inline LinearConstraint< Num > operator!=(Variable< Num > x,
+                                                        const Num& n) {
+    return LinearConstraint< Num >(std::move(x) - n,
+                                   LinearConstraint< Num >::Disequation);
 }
 
-template < typename Num, typename Var >
-[[nodiscard]] inline LinearConstraint< Num, Var > operator!=(
-    typename Var::Ref x, typename Var::Ref y) {
-    return LinearConstraint< Num,
-                             Var >(std::move(x) - std::move(y),
-                                   LinearConstraint< Num, Var >::Disequation);
+template < typename Num >
+[[nodiscard]] inline LinearConstraint< Num > operator!=(Variable< Num > x,
+                                                        Variable< Num > y) {
+    return LinearConstraint< Num >(std::move(x) - std::move(y),
+                                   LinearConstraint< Num >::Disequation);
 }
 
-template < typename Num, typename Var >
-[[nodiscard]] inline LinearConstraint< Num, Var > operator!=(
-    typename Var::Ref x, LinearExpr< Num, Var > linear_expr) {
-    return LinearConstraint< Num,
-                             Var >(std::move(linear_expr) - std::move(x),
-                                   LinearConstraint< Num, Var >::Disequation);
+template < typename Num >
+[[nodiscard]] inline LinearConstraint< Num > operator!=(
+    Variable< Num > x, LinearExpr< Num > linear_expr) {
+    return LinearConstraint< Num >(std::move(linear_expr) - std::move(x),
+                                   LinearConstraint< Num >::Disequation);
 }
 
-template < typename Num, typename Var >
-[[nodiscard]] inline LinearConstraint< Num, Var > operator!=(
-    LinearExpr< Num, Var > x, const LinearExpr< Num, Var >& y) {
-    return LinearConstraint< Num,
-                             Var >(std::move(x) - y,
-                                   LinearConstraint< Num, Var >::Disequation);
+template < typename Num >
+[[nodiscard]] inline LinearConstraint< Num > operator!=(
+    LinearExpr< Num > x, const LinearExpr< Num >& y) {
+    return LinearConstraint< Num >(std::move(x) - y,
+                                   LinearConstraint< Num >::Disequation);
 }
 
-template < typename Num, typename Var >
+template < typename Num >
 class LinearConstraintSystem {
   public:
-    using LinearConstraint = LinearConstraint< Num, Var >;
-    using VarRef = Var::Ref;
+    using LinearConstraint = LinearConstraint< Num >;
+    using Var = Variable< Num >;
     using VarSet = typename LinearConstraint::VarSet;
 
   private:

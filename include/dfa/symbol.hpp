@@ -19,7 +19,6 @@
 
 #include "dfa/location_context.hpp"
 #include "dfa/stack_frame.hpp"
-#include "llvm/ADT/APSInt.h"
 #include "support/dumpable.hpp"
 #include "support/symbol.hpp"
 
@@ -27,6 +26,7 @@
 #include <clang/AST/OperationKinds.h>
 #include <clang/AST/Type.h>
 #include <clang/Basic/SourceLocation.h>
+#include <llvm/ADT/APSInt.h>
 #include <llvm/ADT/StringRef.h>
 #include <llvm/Support/raw_ostream.h>
 
@@ -45,9 +45,9 @@ enum class SymExprKind {
 
     // symbol leaf node
     SYM_BEGIN,
-    RegionSymbolVal,
-    RegionSymbolExtent,
-    SymbolConjured,
+    RegionSymbolVal,    // region val
+    RegionSymbolExtent, // region extent
+    SymbolConjured,     // stmt val
     SYM_END,
 
     // cast
@@ -69,6 +69,7 @@ class TypedRegion;
 class Sym;
 
 using SExprRef = const SymExpr*;
+using SymbolRef = const Sym*;
 
 class SymIterator {
   private:

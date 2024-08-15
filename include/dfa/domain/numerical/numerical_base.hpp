@@ -29,16 +29,16 @@ namespace knight::dfa {
 /// - `transfer_assign_variable(VarRef, VarRef)`
 /// - `transfer_assign_linear_expr(VarRef, const LinearExpr&)`
 /// - `apply(clang::BinaryOperatorKind, VarRef)`
-template < typename Derived, typename Num, typename Var >
+template < typename Derived, typename Num >
 class NumericalDom : public AbsDom< Derived > {
   public:
-    using LinearExpr = LinearExpr< Num, Var >;
-    using LinearConstraint = LinearConstraint< Num, Var >;
-    using LinearConstraintSystem = LinearConstraintSystem< Num, Var >;
+    using LinearExpr = LinearExpr< Num >;
+    using LinearConstraint = LinearConstraint< Num >;
+    using LinearConstraintSystem = LinearConstraintSystem< Num >;
     using VarRef = typename LinearConstraint::VarRef;
 
   public:
-    NumericalDom< Derived, Num, Var >() : AbsDom< Derived >() {}
+    NumericalDom< Derived, Num >() : AbsDom< Derived >() {}
 
     /// \brief Widen with a threshold num
     void widen_with_threshold(const NumericalDom& other, const Num& threshold) {
