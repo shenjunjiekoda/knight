@@ -389,6 +389,19 @@ class SeparateNumericalDom
         }
     }
 
+    [[nodiscard]] SeparateNumericalDom project(
+        const LinearExpr& linear_expr) const {
+        if (is_bottom()) {
+            return SeparateNumericalDom::bottom();
+        }
+
+        SeparateNumericalValue val(linear_expr.get_constant_term());
+        for (auto& [var, coeff] : linear_expr.get_terms()) {
+            val += coeff * this->get_value(var);
+        }
+        return val;
+    }
+
     /// \brief Assign `x = n`
     void transfer_assign_constant(Var x, const Num& n) {
         this->set_value(x, Value(n));
@@ -397,6 +410,10 @@ class SeparateNumericalDom
     /// \brief Assign `x = y`
     void transfer_assign_variable(Var x, Var y) {
         this->set_value(x, this->get_value(y));
+    }
+
+    void transfer_assign_linear_expr(Var x, const LinearExpr& linear_expr) {
+        this->set_value(x, this->project(linear_expr));
     }
 
 }; // class SeparateNumericalDom

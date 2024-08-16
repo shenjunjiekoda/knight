@@ -400,7 +400,7 @@ inline Interval< Num > operator<<(const Interval< Num >& lhs,
     if (lhs.is_bottom() || rhs.is_bottom()) {
         return IntervalT::bottom();
     }
-    IntervalT shift = rhs.meet(IntervalT(BoundT(0), BoundT::plus_infinity()));
+    IntervalT shift = rhs.meet(IntervalT(BoundT(0), BoundT::pinf()));
 
     if (shift.is_bottom()) {
         return IntervalT::bottom();
@@ -409,7 +409,7 @@ inline Interval< Num > operator<<(const Interval< Num >& lhs,
     IntervalT coeff(BoundT(1 << *shift.get_lb().get_num_opt()),
                     shift.get_ub().is_finite()
                         ? BoundT(1 << *shift.get_ub().get_num_opt())
-                        : BoundT::plus_infinity());
+                        : BoundT::pinf());
     return lhs * coeff;
 }
 
@@ -422,7 +422,7 @@ inline Interval< Num > operator>>(const Interval< Num >& lhs,
     if (lhs.is_bottom() || rhs.is_bottom()) {
         return IntervalT::bottom();
     }
-    IntervalT shift = rhs.meet(IntervalT(BoundT(0), BoundT::plus_infinity()));
+    IntervalT shift = rhs.meet(IntervalT(BoundT(0), BoundT::pinf()));
 
     if (shift.is_bottom()) {
         return IntervalT::bottom();
