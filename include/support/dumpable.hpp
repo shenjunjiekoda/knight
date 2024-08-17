@@ -24,7 +24,7 @@ concept dumpable = requires(const T& obj, llvm::raw_ostream& os) {
     { obj.dump(os) } -> std::same_as< void >;
 } || requires(const std::remove_pointer_t< T >* obj, llvm::raw_ostream& os) {
     { obj->dump(os) } -> std::same_as< void >;
-};
+}; // concept dumpable
 
 template < dumpable T >
 struct DumpableTrait {

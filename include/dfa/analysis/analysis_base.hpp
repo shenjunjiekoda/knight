@@ -13,11 +13,13 @@
 
 #pragma once
 
+#include <llvm/Support/raw_ostream.h>
+
 #include "dfa/analysis/analyses.hpp"
 #include "dfa/analysis_context.hpp"
 #include "dfa/analysis_manager.hpp"
-#include "llvm/Support/raw_ostream.h"
 #include "support/clang_ast.hpp"
+#include "support/event.hpp"
 
 namespace knight::dfa {
 
@@ -78,8 +80,8 @@ class AnalysisBase {
   public:
     AnalysisBase(KnightContext& ctx, AnalysisKind k);
     virtual ~AnalysisBase() = default;
-    virtual bool is_language_supported(
-        const clang::LangOptions& lang_opts) const {
+    [[nodiscard]] virtual bool is_language_supported(
+        [[maybe_unused]] const clang::LangOptions& lang_opts) const {
         return true;
     }
 
@@ -105,7 +107,8 @@ class AnalysisBase {
 template < typename Impl, typename ANALYSIS1, typename... ANALYSES >
 class Analysis : public ANALYSIS1, public ANALYSES..., public AnalysisBase {
   public:
-    Analysis(KnightContext& ctx) : AnalysisBase(ctx, Impl::get_kind()) {}
+    explicit Analysis(KnightContext& ctx)
+        : AnalysisBase(ctx, Impl::get_kind()) {}
 
     static void register_callback(Impl* analysis, AnalysisManager& mgr) {
         ANALYSIS1::register_callback(analysis, mgr);
@@ -116,7 +119,8 @@ class Analysis : public ANALYSIS1, public ANALYSES..., public AnalysisBase {
 template < typename Impl, typename ANALYSIS1 >
 class Analysis< Impl, ANALYSIS1 > : public ANALYSIS1, public AnalysisBase {
   public:
-    Analysis(KnightContext& ctx) : AnalysisBase(ctx, Impl::get_kind()) {}
+    explicit Analysis(KnightContext& ctx)
+        : AnalysisBase(ctx, Impl::get_kind()) {}
 
     static void register_callback(Impl* analysis, AnalysisManager& mgr) {
         ANALYSIS1::register_callback(analysis, mgr);
@@ -130,7 +134,7 @@ namespace analyze {
 class BeginFunction {
     template < typename ANALYSIS >
     static void run_begin_function(void* analysis, AnalysisContext& C) {
-        ((const ANALYSIS*)analysis)->analyze_begin_function(C);
+        (static_cast< const ANALYSIS* >(analysis))->analyze_begin_function(C);
     }
 
   public:
@@ -147,7 +151,7 @@ class BeginFunction {
 class EndFunction {
     template < typename ANALYSIS >
     static void run_end_function(void* analysis, AnalysisContext& C) {
-        ((const ANALYSIS*)analysis)->analyze_end_function(C);
+        (static_cast< const ANALYSIS* >(analysis))->analyze_end_function(C);
     }
 
   public:
@@ -167,7 +171,8 @@ class PreStmt {
     static void run_pre_stmt(void* analysis,
                              internal::StmtRef S,
                              AnalysisContext& C) {
-        ((const ANALYSIS*)analysis)->pre_analyze_stmt(dyn_cast< STMT >(S), C);
+        (static_cast< const ANALYSIS* >(analysis))
+            ->pre_analyze_stmt(dyn_cast< STMT >(S), C);
     }
 
     static bool is_interesting_stmt(internal::StmtRef S) {
@@ -193,7 +198,8 @@ class EvalStmt {
     static void run_eval_stmt(void* analysis,
                               internal::StmtRef S,
                               AnalysisContext& C) {
-        ((const ANALYSIS*)analysis)->analyze_stmt(dyn_cast< STMT >(S), C);
+        (static_cast< const ANALYSIS* >(analysis))
+            ->analyze_stmt(dyn_cast< STMT >(S), C);
     }
 
     static bool is_interesting_stmt(internal::StmtRef S) {
@@ -219,7 +225,8 @@ class PostStmt {
     static void run_post_stmt(void* analysis,
                               internal::StmtRef S,
                               AnalysisContext& C) {
-        ((const ANALYSIS*)analysis)->post_analyze_stmt(dyn_cast< STMT >(S), C);
+        (static_cast< const ANALYSIS* >(analysis))
+            ->post_analyze_stmt(dyn_cast< STMT >(S), C);
     }
 
     static bool is_interesting_stmt(internal::StmtRef S) {
@@ -238,6 +245,41 @@ class PostStmt {
                               internal::VisitStmtKind::Post);
     }
 }; // class PostStmt
+
+template < event EVENT >
+class EventDispatcher {
+  private:
+    AnalysisManager* m_analysis_mgr_from_event{};
+
+  public:
+    template < typename ANALYSIS >
+    static void register_callback(ANALYSIS* analysis, AnalysisManager& mgr) {
+        mgr.register_for_event_dispatcher< EVENT >();
+        static_cast< EventDispatcher< EVENT >* >(analysis)
+            ->m_analysis_mgr_from_event = &mgr;
+    }
+
+    void dispatch_event(const EVENT& event) const {
+        m_analysis_mgr_from_event->dispatch_event(event);
+    }
+};
+
+template < event EVENT >
+class EventListener {
+    template < typename ANALYSIS >
+    static void handle_event(void* analysis, const void* event) {
+        (static_cast< const ANALYSIS* >(analysis))
+            ->handle_event(*(static_cast< const EVENT* >(event)));
+    }
+
+  public:
+    template < typename ANALYSIS >
+    static void register_callback(ANALYSIS* analysis, AnalysisManager& mgr) {
+        mgr.register_for_event_listener< EVENT >(
+            internal::EventListenerCallback(analysis,
+                                            handle_event< ANALYSIS >));
+    }
+};
 
 } // namespace analyze
 

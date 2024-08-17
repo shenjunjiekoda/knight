@@ -17,6 +17,7 @@
 #include "dfa/domain/dom_base.hpp"
 #include "dfa/proc_cfg.hpp"
 #include "dfa/region/region.hpp"
+#include "support/event.hpp"
 #include "tooling/context.hpp"
 #include "util/assert.hpp"
 
@@ -77,13 +78,22 @@ using AnalyzeStmtCallBack = AnalysisCallBack< void(StmtRef, AnalysisContext&) >;
 using MatchStmtCallBack = bool (*)(StmtRef S);
 enum class VisitStmtKind { Pre, Eval, Post };
 
-constexpr unsigned AlignedSize = 64;
+using EventTag = void*;
+using EventListenerCallback = AnalysisCallBack< void(const void* event) >;
+
+constexpr unsigned SmallAlignedSize = 32U;
+constexpr unsigned BigAlignedSize = 64U;
+
+struct EventInfo {
+    std::vector< EventListenerCallback > listeners;
+    bool has_dispatcher = false;
+} __attribute__((aligned(SmallAlignedSize))); // struct EventInfo
 
 struct StmtAnalysisInfo {
     AnalyzeStmtCallBack anz_cb;
     MatchStmtCallBack match_cb;
     VisitStmtKind kind;
-} __attribute__((aligned(AlignedSize)))
+} __attribute__((aligned(BigAlignedSize)))
 __attribute__((packed)); // struct StmtAnalysisInfo
 
 } // namespace internal
@@ -130,6 +140,9 @@ class AnalysisManager {
     std::vector< internal::AnalyzeEndFunctionCallBack > m_end_function_analyses;
     /// \brief visit statement callbacks
     std::vector< internal::StmtAnalysisInfo > m_stmt_analyses;
+
+    using EventsTy = llvm::DenseMap< internal::EventTag, internal::EventInfo >;
+    EventsTy m_events;
 
   public:
     explicit AnalysisManager(KnightContext& ctx);
@@ -203,7 +216,31 @@ class AnalysisManager {
     void register_for_stmt(internal::AnalyzeStmtCallBack cb,
                            internal::MatchStmtCallBack match_cb,
                            internal::VisitStmtKind kind);
+
+    template < event EVENT >
+    void register_for_event_listener(internal::EventListenerCallback cb) {
+        internal::EventInfo& info = m_events[&EVENT::tag];
+        info.listeners.push_back(cb);
+    }
+
+    template < event EVENT >
+    void register_for_event_dispatcher() {
+        internal::EventInfo& info = m_events[&EVENT::tag];
+        info.has_dispatcher = true;
+    }
     /// @}
+
+    /// \brief event dispatching
+    template < event EVENT >
+    void dispatch_event(const EVENT& event) const {
+        auto it = m_events.find(&EVENT::Tag);
+        if (it == m_events.end()) {
+            return;
+        }
+        for (const auto& listener : it->second.listeners) {
+            listener(&event);
+        }
+    }
 
     [[nodiscard]] const std::vector< internal::AnalyzeBeginFunctionCallBack >&
     begin_function_analyses() const {

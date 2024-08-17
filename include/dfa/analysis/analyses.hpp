@@ -23,10 +23,11 @@ namespace knight::dfa {
 
 using AnalysisID = uint8_t;
 
+// NOLINTBEGIN(cppcoreguidelines-macro-usage)
 enum class AnalysisKind {
     None,
 #define ANALYSIS_DEF(KIND, NAME, ID, DESC) KIND,
-#include "analyses.def"
+#include "dfa/def/analyses.def"
 }; // enum class AnalysisKind
 
 inline llvm::StringRef get_analysis_name(AnalysisKind kind) {
@@ -35,7 +36,7 @@ inline llvm::StringRef get_analysis_name(AnalysisKind kind) {
 #define ANALYSIS_DEF(KIND, NAME, ID, DESC) \
     case AnalysisKind::KIND:               \
         return NAME;
-#include "analyses.def"
+#include "dfa/def/analyses.def"
         default:
             return "Unknown";
     }
@@ -47,7 +48,7 @@ inline llvm::StringRef get_analysis_desc(AnalysisKind kind) {
 #define ANALYSIS_DEF(KIND, NAME, ID, DESC) \
     case AnalysisKind::KIND:               \
         return DESC;
-#include "analyses.def"
+#include "dfa/def/analyses.def"
         default:
             return "Unknown";
     }
@@ -59,7 +60,7 @@ inline AnalysisID get_analysis_id(AnalysisKind kind) {
 #define ANALYSIS_DEF(KIND, NAME, ID, DESC) \
     case AnalysisKind::KIND:               \
         return ID;
-#include "analyses.def"
+#include "dfa/def/analyses.def"
         default:
             return 0;
     }
@@ -71,7 +72,7 @@ inline AnalysisKind get_analysis_kind(AnalysisID id) {
 #define ANALYSIS_DEF(KIND, NAME, ID, DESC) \
     case ID:                               \
         return AnalysisKind::KIND;
-#include "analyses.def"
+#include "dfa/def/analyses.def"
         default:
             return AnalysisKind::None;
     }
@@ -80,5 +81,7 @@ inline AnalysisKind get_analysis_kind(AnalysisID id) {
 inline llvm::StringRef get_analysis_name_by_id(AnalysisID id) {
     return get_analysis_name(get_analysis_kind(id));
 }
+
+// NOLINTEND(cppcoreguidelines-macro-usage)
 
 } // namespace knight::dfa

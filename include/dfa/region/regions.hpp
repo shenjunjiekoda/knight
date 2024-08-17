@@ -26,7 +26,7 @@ namespace knight::dfa {
 enum class RegionKind : unsigned {
     None,
 #define REGION_DEF(KIND, DESC, PARENT) KIND, // NOLINT
-#include "regions.def"
+#include "dfa/def/regions.def"
 }; // enum class RegionKind
 
 inline llvm::StringRef get_region_kind_name(RegionKind kind) {
@@ -36,7 +36,7 @@ inline llvm::StringRef get_region_kind_name(RegionKind kind) {
 #define REGION_DEF(KIND, DESC, PARENT) \
     case RegionKind::KIND:             \
         return #KIND;
-#include "regions.def"
+#include "dfa/def/regions.def"
         default:
             return "Unknown";
     }
@@ -49,7 +49,7 @@ inline llvm::StringRef get_region_kind_desc(RegionKind kind) {
 #define REGION_DEF(KIND, DESC, PARENT) \
     case RegionKind::KIND:             \
         return DESC;
-#include "regions.def"
+#include "dfa/def/regions.def"
         default:
             return "Unknown";
     }
@@ -63,7 +63,7 @@ inline RegionKind get_parent_kind(RegionKind kind) {
 #define REGION_DEF(KIND, DESC, PARENT) \
     case RegionKind::KIND:             \
         return PARENT;
-#include "regions.def"
+#include "dfa/def/regions.def"
         default:
             return None;
     }
