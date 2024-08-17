@@ -17,6 +17,7 @@
 #include "dfa/analysis_context.hpp"
 #include "dfa/domain/domains.hpp"
 #include "dfa/program_state.hpp"
+#include "dfa/symbol_manager.hpp"
 #include "util/assert.hpp"
 
 #include <llvm/Support/raw_ostream.h>
@@ -96,12 +97,14 @@ std::vector< AnalysisID > get_subset_order(
 } // anonymous namespace
 
 AnalysisManager::AnalysisManager(KnightContext& ctx) : m_ctx(ctx) {
+    m_sym_mgr = std::make_unique< dfa::SymbolManager >(m_ctx.get_allocator());
     m_region_mgr =
         std::make_unique< dfa::RegionManager >(*m_ctx.get_ast_context(),
                                                m_ctx.get_allocator());
     m_state_mgr =
         std::make_unique< dfa::ProgramStateManager >(*this,
                                                      *m_region_mgr,
+                                                     *m_sym_mgr,
                                                      m_ctx.get_allocator());
 }
 
@@ -293,6 +296,10 @@ void AnalysisManager::run_analyses_for_end_function(
 
 dfa::ProgramStateManager& AnalysisManager::get_state_manager() const {
     return *m_state_mgr;
+}
+
+dfa::SymbolManager& AnalysisManager::get_symbol_manager() const {
+    return *m_sym_mgr;
 }
 
 } // namespace knight::dfa

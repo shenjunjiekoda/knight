@@ -13,10 +13,13 @@
 
 #pragma once
 
+#include <llvm/ADT/APFloat.h>
+#include <llvm/ADT/APSInt.h>
+#include <llvm/ADT/DenseMap.h>
+#include <llvm/ADT/DenseSet.h>
 #include <llvm/ADT/FoldingSet.h>
 #include <llvm/Support/raw_ostream.h>
 
-#include "dfa/symbol.hpp"
 #include "support/dumpable.hpp"
 #include "util/assert.hpp"
 
@@ -24,6 +27,14 @@
 #include <unordered_set>
 
 namespace knight::dfa {
+
+class Sym;
+class SymExpr;
+
+using SymbolRef = const Sym*;
+using SExprRef = const SymExpr*;
+
+void profile_symbol(llvm::FoldingSetNodeID& id, SymbolRef sym);
 
 template < typename Num >
 struct Variable : public llvm::FoldingSetNode {
@@ -73,7 +84,7 @@ struct DenseMapInfo< knight::dfa::ZVariable > {
     // NOLINTNEXTLINE
     static unsigned getHashValue(const knight::dfa::ZVariable& zvar) {
         llvm::FoldingSetNodeID id;
-        zvar.m_symbol->Profile(id);
+        profile_symbol(id, zvar.m_symbol);
         return id.ComputeHash();
     }
 
@@ -107,7 +118,7 @@ struct DenseMapInfo< knight::dfa::QVariable > {
     // NOLINTNEXTLINE
     static unsigned getHashValue(const knight::dfa::QVariable& qvar) {
         llvm::FoldingSetNodeID id;
-        qvar.m_symbol->Profile(id);
+        profile_symbol(id, qvar.m_symbol);
         return id.ComputeHash();
     }
 
@@ -136,7 +147,9 @@ class LinearExpr : public llvm::FoldingSetNode {
   public:
     LinearExpr() = default;
     explicit LinearExpr(Num n) : m_constant(std::move(n)) {}
-    explicit LinearExpr(Var var) { m_terms.try_emplace(var, Num(1.)); }
+    explicit LinearExpr(Var var) : m_constant(Num(0.)) {
+        m_terms.try_emplace(var, Num(1.));
+    }
 
     /// \brief k * var
     LinearExpr(Num k, Var var) {

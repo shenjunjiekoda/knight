@@ -1,0 +1,24 @@
+//===- events.def ----------------------------------------------------===//
+//
+// Copyright (c) 2024 Junjie Shen
+//
+// see https://github.com/shenjunjiekoda/knight/blob/main/LICENSE for
+// license information.
+//
+//===------------------------------------------------------------------===//
+//
+//  This header defines the metadata of events.
+//
+//===------------------------------------------------------------------===//
+
+#ifndef EVENT_DEF
+/// Create a new event metadata.
+///    
+/// @param KIND The kind of the event.
+/// @param NAME The name of the event.
+/// @param ID The unique ID of the event.
+/// @param DESC The description of the event.
+#define EVENT_DEF(KIND, NAME, ID, DESC)
+#endif
+
+EVENT_DEF(ConstraintEvent, "ConstraintEvent", 0, "The constraint event.")

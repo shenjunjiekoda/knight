@@ -135,9 +135,7 @@ std::optional< QVariable > ProgramState::try_get_qvariable(
 }
 
 std::optional< SExprRef > ProgramState::try_get_sexpr(
-    ProcCFG::StmtRef expr,
-    const LocationContext* loc_ctx,
-    SymbolManager& sym_mgr) const {
+    ProcCFG::StmtRef expr, const LocationContext* loc_ctx) const {
     if (auto res = get_stmt_sexpr(expr)) {
         return res;
     }
@@ -153,7 +151,8 @@ std::optional< SExprRef > ProgramState::try_get_sexpr(
                 llvm::dyn_cast< TypedRegion >(region_opt.value())) {
             // Use region sval as sexpr if we did not bind this region
             // before.
-            return sym_mgr.get_region_sym_val(typed_region, loc_ctx);
+            return m_state_mgr->m_symbol_mgr.get_region_sym_val(typed_region,
+                                                                loc_ctx);
         }
     }
     return region_sexpr_opt;
@@ -226,14 +225,14 @@ std::optional< SExprRef > ProgramState::get_stmt_sexpr(
     return std::nullopt;
 }
 
-SExprRef ProgramState::get_stmt_sexpr_or_conjured(ProcCFG::StmtRef stmt,
-                                                  const clang::QualType& type,
-                                                  const StackFrame* frame,
-                                                  SymbolManager& mgr) const {
+SExprRef ProgramState::get_stmt_sexpr_or_conjured(
+    ProcCFG::StmtRef stmt,
+    const clang::QualType& type,
+    const StackFrame* frame) const {
     if (auto res = get_stmt_sexpr(stmt, frame)) {
         return res.value();
     }
-    return mgr.get_symbol_conjured(stmt, type, frame);
+    return m_state_mgr->m_symbol_mgr.get_symbol_conjured(stmt, type, frame);
 }
 
 ProgramStateRef ProgramState::normalize() const {
@@ -297,7 +296,35 @@ ProgramStateRef ProgramState::set_to_top() const {
                                                         std ::move(map));
 
 ProgramStateRef ProgramState::join(const ProgramStateRef& other) const {
-    UNION_MAP(join_with);
+    // UNION_MAP(join_with);
+    DomValMap new_map;
+    for (const auto& [other_id, other_val] : other->m_dom_val) {
+        auto it = m_dom_val.find(other_id);
+        if (it == m_dom_val.end()) {
+            new_map[other_id] = other_val->clone_shared();
+        } else {
+            auto new_val = it->second->clone();
+            new_val->join_with(*other_val);
+            new_map[other_id] = SharedVal(new_val);
+        }
+    }
+
+    StmtSExprMap stmt_sexpr = m_stmt_sexpr;
+    stmt_sexpr.insert(other->m_stmt_sexpr.begin(), other->m_stmt_sexpr.end());
+
+    RegionSExprMap region_sexpr = m_region_sexpr;
+    for (const auto [region, sexpr] : other->m_region_sexpr) {
+        auto it = region_sexpr.find(region);
+        if (it == region_sexpr.end() || it->second == sexpr) {
+            region_sexpr[region] = sexpr;
+        } else {
+            // region_sexpr[region];
+        }
+    }
+
+    return get_state_manager()
+        .get_persistent_state_with_copy_and_dom_val_map(*this,
+                                                        std ::move(new_map));
 }
 
 ProgramStateRef ProgramState::join_at_loop_head(

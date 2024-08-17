@@ -18,6 +18,8 @@
 #include "dfa/domain/domains.hpp"
 #include "dfa/domain/map/map_domain.hpp"
 #include "dfa/region/region.hpp"
+#include "llvm/ADT/APFloat.h"
+#include "llvm/ADT/APSInt.h"
 #include "util/assert.hpp"
 
 #include <clang/AST/Decl.h>
@@ -74,6 +76,9 @@ class Interval : public AbsDom< Interval< Num > > {
   public:
     [[nodiscard]] static Interval top() { return Interval(Top{}); }
     [[nodiscard]] static Interval bottom() { return Interval(Bottom{}); }
+    [[nodiscard]] static Interval unknown_bool() {
+        return Interval(Num(0.), Num(1.));
+    }
     [[nodiscard]] const Bound& get_lb() const { return m_lb; }
     [[nodiscard]] const Bound& get_ub() const { return m_ub; }
     [[nodiscard]] std::optional< Num > get_singleton_opt() const {
@@ -245,6 +250,10 @@ class Interval : public AbsDom< Interval< Num > > {
     /// \brief Return true if the interval contains n
     [[nodiscard]] bool contains(const Num& n) const {
         return !this->is_bottom() && m_lb <= n && m_ub >= n;
+    }
+
+    void cast(clang::QualType type, unsigned bit_width) {
+        // TODO add signedness and bit width support
     }
 
     void dump(llvm::raw_ostream& os) const override {

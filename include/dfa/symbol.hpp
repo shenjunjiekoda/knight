@@ -17,6 +17,7 @@
 #include <type_traits>
 #include <utility>
 
+#include "dfa/constraint/linear.hpp"
 #include "dfa/location_context.hpp"
 #include "dfa/stack_frame.hpp"
 #include "support/dumpable.hpp"
@@ -114,6 +115,11 @@ class SymExpr : public llvm::FoldingSetNode {
     virtual std::optional< const MemRegion* > get_as_region() const {
         return std::nullopt;
     }
+
+    std::optional< ZLinearExpr > get_as_zexpr() const;
+    std::optional< ZLinearConstraint > get_as_zconstraint() const;
+    std::optional< QLinearExpr > get_as_qexpr() const;
+    std::optional< QLinearConstraint > get_as_qconstraint() const;
 
     virtual bool is_leaf() const { return false; }
 

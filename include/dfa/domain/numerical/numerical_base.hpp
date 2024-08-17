@@ -53,37 +53,88 @@ class NumericalDom : public AbsDom< Derived > {
     }
 
     /// \brief Assign `x = n`
-    virtual void transfer_assign_constant(Var x, const Num& n) = 0;
+    virtual void assign_num(Var x, const Num& n) = 0;
 
     /// \brief Assign `x = y`
-    virtual void transfer_assign_variable(Var x, Var y) = 0;
+    virtual void assign_var(Var x, Var y) = 0;
 
     /// \brief Assign `x = expr`
-    virtual void transfer_assign_linear_expr(Var x, const LinearExpr& expr) = 0;
+    ///
+    /// This method is often
+    virtual void assign_linear_expr(Var x, const LinearExpr& expr) = 0;
 
-    virtual void apply(clang::UnaryOperatorKind op, Var x, Var y) = 0;
+    /// \brief Assign `x = op y`
+    virtual void assign_unary(clang::UnaryOperatorKind op, Var x, Var y) = 0;
 
     /// \brief Apply `x = y op z`
-    virtual void apply_binary_var_var(clang::BinaryOperatorKind op,
-                                      Var x,
-                                      Var y,
-                                      Var z) = 0;
+    ///
+    /// @{
 
-    virtual void apply_binary_var_num(clang::BinaryOperatorKind op,
-                                      Var x,
-                                      Var y,
-                                      const Num& z) = 0;
+    /// Split assignment and normal binary operation
+    void assign_binary_var_var(clang::BinaryOperatorKind op,
+                               Var x,
+                               Var y,
+                               Var z) {
+        bool is_assign_op = clang::BinaryOperator::isAssignmentOp(op);
+        bool is_compound_assign_op =
+            clang::BinaryOperator::isCompoundAssignmentOp(op);
+        if (!is_assign_op) {
+            this->apply_binary_var_var(op, x, y, z);
+            return;
+        }
 
-    virtual void apply_binary_num_var(clang::BinaryOperatorKind op,
-                                      Var x,
-                                      const Num& y,
-                                      Var z) = 0;
+        if (is_compound_assign_op) {
+            op = clang::BinaryOperator::getOpForCompoundAssignment(op);
+            this->apply_binary_var_var(op, y, y, z);
+        }
+
+        if (is_assign_op) {
+            this->assign_var(x, y);
+        }
+    }
+
+    /// op is not assignment
+    virtual void assign_binary_var_var_impl(clang::BinaryOperatorKind op,
+                                            Var x,
+                                            Var y,
+                                            Var z) = 0;
+
+    /// Split assignment and normal binary operation
+    void assign_binary_var_num(clang::BinaryOperatorKind op,
+                               Var x,
+                               Var y,
+                               const Num& z) {
+        bool is_assign_op = clang::BinaryOperator::isAssignmentOp(op);
+        bool is_compound_assign_op =
+            clang::BinaryOperator::isCompoundAssignmentOp(op);
+        if (!is_assign_op) {
+            this->apply_binary_var_num(op, x, y, z);
+            return;
+        }
+
+        if (is_compound_assign_op) {
+            op = clang::BinaryOperator::getOpForCompoundAssignment(op);
+            this->apply_binary_var_num(op, y, y, z);
+        }
+
+        if (is_assign_op) {
+            this->assign(x, y);
+        }
+    }
+
+    /// op is not assignment
+    virtual void assign_binary_var_num_impl(clang::BinaryOperatorKind op,
+                                            Var x,
+                                            Var y,
+                                            const Num& z) = 0;
+
+    /// @}
 
     /// \brief Apply `x = (T)y`
-    virtual void apply_cast(clang::QualType src_type,
-                            clang::QualType dst_type,
-                            Var x,
-                            Var y) = 0;
+    virtual void assign_cast(clang::QualType dst_type,
+                             unsigned dst_bit_width,
+                             Var x,
+                             Var y) = 0;
 
     /// \brief Add a linear constraint
     virtual void add_linear_constraint(const LinearConstraint& cst) = 0;

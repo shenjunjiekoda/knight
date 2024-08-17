@@ -99,6 +99,7 @@ __attribute__((packed)); // struct StmtAnalysisInfo
 } // namespace internal
 
 class ProgramStateManager;
+class SymbolManager;
 
 /// \brief The analysis manager which holds all the registered analyses.
 ///
@@ -107,6 +108,9 @@ class AnalysisManager {
 
   private:
     KnightContext& m_ctx;
+    std::unique_ptr< dfa::RegionManager > m_region_mgr;
+    std::unique_ptr< dfa::ProgramStateManager > m_state_mgr;
+    std::unique_ptr< SymbolManager > m_sym_mgr;
 
     /// \brief analyses
     AnalysisIDSet m_analyses; // all analyses
@@ -120,9 +124,6 @@ class AnalysisManager {
         m_enabled_analyses;            // enabled analysis shall be created.
     AnalysisIDSet m_required_analyses; // all analyses should be created,
     // shall be equivalent with enabled analyses key set.
-
-    std::unique_ptr< dfa::RegionManager > m_region_mgr;
-    std::unique_ptr< dfa::ProgramStateManager > m_state_mgr;
 
     /// \brief registered domains
     std::unordered_map< DomID, AnalysisID > m_domains;
@@ -264,6 +265,7 @@ class AnalysisManager {
     [[nodiscard]] dfa::RegionManager& get_region_manager() const {
         return *m_region_mgr;
     }
+    [[nodiscard]] dfa::SymbolManager& get_symbol_manager() const;
     [[nodiscard]] dfa::ProgramStateManager& get_state_manager() const;
     [[nodiscard]] KnightContext& get_context() const { return m_ctx; }
 

@@ -77,65 +77,34 @@ class SymbolResolver
         const clang::BinaryOperator* binary_operator) const {
         using enum clang::BinaryOperator::Opcode;
         auto state = m_ctx->get_state();
-        auto* lhs = binary_operator->getLHS();
-        auto* rhs = binary_operator->getRHS();
         auto& sym_mgr = m_ctx->get_symbol_manager();
 
-        SExprRef rhs_sexpr =
-            state->get_stmt_sexpr_or_conjured(rhs,
-                                              m_ctx->get_current_stack_frame(),
-                                              sym_mgr);
+        auto* lhs_expr = binary_operator->getLHS();
+        auto* rhs_expr = binary_operator->getRHS();
 
-        switch (binary_operator->getOpcode()) {
-            case clang::BO_Assign: {
-                if (auto region_opt =
-                        state->get_region(lhs,
-                                          m_ctx->get_current_stack_frame())) {
-                    state =
-                        state->set_region_sexpr(region_opt.value(), rhs_sexpr);
-                }
-                state = state->set_stmt_sexpr(binary_operator, rhs_sexpr);
-            } break;
-            case clang::BO_Add:
-                [[fallthrough]];
-            case clang::BO_Sub:
-                [[fallthrough]];
-            case clang::BO_Mul:
-                [[fallthrough]];
-            case clang::BO_Div:
-                [[fallthrough]];
-            case clang::BO_Rem:
-                [[fallthrough]];
-            case clang::BO_Shl:
-                [[fallthrough]];
-            case clang::BO_Shr:
-                [[fallthrough]];
-            case clang::BO_LT:
-                [[fallthrough]];
-            case clang::BO_GT:
-                [[fallthrough]];
-            case clang::BO_LE:
-                [[fallthrough]];
-            case clang::BO_GE:
-                [[fallthrough]];
-            case clang::BO_EQ:
-                [[fallthrough]];
-            case clang::BO_NE: {
-                SExprRef lhs_sexpr = state->get_stmt_sexpr_or_conjured(
-                    lhs,
-                    m_ctx->get_current_stack_frame(),
-                    m_ctx->get_symbol_manager());
-                SExprRef res = sym_mgr.normalize(
-                    sym_mgr.get_binary_sym_expr(lhs_sexpr,
-                                                rhs_sexpr,
-                                                binary_operator->getOpcode(),
-                                                binary_operator->getType()));
-                state = state->set_stmt_sexpr(binary_operator, res);
-            } break;
-            default:
-                knight_unreachable("unhanlded binary operator kind"); // NOLINT
-                break;
+        SExprRef rhs_sexpr =
+            state->get_stmt_sexpr_or_conjured(lhs_expr,
+                                              m_ctx->get_current_stack_frame());
+
+        SExprRef lhs_sexpr =
+            state->get_stmt_sexpr_or_conjured(rhs_expr,
+                                              m_ctx->get_current_stack_frame());
+        SExprRef res = sym_mgr.normalize(
+            sym_mgr.get_binary_sym_expr(lhs_sexpr,
+                                        rhs_sexpr,
+                                        binary_operator->getOpcode(),
+                                        binary_operator->getType()));
+        state = state->set_stmt_sexpr(binary_operator, res);
+
+        if (clang::BinaryOperator::isAssignmentOp(
+                binary_operator->getOpcode())) {
+            if (auto lhs_region_opt =
+                    state->get_region(lhs_expr,
+                                      m_ctx->get_current_stack_frame())) {
+                state = state->set_region_sexpr(*lhs_region_opt, rhs_sexpr);
+            }
         }
+        state = state->set_stmt_sexpr(binary_operator, rhs_sexpr);
         m_ctx->set_state(state);
     }
 
@@ -181,8 +150,7 @@ class SymbolResolver
         auto state = m_ctx->get_state();
         auto region_sexpr_opt =
             state->try_get_sexpr(decl_ref_expr,
-                                 m_ctx->get_current_location_context(),
-                                 m_ctx->get_symbol_manager());
+                                 m_ctx->get_current_location_context());
         if (!region_sexpr_opt.has_value()) {
             return;
         }

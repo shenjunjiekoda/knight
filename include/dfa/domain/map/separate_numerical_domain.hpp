@@ -13,11 +13,14 @@
 
 #pragma once
 
+#include "clang/AST/Expr.h"
 #include "dfa/constraint/linear.hpp"
 #include "dfa/domain/dom_base.hpp"
 #include "dfa/domain/domains.hpp"
 #include "dfa/domain/interval.hpp"
 #include "dfa/domain/numerical/numerical_base.hpp"
+
+#include "util/assert.hpp"
 
 namespace knight::dfa {
 
@@ -427,23 +430,22 @@ class SeparateNumericalDom
     }
 
     /// \brief Assign `x = n`
-    void transfer_assign_constant(Var x, const Num& n) override {
+    void assign_num(Var x, const Num& n) override {
         this->set_value(x, Value(n));
     }
 
     /// \brief Assign `x = y`
-    void transfer_assign_variable(Var x, Var y) override {
+    void assign_var(Var x, Var y) override {
         this->set_value(x, this->get_value(y));
     }
 
     /// \brief Assign `x = linear_expr`
-    void transfer_assign_linear_expr(Var x,
-                                     const LinearExpr& linear_expr) override {
+    void assign_linear_expr(Var x, const LinearExpr& linear_expr) override {
         this->set_value(x, this->project(linear_expr));
     }
 
     /// \brief Assign `x = op y`
-    void apply_unary(clang::UnaryOperatorKind op, Var x, Var y) override {
+    void assign_unary(clang::UnaryOperatorKind op, Var x, Var y) override {
         switch (op) {
             using enum clang::UnaryOperatorKind;
             case clang::UO_Minus:
@@ -457,10 +459,12 @@ class SeparateNumericalDom
     }
 
     /// \brief Assign `x = y op z`
-    [[nodiscard]] SeparateNumericalValue apply_binary(
+    [[nodiscard]] SeparateNumericalValue compute_binary(
         clang::BinaryOperatorKind op,
         SeparateNumericalValue y,
         SeparateNumericalValue z) {
+        knight_assert(!clang::BinaryOperator::isAssignmentOp(op));
+
         switch (op) {
             using enum clang::BinaryOperatorKind;
             case BO_Add:
@@ -489,36 +493,30 @@ class SeparateNumericalDom
         knight_unreachable("Unsupported binary operator");
     }
 
-    void apply_binary_var_var(clang::BinaryOperatorKind op,
-                              Var x,
-                              Var y,
-                              Var z) override {
+    /// op is not assignment
+    void assign_binary_var_var_impl(clang::BinaryOperatorKind op,
+                                    Var x,
+                                    Var y,
+                                    Var z) override {
         this->set_value(x,
-                        apply_binary(op,
-                                     this->get_value(y),
-                                     this->get_value(z)));
+                        compute_binary(op,
+                                       this->get_value(y),
+                                       this->get_value(z)));
     }
 
-    void apply_binary_var_num(clang::BinaryOperatorKind op,
-                              Var x,
-                              Var y,
-                              Num z) override {
-        this->set_value(x, apply_binary(op, this->get_value(y), z));
+    /// op is not assignment
+    void assign_binary_var_num_impl(clang::BinaryOperatorKind op,
+                                    Var x,
+                                    Var y,
+                                    Num z) override {
+        this->set_value(x, compute_binary(op, this->get_value(y), z));
     }
-
-    void apply_binary_num_var(clang::BinaryOperatorKind op,
-                              Var x,
-                              Num y,
-                              Var z) override {
-        this->set_value(x, apply_binary(op, y, this->get_value(z)));
-    }
-
     /// x = (T)y
-    void apply_cast(clang::QualType src_type,
-                    clang::QualType dst_type,
-                    Var x,
-                    Var y) override {
-        // TODO
+    void assign_cast(clang::QualType dst_type,
+                     unsigned dst_bit_width,
+                     Var x,
+                     Var y) override {
+        this->set_Value(x, this->get_value(y).cast(dst_type, dst_bit_width));
     }
 
 }; // class SeparateNumericalDom

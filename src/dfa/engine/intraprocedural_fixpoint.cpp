@@ -27,7 +27,6 @@ IntraProceduralFixpointIterator::IntraProceduralFixpointIterator(
     knight::KnightContext& ctx,
     AnalysisManager& analysis_mgr,
     CheckerManager& checker_mgr,
-    SymbolManager& symbol_mgr,
     LocationManager& location_mgr,
     ProgramStateManager& state_mgr,
     const StackFrame* frame)
@@ -35,7 +34,7 @@ IntraProceduralFixpointIterator::IntraProceduralFixpointIterator(
       m_ctx(ctx),
       m_analysis_mgr(analysis_mgr),
       m_checker_mgr(checker_mgr),
-      m_symbol_mgr(symbol_mgr),
+      m_symbol_mgr(analysis_mgr.get_symbol_manager()),
       m_location_mgr(location_mgr),
       m_state_mgr(state_mgr),
       WtoBasedFixPointIterator(frame, state_mgr.get_bottom_state()) {}

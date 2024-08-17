@@ -56,7 +56,6 @@ class KnightASTConsumer : public clang::ASTConsumer {
     // TODO(engine): add datadflow engine to run analysis and checkers here? on
     // the decl_group or tu?
     bool HandleTopLevelDecl(clang::DeclGroupRef decl_group) override {
-        dfa::SymbolManager sym_manager(m_ctx.get_allocator());
         for (auto* decl : decl_group) {
             auto* function =
                 llvm::dyn_cast_or_null< clang::FunctionDecl >(decl);
@@ -97,7 +96,6 @@ class KnightASTConsumer : public clang::ASTConsumer {
                 engine(m_ctx,
                        m_analysis_manager,
                        m_checker_manager,
-                       sym_manager,
                        m_location_manager,
                        m_analysis_manager.get_state_manager(),
                        frame);

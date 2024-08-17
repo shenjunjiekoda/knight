@@ -12,6 +12,7 @@
 //===------------------------------------------------------------------===//
 
 #include "dfa/symbol.hpp"
+#include "dfa/constraint/linear.hpp"
 #include "dfa/region/region.hpp"
 #include "dfa/stack_frame.hpp"
 
@@ -23,6 +24,10 @@ namespace knight::dfa {
 
 bool is_valid_type_for_sym_expr(clang::QualType type) {
     return !type.isNull() && !type->isVoidType();
+}
+
+void profile_symbol(llvm::FoldingSetNodeID& id, SymbolRef sym) {
+    sym->Profile(id);
 }
 
 void SymIterator::resolve(SExprRef sym_expr) {
@@ -163,6 +168,40 @@ void CastSymExpr::dump(llvm::raw_ostream& os) const {
     os << "cast<" << m_dst << ">(";
     m_operand->dump(os);
     os << ")";
+}
+
+std::optional< ZLinearExpr > SymExpr::get_as_zexpr() const {
+    // TODO: handle more cases
+    if (const auto* sym = dyn_cast< Sym >(this);
+        sym != nullptr && sym->get_type()->isIntegralOrEnumerationType()) {
+        return ZLinearExpr(ZVariable(sym));
+    }
+    if (const auto* scalar_int = dyn_cast< ScalarInt >(this)) {
+        return ZLinearExpr(scalar_int->get_value());
+    }
+    return std::nullopt;
+}
+
+std::optional< ZLinearConstraint > SymExpr::get_as_zconstraint() const {
+    // TODO: handle more cases
+    return std::nullopt;
+}
+
+std::optional< QLinearExpr > SymExpr::get_as_qexpr() const {
+    // TODO: handle more cases
+    if (const auto* sym = dyn_cast< Sym >(this);
+        sym != nullptr && sym->get_type()->isFloatingType()) {
+        return QLinearExpr(QVariable(sym));
+    }
+    if (const auto* scalar_fp = dyn_cast< ScalarFloat >(this)) {
+        return QLinearExpr(scalar_fp->get_value());
+    }
+    return std::nullopt;
+}
+
+std::optional< QLinearConstraint > SymExpr::get_as_qconstraint() const {
+    // TODO: handle more cases
+    return std::nullopt;
 }
 
 } // namespace knight::dfa

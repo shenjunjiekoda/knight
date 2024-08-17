@@ -134,7 +134,7 @@ class ProgramState : public llvm::FoldingSetNode {
     [[nodiscard]] std::optional< MemRegionRef > get_region(
         ProcCFG::StmtRef expr, const StackFrame*) const;
     [[nodiscard]] std::optional< SExprRef > try_get_sexpr(
-        ProcCFG::StmtRef expr, const LocationContext*, SymbolManager&) const;
+        ProcCFG::StmtRef expr, const LocationContext*) const;
 
     [[nodiscard]] std::optional< ZVariable > try_get_zvariable(
         ProcCFG::DeclRef decl, const StackFrame* frame) const;
@@ -157,13 +157,10 @@ class ProgramState : public llvm::FoldingSetNode {
     [[nodiscard]] SExprRef get_stmt_sexpr_or_conjured(
         ProcCFG::StmtRef stmt,
         const clang::QualType& type,
-        const StackFrame* frame,
-        SymbolManager& mgr) const;
+        const StackFrame* frame) const;
     [[nodiscard]] SExprRef get_stmt_sexpr_or_conjured(
-        const clang::Expr* expr,
-        const StackFrame* frame,
-        SymbolManager& mgr) const {
-        return get_stmt_sexpr_or_conjured(expr, expr->getType(), frame, mgr);
+        const clang::Expr* expr, const StackFrame* frame) const {
+        return get_stmt_sexpr_or_conjured(expr, expr->getType(), frame);
     }
 
   public:
@@ -348,6 +345,9 @@ class ProgramStateManager {
     /// \brief Region manager.
     RegionManager& m_region_mgr;
 
+    /// \brief Symbol manager.
+    SymbolManager& m_symbol_mgr;
+
     /// \brief  FoldingSet containing all the states created for analyzing
     ///  a particular function.  This is used to unique states.
     llvm::FoldingSet< ProgramState > m_state_set;
@@ -361,9 +361,11 @@ class ProgramStateManager {
   public:
     ProgramStateManager(AnalysisManager& analysis_mgr,
                         RegionManager& region_mgr,
+                        SymbolManager& symbol_mgr,
                         llvm::BumpPtrAllocator& alloc)
         : m_analysis_mgr(analysis_mgr),
           m_region_mgr(region_mgr),
+          m_symbol_mgr(symbol_mgr),
           m_alloc(alloc) {}
 
   public:

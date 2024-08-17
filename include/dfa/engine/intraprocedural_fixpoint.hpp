@@ -51,7 +51,6 @@ class IntraProceduralFixpointIterator final
     IntraProceduralFixpointIterator(knight::KnightContext& ctx,
                                     AnalysisManager& analysis_mgr,
                                     CheckerManager& checker_mgr,
-                                    SymbolManager& symbol_mgr,
                                     LocationManager& location_mgr,
                                     ProgramStateManager& state_mgr,
                                     const StackFrame* frame);
