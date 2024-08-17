@@ -15,6 +15,7 @@
 
 #include "dfa/constraint/linear.hpp"
 #include "dfa/domain/dom_base.hpp"
+#include "dfa/domain/interval.hpp"
 
 #include <clang/AST/OperationKinds.h>
 
@@ -25,17 +26,17 @@ namespace knight::dfa {
 /// it should also implement the following *required* methods:
 /// - `widen_with_threshold(const Derived&, const Num&)`
 /// - `narrow_with_threshold(const Derived&, const Num&)`
-/// - `transfer_assign_constant(VarRef, const Num &)`
-/// - `transfer_assign_variable(VarRef, VarRef)`
-/// - `transfer_assign_linear_expr(VarRef, const LinearExpr&)`
-/// - `apply(clang::BinaryOperatorKind, VarRef)`
+/// - `transfer_assign_constant(Var, const Num &)`
+/// - `transfer_assign_variable(Var, Var)`
+/// - `transfer_assign_linear_expr(Var, const LinearExpr&)`
+/// - `apply(clang::BinaryOperatorKind, Var)`
 template < typename Derived, typename Num >
 class NumericalDom : public AbsDom< Derived > {
   public:
     using LinearExpr = LinearExpr< Num >;
     using LinearConstraint = LinearConstraint< Num >;
     using LinearConstraintSystem = LinearConstraintSystem< Num >;
-    using VarRef = typename LinearConstraint::VarRef;
+    using Var = Variable< Num >;
 
   public:
     NumericalDom< Derived, Num >() : AbsDom< Derived >() {}
@@ -52,32 +53,37 @@ class NumericalDom : public AbsDom< Derived > {
     }
 
     /// \brief Assign `x = n`
-    virtual void transfer_assign_constant(VarRef x, const Num& n) = 0;
+    virtual void transfer_assign_constant(Var x, const Num& n) = 0;
 
     /// \brief Assign `x = y`
-    virtual void transfer_assign_variable(VarRef x, VarRef y) = 0;
+    virtual void transfer_assign_variable(Var x, Var y) = 0;
 
     /// \brief Assign `x = expr`
-    virtual void transfer_assign_linear_expr(VarRef x,
-                                             const LinearExpr& expr) = 0;
+    virtual void transfer_assign_linear_expr(Var x, const LinearExpr& expr) = 0;
 
-    virtual void apply(clang::UnaryOperatorKind op, VarRef x, VarRef y) = 0;
+    virtual void apply(clang::UnaryOperatorKind op, Var x, Var y) = 0;
 
     /// \brief Apply `x = y op z`
-    virtual void apply(clang::BinaryOperatorKind op,
-                       VarRef x,
-                       VarRef y,
-                       VarRef z) = 0;
+    virtual void apply_binary_var_var(clang::BinaryOperatorKind op,
+                                      Var x,
+                                      Var y,
+                                      Var z) = 0;
 
-    virtual void apply(clang::BinaryOperatorKind op,
-                       VarRef x,
-                       VarRef y,
-                       const Num& z) = 0;
+    virtual void apply_binary_var_num(clang::BinaryOperatorKind op,
+                                      Var x,
+                                      Var y,
+                                      const Num& z) = 0;
 
-    virtual void apply(clang::BinaryOperatorKind op,
-                       VarRef x,
-                       const Num& y,
-                       VarRef z) = 0;
+    virtual void apply_binary_num_var(clang::BinaryOperatorKind op,
+                                      Var x,
+                                      const Num& y,
+                                      Var z) = 0;
+
+    /// \brief Apply `x = (T)y`
+    virtual void apply_cast(clang::QualType src_type,
+                            clang::QualType dst_type,
+                            Var x,
+                            Var y) = 0;
 
     /// \brief Add a linear constraint
     virtual void add_linear_constraint(const LinearConstraint& cst) = 0;
@@ -86,8 +92,14 @@ class NumericalDom : public AbsDom< Derived > {
     virtual void merge_with_linear_constraint_system(
         const LinearConstraintSystem& csts) = 0;
 
+    /// \brief Get the linear constraint system
+    [[nodiscard]] virtual LinearConstraintSystem to_linear_constraint_system()
+        const = 0;
+
     /// \brief Forget a numerical variable
-    virtual void forget(VarRef x) = 0;
+    virtual void forget(Var x) = 0;
+
+    [[nodiscard]] virtual Interval< Num > to_interval(Var x) const = 0;
 
 }; // class NumericalDom
 

@@ -14,10 +14,13 @@
 #include "dfa/program_state.hpp"
 #include "dfa/analysis/analysis_base.hpp"
 #include "dfa/checker/checker_base.hpp"
+#include "dfa/constraint/linear.hpp"
 #include "dfa/domain/dom_base.hpp"
 #include "dfa/domain/domains.hpp"
 #include "dfa/location_context.hpp"
 #include "dfa/region/region.hpp"
+#include "dfa/stack_frame.hpp"
+#include "dfa/symbol.hpp"
 #include "dfa/symbol_manager.hpp"
 #include "util/assert.hpp"
 
@@ -77,6 +80,54 @@ std::optional< MemRegionRef > ProgramState::get_region(
     }
     llvm::errs() << "unhandled decl type: " << decl->getDeclKindName() << "\n";
     return std::nullopt;
+}
+
+std::optional< ZVariable > ProgramState::try_get_zvariable(
+    ProcCFG::DeclRef decl, const StackFrame* frame) const {
+    const auto* value_decl = llvm::dyn_cast< clang::ValueDecl >(decl);
+    if (value_decl == nullptr || !value_decl->getType()->isIntegerType()) {
+        return std::nullopt;
+    }
+
+    auto region_opt = get_region(decl, frame);
+    if (!region_opt.has_value()) {
+        return std::nullopt;
+    }
+
+    auto region_sexpr_opt = get_region_sexpr(region_opt.value());
+    if (!region_sexpr_opt.has_value()) {
+        return std::nullopt;
+    }
+
+    SymbolRef sym = llvm::dyn_cast< Sym >(region_sexpr_opt.value());
+    if (sym == nullptr) {
+        return std::nullopt;
+    }
+    return ZVariable(sym);
+}
+
+std::optional< QVariable > ProgramState::try_get_qvariable(
+    ProcCFG::DeclRef decl, const StackFrame* frame) const {
+    const auto* value_decl = llvm::dyn_cast< clang::ValueDecl >(decl);
+    if (value_decl == nullptr || !value_decl->getType()->isFloatingType()) {
+        return std::nullopt;
+    }
+
+    auto region_opt = get_region(decl, frame);
+    if (!region_opt.has_value()) {
+        return std::nullopt;
+    }
+
+    auto region_sexpr_opt = get_region_sexpr(region_opt.value());
+    if (!region_sexpr_opt.has_value()) {
+        return std::nullopt;
+    }
+
+    SymbolRef sym = llvm::dyn_cast< Sym >(region_sexpr_opt.value());
+    if (sym == nullptr) {
+        return std::nullopt;
+    }
+    return QVariable(sym);
 }
 
 std::optional< SExprRef > ProgramState::try_get_sexpr(

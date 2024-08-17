@@ -15,6 +15,7 @@
 
 #include <llvm/Option/OptTable.h>
 #include <llvm/Support/CommandLine.h>
+#include <llvm/Support/Debug.h>
 
 #include <clang/Driver/Options.h>
 #include <clang/Tooling/CommonOptionsParser.h>

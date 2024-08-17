@@ -29,6 +29,8 @@
 #include "tooling/options.hpp"
 #include "util/vfs.hpp"
 
+#define DEBUG_TYPE "main"
+
 using namespace llvm;
 using namespace clang;
 using namespace clang::tooling;
@@ -150,17 +152,16 @@ void print_enabled_analyses(
 
 int main(int argc, const char** argv) {
     const llvm::InitLLVM llvm_setup(argc, argv);
-
-    auto opts_parser = CommonOptionsParser::create(argc,
-                                                   argv,
-                                                   knight_category,
-                                                   cl::ZeroOrMore);
-
     ErrCode code = NormalExit;
     auto base_vfs = get_vfs(code);
     if (!base_vfs) {
         return code;
     }
+
+    auto opts_parser = CommonOptionsParser::create(argc,
+                                                   argv,
+                                                   knight_category,
+                                                   cl::ZeroOrMore);
 
     if (!opts_parser) {
         WithColor::error() << toString(opts_parser.takeError());

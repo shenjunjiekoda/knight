@@ -27,6 +27,8 @@
 #include <llvm/ADT/APSInt.h>
 #include <llvm/Support/raw_ostream.h>
 
+#define DEBUG_TYPE "symbol-resolver"
+
 namespace knight::dfa {
 
 class SymbolResolver
@@ -37,7 +39,7 @@ class SymbolResolver
 
   public:
     explicit SymbolResolver(KnightContext& ctx) : Analysis(ctx) {
-        llvm::outs() << "SymbolResolver constructor\n";
+        LLVM_DEBUG(llvm::outs() << "SymbolResolver constructor\n");
     }
 
     [[nodiscard]] static AnalysisKind get_kind() {
@@ -185,9 +187,9 @@ class SymbolResolver
             return;
         }
 
-        llvm::outs() << "declref uses region's sexpr: ";
-        region_sexpr_opt.value()->dump(llvm::outs());
-        llvm::outs() << "\n";
+        LLVM_DEBUG(llvm::outs() << "declref uses region's sexpr: ";
+                   region_sexpr_opt.value()->dump(llvm::outs());
+                   llvm::outs() << "\n";);
 
         m_ctx->set_state(
             state->set_stmt_sexpr(decl_ref_expr, region_sexpr_opt.value()));
@@ -197,9 +199,10 @@ class SymbolResolver
     void analyze_stmt(const clang::Stmt* stmt, AnalysisContext& ctx) const {
         m_ctx = &ctx;
 
-        llvm::outs() << "SymbolResolver::pre_analyze Stmt: \n";
-        stmt->dumpColor();
-        llvm::outs() << "\n";
+        LLVM_DEBUG(llvm::outs() << "SymbolResolver::pre_analyze Stmt: \n";
+                   stmt->dumpColor();
+                   llvm::outs() << "\n";);
+
         const_cast< SymbolResolver* >(this)->Visit(stmt);
     }
 

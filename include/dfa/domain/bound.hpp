@@ -152,6 +152,10 @@ class Bound {
         return m_val >= b.m_val;
     }
 
+    bool operator<(const Bound& b) const { return !(*this >= b); }
+
+    bool operator>(const Bound& b) const { return !(*this <= b); }
+
     bool operator==(const Bound& b) const {
         return this->m_is_inf == b.m_is_inf && this->m_val == b.m_val;
     }

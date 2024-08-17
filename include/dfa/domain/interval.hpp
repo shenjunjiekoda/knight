@@ -7,7 +7,7 @@
 //
 //===------------------------------------------------------------------===//
 //
-//  This header defines the interval domain
+//  This header defines the interval value domain
 //
 //===------------------------------------------------------------------===//
 
@@ -45,13 +45,14 @@ class Interval : public AbsDom< Interval< Num > > {
     /// \brief specify the domain kind
     [[nodiscard]] static DomainKind get_kind() { return DomainKind::Interval; }
 
-    Interval(Bound lb, Bound ub) : m_lb(lb), m_ub(ub) {
+    Interval(Bound lb, Bound ub) : m_lb(std::move(lb)), m_ub(std::move(ub)) {
         knight_assert(m_lb.is_finite() || m_ub.is_finite() || m_lb != m_ub);
         if (this->m_lb > this->m_ub) {
-            this->m_lb = 1;
-            this->m_ub = 0;
+            this->m_lb = Num(1.);
+            this->m_ub = Num(0.);
         }
     }
+    Interval(Num lb, Num ub) : Interval(Bound(lb), Bound(ub)) {}
 
     explicit Interval(Num n) : Interval(Bound(n)) {}
     explicit Interval(Bound n) : Interval(n, n) {}
@@ -104,8 +105,8 @@ class Interval : public AbsDom< Interval< Num > > {
     }
 
     void set_to_bottom() override {
-        m_lb = 1;
-        m_ub = 0;
+        m_lb = Num(1.);
+        m_ub = Num(0.);
     }
 
     void set_to_top() override {
@@ -242,7 +243,7 @@ class Interval : public AbsDom< Interval< Num > > {
     }
 
     /// \brief Return true if the interval contains n
-    bool contains(const Num& n) const {
+    [[nodiscard]] bool contains(const Num& n) const {
         return !this->is_bottom() && m_lb <= n && m_ub >= n;
     }
 
@@ -251,9 +252,13 @@ class Interval : public AbsDom< Interval< Num > > {
             os << "_|_";
         } else {
             if (m_lb == m_ub) {
-                os << m_lb;
+                m_lb.dump(os);
             } else {
-                os << "[" << m_lb << ", " << m_ub << "]";
+                os << "[";
+                m_lb.dump(os);
+                os << ", ";
+                m_ub.dump(os);
+                os << "]";
             }
         }
     }
@@ -541,5 +546,20 @@ inline Interval< Num > operator^(const Interval< Num >& lhs,
 
 using ZInterval = Interval< llvm::APSInt >;
 using QInterval = Interval< llvm::APFloat >;
+
+inline ZInterval trim_bound(const ZInterval& itv, const ZBound& b) {
+    knight_assert(!itv.is_bottom());
+    if (itv.get_lb() == b) {
+        return {b + ZBound(llvm::APSInt(1)), itv.get_ub()};
+    }
+    if (itv.get_ub() == b) {
+        return {itv.get_lb(), b - ZBound(llvm::APSInt(1))};
+    }
+    return itv;
+}
+
+inline QInterval trim_bound(const QInterval& itv, const QBound&) {
+    return itv;
+}
 
 } // namespace knight::dfa

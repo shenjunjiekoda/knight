@@ -24,4 +24,5 @@
 DOMAIN_DEF(DemoItvDom, "DemoItvDom", 0, "A demo interval domain.")
 DOMAIN_DEF(DemoItvDom2, "DemoItvDom2", 1, "A demo interval domain 2.")
 DOMAIN_DEF(DemoMapDom, "DemoMapDom", 2, "A demo map domain.")
-DOMAIN_DEF(Interval, "Interval", 3, "Interval domain.")
+DOMAIN_DEF(Interval, "Interval", 3, "Interval value domain.")
+DOMAIN_DEF(IntervalDomain, "IntervalDomain", 5, "Interval domain.")

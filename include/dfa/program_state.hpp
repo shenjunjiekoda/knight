@@ -14,6 +14,7 @@
 #pragma once
 
 #include "dfa/analysis_manager.hpp"
+#include "dfa/constraint/linear.hpp"
 #include "dfa/domain/dom_base.hpp"
 #include "dfa/domain/domains.hpp"
 #include "dfa/proc_cfg.hpp"
@@ -130,6 +131,11 @@ class ProgramState : public llvm::FoldingSetNode {
     std::optional< SExprRef > try_get_sexpr(ProcCFG::StmtRef expr,
                                             const LocationContext*,
                                             SymbolManager&) const;
+
+    std::optional< ZVariable > try_get_zvariable(ProcCFG::DeclRef decl,
+                                                 const StackFrame* frame) const;
+    std::optional< QVariable > try_get_qvariable(ProcCFG::DeclRef decl,
+                                                 const StackFrame* frame) const;
 
     ProgramStateRef set_region_sexpr(MemRegionRef region, SExprRef sexpr) const;
     ProgramStateRef set_stmt_sexpr(ProcCFG::StmtRef stmt, SExprRef sexpr) const;

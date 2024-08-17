@@ -24,6 +24,8 @@
 #include <clang/AST/Stmt.h>
 #include <llvm/Support/raw_ostream.h>
 
+#define DEBUG_TYPE "DemoAnalysis"
+
 namespace knight::dfa {
 
 class DemoAnalysis : public Analysis< DemoAnalysis,
@@ -39,17 +41,19 @@ class DemoAnalysis : public Analysis< DemoAnalysis,
 
     // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
     void analyze_begin_function([[maybe_unused]] AnalysisContext& ctx) const {
-        llvm::outs() << "DemoAnalysis::analyze_begin_function()\nstate:";
-        ctx.get_state()->dump(llvm::outs());
-        llvm::outs() << "\n";
+        LLVM_DEBUG(llvm::outs()
+                       << "DemoAnalysis::analyze_begin_function()\nstate:";
+                   ctx.get_state()->dump(llvm::outs());
+                   llvm::outs() << "\n";);
     }
 
     // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
     void pre_analyze_stmt(const clang::DeclStmt* decl_stmt,
                           AnalysisContext& ctx) const {
-        llvm::outs() << "DemoAnalysis::pre_analyze DeclStmt: \n";
-        decl_stmt->dumpColor();
-        llvm::outs() << "\n";
+        LLVM_DEBUG(llvm::outs() << "DemoAnalysis::pre_analyze DeclStmt: \n";
+                   decl_stmt->dumpColor();
+                   llvm::outs() << "\n";);
+
         auto state = ctx.get_state();
         for (const auto* decl : decl_stmt->decls()) {
             const auto* var_decl = dyn_cast_or_null< clang::VarDecl >(decl);
@@ -57,9 +61,8 @@ class DemoAnalysis : public Analysis< DemoAnalysis,
                 continue;
             }
 
-            llvm::outs() << "var decl: ";
-            var_decl->dumpColor();
-            llvm::outs() << "\n";
+            LLVM_DEBUG(llvm::outs() << "var decl: "; var_decl->dumpColor();
+                       llvm::outs() << "\n";);
 
             auto region_opt =
                 state->get_region(var_decl, ctx.get_current_stack_frame());
@@ -87,9 +90,8 @@ class DemoAnalysis : public Analysis< DemoAnalysis,
             map->set_value(var_region, itv);
             state = state->set< DemoMapDomain >(map);
 
-            llvm::outs() << "set domain: ";
-            map->dump(llvm::outs());
-            llvm::outs() << "\n";
+            LLVM_DEBUG(llvm::outs() << "set domain: "; map->dump(llvm::outs());
+                       llvm::outs() << "\n";);
         }
         ctx.set_state(state);
     }
@@ -97,18 +99,20 @@ class DemoAnalysis : public Analysis< DemoAnalysis,
     // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
     void pre_analyze_stmt(const clang::ReturnStmt* return_stmt,
                           AnalysisContext& ctx) const {
-        llvm::outs() << "DemoAnalysis::pre_analyze ReturnStmt: \n";
-        return_stmt->dumpColor();
-        llvm::outs() << "\n";
+        LLVM_DEBUG(llvm::outs() << "DemoAnalysis::pre_analyze ReturnStmt: \n";
+                   return_stmt->dumpColor();
+                   llvm::outs() << "\n";);
 
         auto map_dom_opt = ctx.get_state()->get_ref< DemoMapDomain >();
         if (!map_dom_opt) {
             return;
         }
         auto& map_dom = *map_dom_opt;
-        llvm::outs() << "state at return: ";
-        map_dom->dump(llvm::outs());
-        llvm::outs() << "\n";
+
+        LLVM_DEBUG(llvm::outs() << "state at return: ";
+                   map_dom->dump(llvm::outs());
+                   llvm::outs() << "\n";);
+
         const auto* ret_val_expr = return_stmt->getRetValue();
         if (ret_val_expr == nullptr) {
             return;
@@ -123,12 +127,12 @@ class DemoAnalysis : public Analysis< DemoAnalysis,
                         .get_region(var_decl, ctx.get_current_stack_frame());
                 const auto& itv = map_dom->get_value(var_region);
 
-                llvm::outs() << "returning ";
-                var_region->dump(llvm::outs());
-                llvm::outs() << "\n";
-                llvm::outs() << "itv after return: ";
-                itv.dump(llvm::outs());
-                llvm::outs() << "\n";
+                LLVM_DEBUG(llvm::outs() << "returning ";
+                           var_region->dump(llvm::outs());
+                           llvm::outs() << "\n";
+                           llvm::outs() << "itv after return: ";
+                           itv.dump(llvm::outs());
+                           llvm::outs() << "\n";);
             }
         }
     }

@@ -16,6 +16,8 @@
 #include "dfa/constraint/linear.hpp"
 #include "dfa/domain/dom_base.hpp"
 #include "dfa/domain/domains.hpp"
+#include "dfa/domain/interval.hpp"
+#include "dfa/domain/numerical/numerical_base.hpp"
 
 namespace knight::dfa {
 
@@ -23,12 +25,15 @@ template < typename Num,
            derived_dom SeparateNumericalValue,
            DomainKind DomKind >
 class SeparateNumericalDom
-    : public AbsDom<
-          SeparateNumericalDom< Num, SeparateNumericalValue, DomKind > > {
+    : public NumericalDom<
+          SeparateNumericalDom< Num, SeparateNumericalValue, DomKind >,
+          Num > {
   public:
     using Var = Variable< Num >;
     using Map = std::unordered_map< Var, SeparateNumericalValue >;
     using LinearExpr = LinearExpr< Num >;
+    using LinearConstraint = LinearConstraint< Num >;
+    using LinearConstraintSystem = LinearConstraintSystem< Num >;
 
   private:
     Map m_table;
@@ -56,11 +61,11 @@ class SeparateNumericalDom
 
     const Map& get_table() const { return m_table; }
 
-    void forget(const Var& key) {
+    void forget(const Var& x) override {
         if (this->is_bottom() || this->is_top()) {
             return;
         }
-        this->m_table.erase(key);
+        this->m_table.erase(x);
     }
 
     SeparateNumericalValue get_value(const Var& key) const {
@@ -235,7 +240,7 @@ class SeparateNumericalDom
         if (this->is_bottom() || other.is_top()) {
             return;
         }
-        if (other.is_bottom() || this->is_top()) {
+        if (other.is_bottom()) {
             *this = other;
             return;
         }
@@ -249,6 +254,27 @@ class SeparateNumericalDom
                     this->set_to_bottom();
                     return;
                 }
+            }
+        }
+    }
+
+    void refine(Var x, const SeparateNumericalValue& value) {
+        if (this->is_bottom() || value.is_top()) {
+            return;
+        }
+
+        if (value.is_bottom()) {
+            this->set_to_bottom();
+        }
+
+        auto it = m_table.find(x);
+        if (it == m_table.end()) {
+            m_table[x] = value;
+        } else {
+            it->second.meet_with(value);
+            if (it->second.is_bottom()) {
+                this->set_to_bottom();
+                return;
             }
         }
     }
@@ -345,8 +371,6 @@ class SeparateNumericalDom
         }
     }
 
-    /// TODO: For numericals
-
     void widen_with_threshold(const SeparateNumericalDom& other,
                               const Num& threshold) {
         if (other.is_bottom() || this->is_top()) {
@@ -403,17 +427,98 @@ class SeparateNumericalDom
     }
 
     /// \brief Assign `x = n`
-    void transfer_assign_constant(Var x, const Num& n) {
+    void transfer_assign_constant(Var x, const Num& n) override {
         this->set_value(x, Value(n));
     }
 
     /// \brief Assign `x = y`
-    void transfer_assign_variable(Var x, Var y) {
+    void transfer_assign_variable(Var x, Var y) override {
         this->set_value(x, this->get_value(y));
     }
 
-    void transfer_assign_linear_expr(Var x, const LinearExpr& linear_expr) {
+    /// \brief Assign `x = linear_expr`
+    void transfer_assign_linear_expr(Var x,
+                                     const LinearExpr& linear_expr) override {
         this->set_value(x, this->project(linear_expr));
+    }
+
+    /// \brief Assign `x = op y`
+    void apply_unary(clang::UnaryOperatorKind op, Var x, Var y) override {
+        switch (op) {
+            using enum clang::UnaryOperatorKind;
+            case clang::UO_Minus:
+                this->set_value(x, -this->get_value(y));
+                break;
+            default:
+                break;
+        }
+
+        knight_unreachable("Unsupported unary operator");
+    }
+
+    /// \brief Assign `x = y op z`
+    [[nodiscard]] SeparateNumericalValue apply_binary(
+        clang::BinaryOperatorKind op,
+        SeparateNumericalValue y,
+        SeparateNumericalValue z) {
+        switch (op) {
+            using enum clang::BinaryOperatorKind;
+            case BO_Add:
+                return y + z;
+            case BO_Sub:
+                return y - z;
+            case BO_Mul:
+                return y * z;
+            case BO_Div:
+                return y / z;
+            case BO_Rem:
+                return y % z;
+            case BO_Shl:
+                return y << z;
+            case BO_Shr:
+                return y >> z;
+            case BO_And:
+                return y & z;
+            case BO_Or:
+                return y | z;
+            case BO_Xor:
+                return y ^ z;
+            default:
+                break;
+        }
+        knight_unreachable("Unsupported binary operator");
+    }
+
+    void apply_binary_var_var(clang::BinaryOperatorKind op,
+                              Var x,
+                              Var y,
+                              Var z) override {
+        this->set_value(x,
+                        apply_binary(op,
+                                     this->get_value(y),
+                                     this->get_value(z)));
+    }
+
+    void apply_binary_var_num(clang::BinaryOperatorKind op,
+                              Var x,
+                              Var y,
+                              Num z) override {
+        this->set_value(x, apply_binary(op, this->get_value(y), z));
+    }
+
+    void apply_binary_num_var(clang::BinaryOperatorKind op,
+                              Var x,
+                              Num y,
+                              Var z) override {
+        this->set_value(x, apply_binary(op, y, this->get_value(z)));
+    }
+
+    /// x = (T)y
+    void apply_cast(clang::QualType src_type,
+                    clang::QualType dst_type,
+                    Var x,
+                    Var y) override {
+        // TODO
     }
 
 }; // class SeparateNumericalDom

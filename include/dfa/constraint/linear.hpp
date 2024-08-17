@@ -30,6 +30,9 @@ struct Variable {
     SymbolRef m_symbol;
 }; // struct Variable < Num >
 
+using ZVariable = Variable< llvm::APSInt >;
+using QVariable = Variable< llvm::APFloat >;
+
 template < typename Num >
 class LinearExpr {
   public:
@@ -472,6 +475,15 @@ class LinearConstraint {
     [[nodiscard]] LinearConstraintKind get_constraint_kind() const {
         return this->m_kind;
     }
+
+    [[nodiscard]] LinearExpr::Map& get_terms() {
+        return this->m_linear_expr.get_terms();
+    }
+
+    [[nodiscard]] const LinearExpr::Map& get_variable_terms() const {
+        return this->m_linear_expr.get_variable_terms();
+    }
+
     [[nodiscard]] Num get_constant_term() const {
         return -this->m_linear_expr.constant();
     }
