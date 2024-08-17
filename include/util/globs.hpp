@@ -23,7 +23,7 @@ namespace knight {
 
 constexpr unsigned GlobAlign = 32;
 
-/// \brief A utility class for matching comma-separeted
+/// \brief A utility class for matching comma-separated
 /// strings against globs.
 ///
 /// negative glob starts with '-'

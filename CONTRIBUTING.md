@@ -13,11 +13,15 @@ We welcome contributions via [pull requests](https://github.com/shenjunjiekoda/k
 Please run format tools before committing your changes. We use [clang-format](https://clang.llvm.org/docs/ClangFormat.html) for C++ code.
 
 ```shell
-$ chmod +x scripts/run-clang-format
-$ scripts/run-clang-format # --help for usages
+chmod +x scripts/run-clang-format
+scripts/run-clang-format # --help for usages
 ```
 
 ```shell
-$ chmod +x scripts/run-clang-tidy
-$ scripts/run-clang-tidy -j $(nproc) # --help for usages
+chmod +x scripts/run-clang-tidy
+scripts/run-clang-tidy -j $(nproc) # --help for usages
+```
+
+```shell
+typos .
 ```

@@ -31,7 +31,7 @@ class AnalysisBase;
 ///    public Analysis<MyAnalysisImpl,
 ///        analyze::BeginFunction,
 ///        analyze::EndFunction,
-///        (more callbacks accpeted...) > {
+///        (more callbacks accepted...) > {
 ///
 ///    /// \brief delegate to the Analysis constructor
 ///    MyAnalysisImpl(KnightContext& ctx, (more args...))

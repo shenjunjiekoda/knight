@@ -208,7 +208,7 @@ class SymbolResolver
 
     static UniqueAnalysisRef register_analysis(AnalysisManager& mgr,
                                                KnightContext& ctx) {
-        mgr.set_analysis_priviledged< SymbolResolver >();
+        mgr.set_analysis_privileged< SymbolResolver >();
         return mgr.register_analysis< SymbolResolver >(ctx);
     }
 };

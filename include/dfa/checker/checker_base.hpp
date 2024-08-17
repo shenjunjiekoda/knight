@@ -27,7 +27,7 @@ namespace knight::dfa {
 ///    public Checker<MyCheckerImpl,
 ///        check::BeginFunction,
 ///        check::EndFunction,
-///        (more callbacks accpeted...) > {
+///        (more callbacks accepted...) > {
 ///
 ///    /// \brief delegate to the Checker constructor
 ///    MyCheckerImpl(KnightContext& ctx, (more args...))

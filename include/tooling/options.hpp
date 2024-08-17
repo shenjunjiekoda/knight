@@ -27,7 +27,7 @@ enum class OptionSource { Default, CommandLine, ConfigFile };
 const char* optionSourceToString(OptionSource source);
 
 using CheckerOptVal = std::variant< bool, std::string, int >;
-using Extentions = std::set< std::string >;
+using Extensions = std::set< std::string >;
 
 /// \brief Knight options.
 struct KnightOptions {
@@ -38,10 +38,10 @@ struct KnightOptions {
     std::string analyses = "";
 
     /// \brief Header file extensions.
-    Extentions header_extensions = {"h", "hh", "hpp", "hxx"};
+    Extensions header_extensions = {"h", "hh", "hpp", "hxx"};
 
     /// \brief Implematation file extensions.
-    Extentions impl_extensions = {"c", "cc", "cpp", "cxx"};
+    Extensions impl_extensions = {"c", "cc", "cpp", "cxx"};
 
     /// \brief checker specific options
     std::map< std::string, CheckerOptVal > check_opts{};

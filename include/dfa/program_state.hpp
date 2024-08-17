@@ -14,6 +14,7 @@
 #pragma once
 
 #include "dfa/analysis_manager.hpp"
+#include "dfa/constraint/constraint.hpp"
 #include "dfa/constraint/linear.hpp"
 #include "dfa/domain/dom_base.hpp"
 #include "dfa/domain/domains.hpp"
@@ -88,6 +89,9 @@ class ProgramState : public llvm::FoldingSetNode {
     /// \brief stmt sexpr map. (clang stmt -> sexpr)
     StmtSExprMap m_stmt_sexpr;
 
+    /// \brief constraint system.
+    ConstraintSystem m_constraint_system;
+
     /// \brief state manager.
     ProgramStateManager* m_state_mgr;
 
@@ -99,7 +103,8 @@ class ProgramState : public llvm::FoldingSetNode {
                  RegionManager* region_mgr,
                  DomValMap dom_val,
                  RegionSExprMap region_sexpr,
-                 StmtSExprMap stmt_sexpr);
+                 StmtSExprMap stmt_sexpr,
+                 ConstraintSystem cst_system);
 
     /// \brief Only move constructor is allowed.
     ProgramState(ProgramState&& other) noexcept;
@@ -124,34 +129,84 @@ class ProgramState : public llvm::FoldingSetNode {
     }
 
   public:
-    std::optional< MemRegionRef > get_region(ProcCFG::DeclRef decl,
-                                             const StackFrame*) const;
-    std::optional< MemRegionRef > get_region(ProcCFG::StmtRef expr,
-                                             const StackFrame*) const;
-    std::optional< SExprRef > try_get_sexpr(ProcCFG::StmtRef expr,
-                                            const LocationContext*,
-                                            SymbolManager&) const;
+    [[nodiscard]] std::optional< MemRegionRef > get_region(
+        ProcCFG::DeclRef decl, const StackFrame*) const;
+    [[nodiscard]] std::optional< MemRegionRef > get_region(
+        ProcCFG::StmtRef expr, const StackFrame*) const;
+    [[nodiscard]] std::optional< SExprRef > try_get_sexpr(
+        ProcCFG::StmtRef expr, const LocationContext*, SymbolManager&) const;
 
-    std::optional< ZVariable > try_get_zvariable(ProcCFG::DeclRef decl,
-                                                 const StackFrame* frame) const;
-    std::optional< QVariable > try_get_qvariable(ProcCFG::DeclRef decl,
-                                                 const StackFrame* frame) const;
+    [[nodiscard]] std::optional< ZVariable > try_get_zvariable(
+        ProcCFG::DeclRef decl, const StackFrame* frame) const;
+    [[nodiscard]] std::optional< QVariable > try_get_qvariable(
+        ProcCFG::DeclRef decl, const StackFrame* frame) const;
 
-    ProgramStateRef set_region_sexpr(MemRegionRef region, SExprRef sexpr) const;
-    ProgramStateRef set_stmt_sexpr(ProcCFG::StmtRef stmt, SExprRef sexpr) const;
+    [[nodiscard]] ProgramStateRef set_region_sexpr(MemRegionRef region,
+                                                   SExprRef sexpr) const;
+    [[nodiscard]] ProgramStateRef set_stmt_sexpr(ProcCFG::StmtRef stmt,
+                                                 SExprRef sexpr) const;
+    [[nodiscard]] ProgramStateRef set_constraint_system(
+        const ConstraintSystem& cst_system) const;
 
-    std::optional< SExprRef > get_region_sexpr(MemRegionRef region) const;
-    std::optional< SExprRef > get_stmt_sexpr(ProcCFG::StmtRef stmt) const;
-    std::optional< SExprRef > get_stmt_sexpr(ProcCFG::StmtRef stmt,
-                                             const StackFrame* frame) const;
-    SExprRef get_stmt_sexpr_or_conjured(ProcCFG::StmtRef stmt,
-                                        const clang::QualType& type,
-                                        const StackFrame* frame,
-                                        SymbolManager& mgr) const;
-    SExprRef get_stmt_sexpr_or_conjured(const clang::Expr* expr,
-                                        const StackFrame* frame,
-                                        SymbolManager& mgr) const {
+    [[nodiscard]] std::optional< SExprRef > get_region_sexpr(
+        MemRegionRef region) const;
+    [[nodiscard]] std::optional< SExprRef > get_stmt_sexpr(
+        ProcCFG::StmtRef stmt) const;
+    [[nodiscard]] std::optional< SExprRef > get_stmt_sexpr(
+        ProcCFG::StmtRef stmt, const StackFrame* frame) const;
+    [[nodiscard]] SExprRef get_stmt_sexpr_or_conjured(
+        ProcCFG::StmtRef stmt,
+        const clang::QualType& type,
+        const StackFrame* frame,
+        SymbolManager& mgr) const;
+    [[nodiscard]] SExprRef get_stmt_sexpr_or_conjured(
+        const clang::Expr* expr,
+        const StackFrame* frame,
+        SymbolManager& mgr) const {
         return get_stmt_sexpr_or_conjured(expr, expr->getType(), frame, mgr);
+    }
+
+  public:
+    [[nodiscard]] ProgramStateRef add_zlinear_constraint(
+        const ZLinearConstraint& constraint) const {
+        auto cst_system = m_constraint_system;
+        cst_system.add_zlinear_constraint(constraint);
+        return set_constraint_system(cst_system);
+    }
+
+    [[nodiscard]] ProgramStateRef merge_zlinear_constraint_system(
+        const ZLinearConstraintSystem& system) const {
+        auto cst_system = m_constraint_system;
+        cst_system.merge_zlinear_constraint_system(system);
+        return set_constraint_system(cst_system);
+    }
+
+    [[nodiscard]] ProgramStateRef add_qlinear_constraint(
+        const QLinearConstraint& constraint) const {
+        auto cst_system = m_constraint_system;
+        cst_system.add_qlinear_constraint(constraint);
+        return set_constraint_system(cst_system);
+    }
+
+    [[nodiscard]] ProgramStateRef merge_qlinear_constraint_system(
+        const QLinearConstraintSystem& system) const {
+        auto cst_system = m_constraint_system;
+        cst_system.merge_qlinear_constraint_system(system);
+        return set_constraint_system(cst_system);
+    }
+
+    [[nodiscard]] ProgramStateRef add_non_linear_constraint(
+        const SExprRef& constraint) const {
+        auto cst_system = m_constraint_system;
+        cst_system.add_non_linear_constraint(constraint);
+        return set_constraint_system(cst_system);
+    }
+
+    [[nodiscard]] ProgramStateRef merge_non_linear_constraint_set(
+        const ConstraintSystem::NonLinearConstraintSet& set) const {
+        auto cst_system = m_constraint_system;
+        cst_system.merge_non_linear_constraint_set(set);
+        return set_constraint_system(cst_system);
     }
 
   public:
@@ -267,6 +322,7 @@ class ProgramState : public llvm::FoldingSetNode {
             id.AddPointer(stmt);
             id.AddPointer(sexpr);
         }
+        s->m_constraint_system.Profile(id);
     }
 
     /// \brief Used to profile the contents of this object for inclusion
@@ -313,22 +369,28 @@ class ProgramStateManager {
   public:
     [[nodiscard]] const DomIDs& dom_ids() const { return m_ids; }
 
-    llvm::BumpPtrAllocator& get_allocator() { return m_alloc; }
+    [[nodiscard]] llvm::BumpPtrAllocator& get_allocator() { return m_alloc; }
 
   public:
-    ProgramStateRef get_default_state();
-    ProgramStateRef get_bottom_state();
+    [[nodiscard]] ProgramStateRef get_default_state();
+    [[nodiscard]] ProgramStateRef get_bottom_state();
 
-    ProgramStateRef get_persistent_state(ProgramState& State);
+    [[nodiscard]] ProgramStateRef get_persistent_state(ProgramState& State);
 
-    ProgramStateRef get_persistent_state_with_ref_and_dom_val_map(
+    [[nodiscard]] ProgramStateRef get_persistent_state_with_ref_and_dom_val_map(
         ProgramState& state, DomValMap dom_val);
-    ProgramStateRef get_persistent_state_with_copy_and_dom_val_map(
-        const ProgramState& state, DomValMap dom_val);
-    ProgramStateRef get_persistent_state_with_copy_and_region_sexpr_map(
+    [[nodiscard]] ProgramStateRef
+    get_persistent_state_with_copy_and_dom_val_map(const ProgramState& state,
+                                                   DomValMap dom_val);
+    [[nodiscard]] ProgramStateRef
+    get_persistent_state_with_copy_and_region_sexpr_map(
         const ProgramState& state, RegionSExprMap region_sexpr);
-    ProgramStateRef get_persistent_state_with_copy_and_stmt_sexpr_map(
-        const ProgramState& state, StmtSExprMap stmt_sexpr);
+    [[nodiscard]] ProgramStateRef
+    get_persistent_state_with_copy_and_stmt_sexpr_map(const ProgramState& state,
+                                                      StmtSExprMap stmt_sexpr);
+    [[nodiscard]] ProgramStateRef
+    get_persistent_state_with_copy_and_constraint_system(
+        const ProgramState& state, ConstraintSystem cst_system);
 
   private:
     friend void retain_state(const ProgramState* state);

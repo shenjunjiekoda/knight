@@ -14,6 +14,7 @@
 #include "dfa/program_state.hpp"
 #include "dfa/analysis/analysis_base.hpp"
 #include "dfa/checker/checker_base.hpp"
+#include "dfa/constraint/constraint.hpp"
 #include "dfa/constraint/linear.hpp"
 #include "dfa/domain/dom_base.hpp"
 #include "dfa/domain/domains.hpp"
@@ -51,13 +52,15 @@ ProgramState::ProgramState(ProgramStateManager* state_mgr,
                            RegionManager* region_mgr,
                            DomValMap dom_val,
                            RegionSExprMap region_sexpr,
-                           StmtSExprMap stmt_sexpr)
+                           StmtSExprMap stmt_sexpr,
+                           ConstraintSystem cst_system)
     : m_state_mgr(state_mgr),
       m_region_mgr(region_mgr),
       m_ref_cnt(0),
       m_dom_val(std::move(dom_val)),
       m_region_sexpr(std::move(region_sexpr)),
-      m_stmt_sexpr(std::move(stmt_sexpr)) {}
+      m_stmt_sexpr(std::move(stmt_sexpr)),
+      m_constraint_system(std::move(cst_system)) {}
 
 ProgramState::ProgramState(ProgramState&& other) noexcept
     : m_state_mgr(other.m_state_mgr),
@@ -65,7 +68,8 @@ ProgramState::ProgramState(ProgramState&& other) noexcept
       m_ref_cnt(0),
       m_dom_val(std::move(other.m_dom_val)),
       m_region_sexpr(std::move(other.m_region_sexpr)),
-      m_stmt_sexpr(std::move(other.m_stmt_sexpr)) {}
+      m_stmt_sexpr(std::move(other.m_stmt_sexpr)),
+      m_constraint_system(std::move(other.m_constraint_system)) {}
 
 ProgramStateManager& ProgramState::get_state_manager() const {
     return *m_state_mgr;
@@ -184,6 +188,13 @@ ProgramStateRef ProgramState::set_stmt_sexpr(ProcCFG::StmtRef stmt,
     stmt_sexpr[stmt] = sexpr;
     return get_state_manager()
         .get_persistent_state_with_copy_and_stmt_sexpr_map(*this, stmt_sexpr);
+}
+
+ProgramStateRef ProgramState::set_constraint_system(
+    const ConstraintSystem& cst_system) const {
+    return get_state_manager()
+        .get_persistent_state_with_copy_and_constraint_system(*this,
+                                                              cst_system);
 }
 
 std::optional< SExprRef > ProgramState::get_region_sexpr(
@@ -378,7 +389,8 @@ ProgramStateRef ProgramStateManager::get_default_state() {
                        &m_region_mgr,
                        std::move(dom_val),
                        RegionSExprMap{},
-                       StmtSExprMap{});
+                       StmtSExprMap{},
+                       ConstraintSystem{});
 
     return get_persistent_state(state);
 }
@@ -398,7 +410,8 @@ ProgramStateRef ProgramStateManager::get_bottom_state() {
                        &m_region_mgr,
                        std::move(dom_val),
                        RegionSExprMap{},
-                       StmtSExprMap{});
+                       StmtSExprMap{},
+                       ConstraintSystem{});
 
     return get_persistent_state(state);
 }
@@ -439,7 +452,8 @@ ProgramStateRef ProgramStateManager::
                            state.m_region_mgr,
                            std::move(dom_val),
                            state.m_region_sexpr,
-                           state.m_stmt_sexpr);
+                           state.m_stmt_sexpr,
+                           state.m_constraint_system);
     return get_persistent_state(new_state);
 }
 
@@ -450,7 +464,8 @@ ProgramStateRef ProgramStateManager::
                            state.m_region_mgr,
                            state.m_dom_val,
                            std::move(region_sexpr),
-                           state.m_stmt_sexpr);
+                           state.m_stmt_sexpr,
+                           state.m_constraint_system);
 
     return get_persistent_state(new_state);
 }
@@ -461,7 +476,21 @@ ProgramStateRef ProgramStateManager::
                            state.m_region_mgr,
                            state.m_dom_val,
                            state.m_region_sexpr,
-                           std::move(stmt_sexpr));
+                           std::move(stmt_sexpr),
+                           state.m_constraint_system);
+
+    return get_persistent_state(new_state);
+}
+
+ProgramStateRef ProgramStateManager::
+    get_persistent_state_with_copy_and_constraint_system(
+        const ProgramState& state, ConstraintSystem cst_system) {
+    ProgramState new_state(state.m_state_mgr,
+                           state.m_region_mgr,
+                           state.m_dom_val,
+                           state.m_region_sexpr,
+                           state.m_stmt_sexpr,
+                           std::move(cst_system));
 
     return get_persistent_state(new_state);
 }

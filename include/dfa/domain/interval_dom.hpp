@@ -76,7 +76,7 @@ class IntervalSolver {
 
     /// \brief Add a system of constraint
     ///
-    /// Warning: the linear constrainst system should outlive the solver
+    /// Warning: the linear constraint system should outlive the solver
     void add(LinearConstraintSystemRef csts) {
         for (const LinearConstraint& cst : csts.get()) {
             if (cst.is_contradiction()) {

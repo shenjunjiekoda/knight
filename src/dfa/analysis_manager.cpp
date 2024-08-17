@@ -154,7 +154,7 @@ void AnalysisManager::compute_all_required_analyses_by_dependencies() {
 void AnalysisManager::compute_full_order_analyses_after_registry() {
     m_analysis_full_order = compute_topological_order(m_analysis_dependencies,
                                                       m_analyses,
-                                                      m_priviledged_analysis);
+                                                      m_privileged_analysis);
 }
 
 void AnalysisManager::enable_analysis(

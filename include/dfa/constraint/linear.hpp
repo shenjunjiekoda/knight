@@ -13,6 +13,7 @@
 
 #pragma once
 
+#include <llvm/ADT/FoldingSet.h>
 #include <llvm/Support/raw_ostream.h>
 
 #include "dfa/symbol.hpp"
@@ -20,25 +21,113 @@
 #include "util/assert.hpp"
 
 #include <optional>
-#include <unordered_map>
 #include <unordered_set>
 
 namespace knight::dfa {
 
 template < typename Num >
-struct Variable {
-    SymbolRef m_symbol;
-}; // struct Variable < Num >
+struct Variable : public llvm::FoldingSetNode {
+    SymbolRef m_symbol{};
+
+    explicit Variable< Num >(SymbolRef symbol) : m_symbol(symbol) {}
+    Variable(const Variable&) = default;
+    Variable(Variable&&) = default;
+    Variable& operator=(const Variable&) = default;
+    Variable& operator=(Variable&&) = default;
+    ~Variable() = default;
+
+    // NOLINTNEXTLINE
+    void Profile(llvm::FoldingSetNodeID& id) const { id.AddPointer(m_symbol); }
+
+} __attribute__((packed)); // struct Variable < Num >
 
 using ZVariable = Variable< llvm::APSInt >;
 using QVariable = Variable< llvm::APFloat >;
 
+} // namespace knight::dfa
+
+namespace llvm {
+
+/// DenseMapInfo allows us to use the DenseMap LLVM data structure to store
+/// Variable.
+template <>
+struct DenseMapInfo< knight::dfa::ZVariable > {
+    // NOLINTNEXTLINE
+    static inline knight::dfa::ZVariable getEmptyKey() {
+        uintptr_t x = reinterpret_cast< uintptr_t >(
+                          DenseMapInfo< void* >::getEmptyKey()) &
+                      ~0x7; // NOLINT
+        return knight::dfa::ZVariable(
+            reinterpret_cast< knight::dfa::SymbolRef >(x));
+    }
+
+    // NOLINTNEXTLINE
+    static inline knight::dfa::ZVariable getTombstoneKey() {
+        uintptr_t x = reinterpret_cast< uintptr_t >(
+                          DenseMapInfo< void* >::getTombstoneKey()) &
+                      ~0x7; // NOLINT
+        return knight::dfa::ZVariable(
+            reinterpret_cast< knight::dfa::SymbolRef >(x));
+    }
+
+    // NOLINTNEXTLINE
+    static unsigned getHashValue(const knight::dfa::ZVariable& zvar) {
+        llvm::FoldingSetNodeID id;
+        zvar.m_symbol->Profile(id);
+        return id.ComputeHash();
+    }
+
+    // NOLINTNEXTLINE
+    static bool isEqual(const knight::dfa::ZVariable& lhs,
+                        const knight::dfa::ZVariable& rhs) {
+        return lhs.m_symbol == rhs.m_symbol;
+    }
+};
+
+template <>
+struct DenseMapInfo< knight::dfa::QVariable > {
+    // NOLINTNEXTLINE
+    static inline knight::dfa::QVariable getEmptyKey() {
+        uintptr_t x = reinterpret_cast< uintptr_t >(
+                          DenseMapInfo< void* >::getEmptyKey()) &
+                      ~0x7; // NOLINT
+        return knight::dfa::QVariable(
+            reinterpret_cast< knight::dfa::SymbolRef >(x));
+    }
+
+    // NOLINTNEXTLINE
+    static inline knight::dfa::QVariable getTombstoneKey() {
+        uintptr_t x = reinterpret_cast< uintptr_t >(
+                          DenseMapInfo< void* >::getTombstoneKey()) &
+                      ~0x7; // NOLINT
+        return knight::dfa::QVariable(
+            reinterpret_cast< knight::dfa::SymbolRef >(x));
+    }
+
+    // NOLINTNEXTLINE
+    static unsigned getHashValue(const knight::dfa::QVariable& qvar) {
+        llvm::FoldingSetNodeID id;
+        qvar.m_symbol->Profile(id);
+        return id.ComputeHash();
+    }
+
+    // NOLINTNEXTLINE
+    static bool isEqual(const knight::dfa::QVariable& lhs,
+                        const knight::dfa::QVariable& rhs) {
+        return lhs.m_symbol == rhs.m_symbol;
+    }
+};
+
+} // namespace llvm
+
+namespace knight::dfa {
+
 template < typename Num >
-class LinearExpr {
+class LinearExpr : public llvm::FoldingSetNode {
   public:
     using Var = Variable< Num >;
-    using VarSet = std::unordered_set< Var >;
-    using Map = std::unordered_map< Var, Num >;
+    using VarSet = llvm::DenseSet< Var >;
+    using Map = llvm::DenseMap< Var, Num >;
 
   private:
     Map m_terms;
@@ -47,7 +136,7 @@ class LinearExpr {
   public:
     LinearExpr() = default;
     explicit LinearExpr(Num n) : m_constant(std::move(n)) {}
-    explicit LinearExpr(Var var) { m_terms.emplace(var, Num(1)); }
+    explicit LinearExpr(Var var) { m_terms.try_emplace(var, Num(1.)); }
 
     /// \brief k * var
     LinearExpr(Num k, Var var) {
@@ -61,6 +150,15 @@ class LinearExpr {
     LinearExpr& operator=(const LinearExpr&) = default;
     LinearExpr& operator=(LinearExpr&&) = default;
     ~LinearExpr() = default;
+
+    // NOLINTNEXTLINE
+    void Profile(llvm::FoldingSetNodeID& id) const {
+        for (const auto& [var, factor] : m_terms) {
+            var.Profile(id);
+            id.Add(factor);
+        }
+        id.Add(m_constant);
+    }
 
   private:
     LinearExpr(Map terms, Num constant)
@@ -119,7 +217,7 @@ class LinearExpr {
         if (it != this->m_terms.end()) {
             return it->second;
         }
-        return Num(0);
+        return Num(0.);
     }
 
     void operator+=(const Num& n) { this->m_constant += n; }
@@ -133,13 +231,14 @@ class LinearExpr {
         this->m_constant += expr.constant();
     }
 
-    /// \brief Substract a num
+    /// \brief Subtract a num
     void operator-=(const Num& n) { this->m_constant -= n; }
+    void operator-=(Var var) { this->plus(-1., var); }
 
-    /// \brief Substract a variable
-    void operator-=(SExprRef var) { this->plus(-1, var); }
+    /// \brief Subtract a variable
+    void operator-=(SExprRef var) { this->plus(-1., var); }
 
-    /// \brief Substract a linear expression
+    /// \brief Subtract a linear expression
     void operator-=(const LinearExpr& expr) {
         for (const auto& term : expr) {
             this->plus(-term.second, term.first);
@@ -221,6 +320,9 @@ class LinearExpr {
         }
     }
 }; // class LinearExpr
+
+using ZLinearExpr = LinearExpr< llvm::APSInt >;
+using QLinearExpr = LinearExpr< llvm::APFloat >;
 
 template < typename Num >
 [[nodiscard]] inline LinearExpr< Num > operator*(Variable< Num > var,
@@ -378,7 +480,7 @@ enum class LinearConstraintKind {
 }; // enum class LinearConstraintLinearConstraintKind
 
 template < typename Num >
-class LinearConstraint {
+class LinearConstraint : public llvm::FoldingSetNode {
   public:
     using enum LinearConstraintKind;
     using LinearExpr = knight::dfa::LinearExpr< Num >;
@@ -401,6 +503,13 @@ class LinearConstraint {
     LinearConstraint& operator=(LinearConstraint&&) = default;
     ~LinearConstraint() = default;
 
+    // NOLINTNEXTLINE
+    void Profile(llvm::FoldingSetNodeID& id) const {
+        m_linear_expr.Profile(id);
+        id.AddInteger(static_cast< int >(m_kind));
+    }
+
+  public:
     /// \brief Create the tautology 0 == 0
     [[nodiscard]] static LinearConstraint tautology() {
         return LinearConstraint(LinearExpr(), LCK_Equality);
@@ -533,6 +642,9 @@ class LinearConstraint {
     }
 }; // class LinearConstraint
 
+using ZLinearConstraint = LinearConstraint< llvm::APSInt >;
+using QLinearConstraint = LinearConstraint< llvm::APFloat >;
+
 template < typename Num >
 [[nodiscard]] inline LinearConstraint< Num > operator<=(
     LinearExpr< Num > linear_expr, const Num& n) {
@@ -642,7 +754,7 @@ template < typename Num >
 [[nodiscard]] inline LinearConstraint< Num > operator==(Variable< Num > x,
                                                         Variable< Num > y) {
     return LinearConstraint< Num >(std::move(x) - std::move(y),
-                                   LinearConstraint< Num >::Equality);
+                                   LinearConstraintKind::LCK_Equality);
 }
 
 template < typename Num >
@@ -702,7 +814,7 @@ template < typename Num >
 }
 
 template < typename Num >
-class LinearConstraintSystem {
+class LinearConstraintSystem : public llvm::FoldingSetNode {
   public:
     using LinearConstraint = LinearConstraint< Num >;
     using Var = Variable< Num >;
@@ -727,6 +839,14 @@ class LinearConstraintSystem {
     LinearConstraintSystem& operator=(LinearConstraintSystem&&) = default;
     ~LinearConstraintSystem() = default;
 
+    // NOLINTNEXTLINE
+    void Profile(llvm::FoldingSetNodeID& id) const {
+        for (const LinearConstraint& cst : this->m_linear_csts) {
+            cst.Profile(id);
+        }
+    }
+
+  public:
     [[nodiscard]] bool is_empty() const { return this->m_linear_csts.empty(); }
 
     [[nodiscard]] std::size_t size() const {
@@ -740,8 +860,8 @@ class LinearConstraintSystem {
     void merge_linear_constraint_system(const LinearConstraintSystem& csts) {
         this->m_linear_csts.reserve(this->m_linear_csts.size() + csts.size());
         this->m_linear_csts.insert(this->m_linear_csts.end(),
-                                   csts.begin(),
-                                   csts.end());
+                                   csts.m_linear_csts.begin(),
+                                   csts.m_linear_csts.end());
     }
 
     void merge_linear_constraint_system(LinearConstraintSystem&& csts) {
@@ -783,5 +903,8 @@ class LinearConstraintSystem {
     }
 
 }; // end class LinearConstraintSystem
+
+using ZLinearConstraintSystem = LinearConstraintSystem< llvm::APSInt >;
+using QLinearConstraintSystem = LinearConstraintSystem< llvm::APFloat >;
 
 } // namespace knight::dfa

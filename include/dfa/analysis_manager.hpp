@@ -103,8 +103,8 @@ class AnalysisManager {
     std::vector< AnalysisID >
         m_analysis_full_order; // subject to analysis dependencies
     std::unordered_map< AnalysisID, AnalysisIDSet >
-        m_analysis_dependencies;          // all analysis dependencies
-    AnalysisIDSet m_priviledged_analysis; // priviledged analysis
+        m_analysis_dependencies;         // all analysis dependencies
+    AnalysisIDSet m_privileged_analysis; // privileged analysis
 
     std::unordered_map< AnalysisID, std::unique_ptr< AnalysisBase > >
         m_enabled_analyses;            // enabled analysis shall be created.
@@ -162,9 +162,9 @@ class AnalysisManager {
     [[nodiscard]] AnalysisIDSet get_analysis_dependencies(AnalysisID id) const;
 
     template < typename Analysis >
-    void set_analysis_priviledged() {
+    void set_analysis_privileged() {
         auto analysis_id = get_analysis_id(Analysis::get_kind());
-        m_priviledged_analysis.insert(analysis_id);
+        m_privileged_analysis.insert(analysis_id);
         m_required_analyses.insert(analysis_id);
     }
 

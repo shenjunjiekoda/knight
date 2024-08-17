@@ -74,8 +74,8 @@ class Bound {
     [[nodiscard]] bool is_ninf() const { return m_is_inf && m_val == -1; }
 
     [[nodiscard]] bool is_num(Num n) { return !m_is_inf && m_val == n; }
-    [[nodiscard]] bool is_zero() { return is_num(0); }
-    [[nodiscard]] bool is_one() { return is_num(1); }
+    [[nodiscard]] bool is_zero() { return is_num(Num(0.)); }
+    [[nodiscard]] bool is_one() { return is_num(Num(1.)); }
 
     [[nodiscard]] std::optional< Num > get_num_opt() const {
         return m_is_inf ? std::nullopt : std::make_optional(m_val);

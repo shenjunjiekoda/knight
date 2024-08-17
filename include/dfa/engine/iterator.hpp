@@ -47,13 +47,13 @@ class FixPointIterator {
 
     /// \brief transfer function for a graph node.
     ///
-    /// \return the out program state after transfering to the given node.
+    /// \return the out program state after transferring to the given node.
     [[nodiscard]] virtual ProgramStateRef transfer_node(
         NodeRef node, ProgramStateRef pre_state) = 0;
 
     /// \brief transfer function for a graph edge.
     ///
-    /// \return the out program state after transfering to the given edge,
+    /// \return the out program state after transferring to the given edge,
     ///         to the in state of the destination node.
     [[nodiscard]] virtual ProgramStateRef transfer_edge(
         NodeRef src, NodeRef dst, ProgramStateRef src_post_state) = 0;
