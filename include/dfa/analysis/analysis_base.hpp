@@ -269,14 +269,15 @@ class EventListener {
     template < typename ANALYSIS >
     static void handle_event(void* analysis, const void* event) {
         (static_cast< const ANALYSIS* >(analysis))
-            ->handle_event(*(static_cast< const EVENT* >(event)));
+            ->handle_event(static_cast< const EVENT* >(event));
     }
 
   public:
     template < typename ANALYSIS >
     static void register_callback(ANALYSIS* analysis, AnalysisManager& mgr) {
         mgr.register_for_event_listener< EVENT >(
-            internal::EventListenerCallback(analysis,
+            internal::EventListenerCallback(ANALYSIS::get_kind(),
+                                            analysis,
                                             handle_event< ANALYSIS >));
     }
 };

@@ -122,7 +122,6 @@ struct AbsDomBase {
 ///
 /// `Derived` domain *requires* the following methods:
 /// - `static get_kind()`
-/// - `Derived(...): AbsDom()...{}` constructor
 /// - `static UniqueVal default_val()` which returns the default abstract value
 /// - `static UniqueVal bottom_val()` which returns the bottom abstract value
 /// - `clone() const`

@@ -44,5 +44,10 @@ include(cmake/addClang.cmake)
 
 include_directories(${SRC_DIR}/include ${LLVM_INCLUDE_DIRS} ${CLANG_INCLUDE_DIRS})
 
+include(cmake/addGMP.cmake)
+
+include_directories(SYSTEM ${GMP_INCLUDE_DIR})
+include_directories(SYSTEM ${GMPXX_INCLUDE_DIR})
+
 add_subdirectory(src)
 add_subdirectory(tools)

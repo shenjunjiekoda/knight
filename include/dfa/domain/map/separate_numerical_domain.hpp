@@ -20,6 +20,7 @@
 #include "dfa/domain/interval.hpp"
 #include "dfa/domain/numerical/numerical_base.hpp"
 
+#include "llvm/ADT/DenseMap.h"
 #include "util/assert.hpp"
 
 namespace knight::dfa {
@@ -28,12 +29,11 @@ template < typename Num,
            derived_dom SeparateNumericalValue,
            DomainKind DomKind >
 class SeparateNumericalDom
-    : public NumericalDom<
-          SeparateNumericalDom< Num, SeparateNumericalValue, DomKind >,
-          Num > {
+    : public AbsDom<
+          SeparateNumericalDom< Num, SeparateNumericalValue, DomKind > > {
   public:
     using Var = Variable< Num >;
-    using Map = std::unordered_map< Var, SeparateNumericalValue >;
+    using Map = llvm::DenseMap< Var, SeparateNumericalValue >;
     using LinearExpr = LinearExpr< Num >;
     using LinearConstraint = LinearConstraint< Num >;
     using LinearConstraintSystem = LinearConstraintSystem< Num >;
@@ -41,11 +41,10 @@ class SeparateNumericalDom
   private:
     Map m_table;
     bool m_is_bottom = false;
-    bool m_is_top = false;
 
   public:
-    SeparateNumericalDom(bool is_bottom, bool is_top, Map table = {})
-        : m_is_bottom(is_bottom), m_is_top(is_top), m_table(std::move(table)) {}
+    SeparateNumericalDom(bool is_bottom, Map table = {})
+        : m_is_bottom(is_bottom), m_table(std::move(table)) {}
 
     SeparateNumericalDom(const SeparateNumericalDom&) = default;
     SeparateNumericalDom(SeparateNumericalDom&&) = default;
@@ -54,18 +53,14 @@ class SeparateNumericalDom
     ~SeparateNumericalDom() override = default;
 
   public:
-    static SeparateNumericalDom top() {
-        return SeparateNumericalDom(false, true);
-    }
+    static SeparateNumericalDom top() { return SeparateNumericalDom(false); }
 
-    static SeparateNumericalDom bottom() {
-        return SeparateNumericalDom(false, true);
-    }
+    static SeparateNumericalDom bottom() { return SeparateNumericalDom(true); }
 
     const Map& get_table() const { return m_table; }
 
-    void forget(const Var& x) override {
-        if (this->is_bottom() || this->is_top()) {
+    void forget(const Var& x) {
+        if (this->is_bottom()) {
             return;
         }
         this->m_table.erase(x);
@@ -75,10 +70,6 @@ class SeparateNumericalDom
         if (this->is_bottom()) {
             return *(static_cast< SeparateNumericalValue* >(
                 SeparateNumericalValue::bottom_val().get()));
-        }
-        if (this->is_top()) {
-            return *(static_cast< SeparateNumericalValue* >(
-                SeparateNumericalValue::default_val().get()));
         }
 
         auto it = m_table.find(key);
@@ -106,39 +97,44 @@ class SeparateNumericalDom
         if (this->is_bottom()) {
             return;
         }
+
         if (value.is_bottom()) {
             this->set_to_bottom();
-        } else if (value.is_top()) {
+        }
+
+        if (value.is_top()) {
             return;
-        } else {
-            auto it = m_table.find(key);
-            if (it == m_table.end()) {
-                return;
-            }
-            it->second.meet_with(value);
-            if (it->second.is_bottom()) {
-                this->set_to_bottom();
-            }
+        }
+
+        auto it = m_table.find(key);
+        if (it == m_table.end()) {
+            return;
+        }
+        it->second.meet_with(value);
+        if (it->second.is_bottom()) {
+            this->set_to_bottom();
         }
     }
 
   public:
-    static DomainKind get_kind() { return DomKind; }
+    [[nodiscard]] static DomainKind get_kind() { return DomKind; }
 
-    static SharedVal default_val() {
-        return std::make_shared< SeparateNumericalDom >(true, false);
+    [[nodiscard]] static SharedVal default_val() {
+        return std::make_shared< SeparateNumericalDom >(false);
     }
-    static SharedVal bottom_val() {
-        return std::make_shared< SeparateNumericalDom >(false, true);
+    [[nodiscard]] static SharedVal bottom_val() {
+        return std::make_shared< SeparateNumericalDom >(true);
     }
-
-    [[nodiscard]] SeparateNumericalValue* clone() const override {
+    [[nodiscard]] Map clone_table() const {
         Map table;
         for (auto& [key, value] : m_table) {
             table[key] =
-                *(static_cast< SeparateNumericalValue* >(value.clone().get()));
+                *(static_cast< SeparateNumericalValue* >(value.clone()));
         }
-        return new SeparateNumericalDom(m_is_bottom, m_is_top, table);
+        return table;
+    }
+    [[nodiscard]] AbsDomBase* clone() const override {
+        return new SeparateNumericalDom(m_is_bottom, clone_table());
     }
 
     void normalize() override {
@@ -147,23 +143,19 @@ class SeparateNumericalDom
         }
     }
 
-    [[nodiscard]] bool is_bottom() const override {
-        return m_is_bottom && !m_is_top;
-    }
+    [[nodiscard]] bool is_bottom() const override { return m_is_bottom; }
 
     [[nodiscard]] bool is_top() const override {
-        return !m_is_bottom && m_is_top;
+        return !m_is_bottom && m_table.empty();
     }
 
     void set_to_bottom() override {
         m_is_bottom = true;
-        m_is_top = false;
         Map().swap(m_table);
     }
 
     void set_to_top() override {
         m_is_bottom = false;
-        m_is_top = true;
         Map().swap(m_table);
     }
 
@@ -171,10 +163,11 @@ class SeparateNumericalDom
         if (other.is_bottom()) {
             return;
         }
-        if (other.is_top()) {
-            this->set_to_top();
+        if (this->is_bottom()) {
+            *this = other;
             return;
         }
+
         for (auto& [key, value] : other.m_table) {
             auto it = m_table.find(key);
             if (it == m_table.end()) {
@@ -189,10 +182,12 @@ class SeparateNumericalDom
         if (other.is_bottom()) {
             return;
         }
-        if (other.is_top()) {
-            this->set_to_top();
+
+        if (this->is_bottom()) {
+            *this = other;
             return;
         }
+
         for (auto& [key, value] : other.m_table) {
             auto it = m_table.find(key);
             if (it == m_table.end()) {
@@ -207,10 +202,12 @@ class SeparateNumericalDom
         if (other.is_bottom()) {
             return;
         }
-        if (other.is_top()) {
-            this->set_to_top();
+
+        if (this->is_bottom()) {
+            *this = other;
             return;
         }
+
         for (auto& [key, value] : other.m_table) {
             auto it = m_table.find(key);
             if (it == m_table.end()) {
@@ -225,10 +222,12 @@ class SeparateNumericalDom
         if (other.is_bottom()) {
             return;
         }
-        if (other.is_top()) {
-            this->set_to_top();
+
+        if (this->is_bottom()) {
+            *this = other;
             return;
         }
+
         for (auto& [key, value] : other.m_table) {
             auto it = m_table.find(key);
             if (it == m_table.end()) {
@@ -240,7 +239,7 @@ class SeparateNumericalDom
     }
 
     void meet_with(const SeparateNumericalDom& other) {
-        if (this->is_bottom() || other.is_top()) {
+        if (this->is_bottom()) {
             return;
         }
         if (other.is_bottom()) {
@@ -283,10 +282,10 @@ class SeparateNumericalDom
     }
 
     void narrow_with(const SeparateNumericalDom& other) {
-        if (this->is_bottom() || other.is_top()) {
+        if (this->is_bottom()) {
             return;
         }
-        if (other.is_bottom() || this->is_top()) {
+        if (other.is_bottom()) {
             *this = other;
             return;
         }
@@ -305,10 +304,10 @@ class SeparateNumericalDom
     }
 
     bool leq(const SeparateNumericalDom& other) const {
-        if (this->is_bottom() || other.is_top()) {
+        if (this->is_bottom()) {
             return true;
         }
-        if (other.is_bottom() || this->is_top()) {
+        if (other.is_bottom()) {
             return false;
         }
         if (this->m_table.size() > other.m_table.size()) {
@@ -330,15 +329,10 @@ class SeparateNumericalDom
         if (this->is_bottom()) {
             return other.is_bottom();
         }
-        if (this->is_top()) {
-            return other.is_top();
-        }
         if (other.is_bottom()) {
             return false;
         }
-        if (other.is_top()) {
-            return false;
-        }
+
         if (this->m_table.size() != other.m_table.size()) {
             return false;
         }
@@ -367,7 +361,7 @@ class SeparateNumericalDom
                     os << ", ";
                 }
                 os << key << ": ";
-                value.dump(os);
+                DumpableTrait< SeparateNumericalValue >::dump(os, value);
                 first = false;
             }
             os << "}";
@@ -376,7 +370,7 @@ class SeparateNumericalDom
 
     void widen_with_threshold(const SeparateNumericalDom& other,
                               const Num& threshold) {
-        if (other.is_bottom() || this->is_top()) {
+        if (other.is_bottom()) {
             return;
         }
         if (this->is_bottom()) {
@@ -387,7 +381,7 @@ class SeparateNumericalDom
                 if (it == m_table.end()) {
                     m_table[key] = sep_num_value;
                 } else {
-                    it->second.widening_threshold(sep_num_value, threshold);
+                    it->second.widen_with_threshold(sep_num_value, threshold);
                 }
             }
         }
@@ -395,10 +389,10 @@ class SeparateNumericalDom
 
     void narrow_with_threshold(const SeparateNumericalDom& other,
                                const Num& threshold) {
-        if (this->is_bottom() || other.is_top()) {
+        if (this->is_bottom()) {
             return;
         }
-        if (other.is_bottom() || this->is_top()) {
+        if (other.is_bottom()) {
             *this = other;
             return;
         }
@@ -416,36 +410,34 @@ class SeparateNumericalDom
         }
     }
 
-    [[nodiscard]] SeparateNumericalDom project(
+    [[nodiscard]] SeparateNumericalValue project(
         const LinearExpr& linear_expr) const {
         if (is_bottom()) {
-            return SeparateNumericalDom::bottom();
+            return SeparateNumericalValue::bottom();
         }
 
         SeparateNumericalValue val(linear_expr.get_constant_term());
-        for (auto& [var, coeff] : linear_expr.get_terms()) {
-            val += coeff * this->get_value(var);
+        for (auto& [var, coeff] : linear_expr.get_variable_terms()) {
+            val += SeparateNumericalValue(coeff) * this->get_value(var);
         }
         return val;
     }
 
     /// \brief Assign `x = n`
-    void assign_num(Var x, const Num& n) override {
-        this->set_value(x, Value(n));
+    void assign_num(Var x, const Num& n) {
+        this->set_value(x, SeparateNumericalValue(n));
     }
 
     /// \brief Assign `x = y`
-    void assign_var(Var x, Var y) override {
-        this->set_value(x, this->get_value(y));
-    }
+    void assign_var(Var x, Var y) { this->set_value(x, this->get_value(y)); }
 
     /// \brief Assign `x = linear_expr`
-    void assign_linear_expr(Var x, const LinearExpr& linear_expr) override {
+    void assign_linear_expr(Var x, const LinearExpr& linear_expr) {
         this->set_value(x, this->project(linear_expr));
     }
 
     /// \brief Assign `x = op y`
-    void assign_unary(clang::UnaryOperatorKind op, Var x, Var y) override {
+    void assign_unary(clang::UnaryOperatorKind op, Var x, Var y) {
         switch (op) {
             using enum clang::UnaryOperatorKind;
             case clang::UO_Minus:
@@ -497,7 +489,7 @@ class SeparateNumericalDom
     void assign_binary_var_var_impl(clang::BinaryOperatorKind op,
                                     Var x,
                                     Var y,
-                                    Var z) override {
+                                    Var z) {
         this->set_value(x,
                         compute_binary(op,
                                        this->get_value(y),
@@ -508,15 +500,21 @@ class SeparateNumericalDom
     void assign_binary_var_num_impl(clang::BinaryOperatorKind op,
                                     Var x,
                                     Var y,
-                                    Num z) override {
-        this->set_value(x, compute_binary(op, this->get_value(y), z));
+                                    const Num& z) {
+        this->set_value(x,
+                        compute_binary(op,
+                                       this->get_value(y),
+                                       SeparateNumericalValue(z)));
     }
+
     /// x = (T)y
     void assign_cast(clang::QualType dst_type,
                      unsigned dst_bit_width,
                      Var x,
-                     Var y) override {
-        this->set_Value(x, this->get_value(y).cast(dst_type, dst_bit_width));
+                     Var y) {
+        auto val = this->get_value(y);
+        val.cast(dst_type, dst_bit_width);
+        this->set_value(x, val);
     }
 
 }; // class SeparateNumericalDom

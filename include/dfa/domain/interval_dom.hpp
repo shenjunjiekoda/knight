@@ -14,6 +14,7 @@
 #pragma once
 
 #include "dfa/domain/bound.hpp"
+#include "dfa/domain/dom_base.hpp"
 #include "dfa/domain/domains.hpp"
 #include "dfa/domain/interval.hpp"
 #include "dfa/domain/map/separate_numerical_domain.hpp"
@@ -29,7 +30,7 @@ template < typename Num, typename NumericalDom >
 class IntervalSolver {
   public:
     using Var = Variable< Num >;
-    using VarSet = std::unordered_set< Var >;
+    using VarSet = llvm::DenseSet< Var >;
 
     using Bound = Bound< Num >;
     using Interval = Interval< Num >;
@@ -43,7 +44,7 @@ class IntervalSolver {
         std::reference_wrapper< const LinearConstraintSystem >;
 
     using LinearConstraintSet = std::vector< LinearConstraintRef >;
-    using TriggerTable = std::unordered_map< Var, LinearConstraintSet >;
+    using TriggerTable = llvm::DenseMap< Var, LinearConstraintSet >;
 
   private:
     VarSet m_refined_vars;
@@ -78,7 +79,8 @@ class IntervalSolver {
     ///
     /// Warning: the linear constraint system should outlive the solver
     void add(LinearConstraintSystemRef csts) {
-        for (const LinearConstraint& cst : csts.get()) {
+        for (const LinearConstraint& cst :
+             csts.get().get_linear_constraints()) {
             if (cst.is_contradiction()) {
                 this->m_is_contradiction = true;
                 return;
@@ -90,7 +92,8 @@ class IntervalSolver {
 
             // cost of one reduction step on the constraint in terms
             // of accesses to the interval collection
-            this->m_op_per_cycle += cst.num_terms() * cst.num_terms();
+            this->m_op_per_cycle +=
+                cst.num_variable_terms() * cst.num_variable_terms();
         }
     }
 
@@ -137,12 +140,13 @@ class IntervalSolver {
                              const Interval& itv,
                              NumericalDom& numerical) {
         Interval old_itv = numerical.to_interval(x);
-        Interval new_itv = old_itv.meet(itv);
+        Interval new_itv = old_itv;
+        new_itv.meet_with(itv);
         if (new_itv.is_bottom()) {
             return true;
         }
         if (old_itv != new_itv) {
-            numerical.refine(x, new_itv);
+            refine_to_numerical(x, new_itv, numerical);
             this->m_refined_vars.insert(x);
             ++this->m_op_cnt;
         }
@@ -156,7 +160,7 @@ class IntervalSolver {
         for (const auto& [var, coeff] : cst.get_variable_terms()) {
             if (var != pivot) {
                 residual -= Interval(coeff) * numerical.to_interval(var);
-                ++this->m_op_count;
+                ++this->m_op_cnt;
             }
         }
         return residual;
@@ -164,7 +168,7 @@ class IntervalSolver {
 
     /// \return true if the value is bottom, false otherwise
     bool propagate(const LinearConstraint& cst, NumericalDom& numerical) {
-        for (const auto& [pivot, coeff] : cst) {
+        for (const auto& [pivot, coeff] : cst.get_variable_terms()) {
             Interval rhs =
                 compute_residual(cst, pivot, numerical) / Interval(coeff);
             if (cst.is_equality()) {
@@ -193,17 +197,18 @@ class IntervalSolver {
                     return true;
                 }
                 if (old_itv != new_itv) {
-                    numerical.refine_to_numerical(pivot, new_itv);
+                    this->refine_to_numerical(pivot, new_itv, numerical);
                     this->m_refined_vars.insert(pivot);
                 }
                 ++this->m_op_cnt;
             }
         }
+        return false;
     }
 
     void build_trigger_table() {
         for (LinearConstraintRef cst : this->m_csts) {
-            for (const auto& [var, _] : cst.get()) {
+            for (const auto& [var, _] : cst.get().get_variable_terms()) {
                 this->m_trigger_table[var].push_back(cst);
             }
         }
@@ -231,37 +236,161 @@ class IntervalSolver {
             }
         } while (!this->m_refined_vars.empty() &&
                  this->m_op_cnt <= this->m_max_op);
+
+        return false;
     }
 
-    void solve_small_system(NumericalDom& inv) {
+    bool solve_small_system(NumericalDom& inv) {
         std::size_t cycle = 0;
         do {
             ++cycle;
             VarSet().swap(m_refined_vars);
             for (const LinearConstraint& cst : this->m_csts) {
-                this->propagate(cst, inv);
+                if (this->propagate(cst, inv)) {
+                    return true;
+                }
             }
-        } while (!this->m_refined_vars.empty() && cycle <= this->MaxCycles);
+        } while (!this->m_refined_vars.empty() && cycle <= MaxCycles);
+
+        return false;
     }
 
 }; // class IntervalSolver < Num, NumericalDom >
 
-template < typename Num >
-class IntervalDom : public SeparateNumericalDom< Num,
-                                                 Interval< Num >,
-                                                 DomainKind::IntervalDomain > {
+template < typename Num, DomainKind Kind, DomainKind SepKind >
+class IntervalDom
+    : public NumericalDom< IntervalDom< Num, Kind, SepKind >, Num > {
   public:
-    using IntervalDomT = IntervalDom< Num >;
+    using IntervalDomT = IntervalDom< Num, Kind, SepKind >;
     using Var = Variable< Num >;
     using Interval = Interval< Num >;
     using LinearExpr = LinearExpr< Num >;
     using LinearConstraint = LinearConstraint< Num >;
     using LinearConstraintSystem = LinearConstraintSystem< Num >;
+    using SeparateNumericalDom = SeparateNumericalDom< Num, Interval, SepKind >;
     using Solver = IntervalSolver< Num, IntervalDomT >;
+    using Map = typename SeparateNumericalDom::Map;
+
+  private:
+    SeparateNumericalDom m_sep_dom;
 
   public:
+    IntervalDom(bool is_bottom, Map table = {})
+        : m_sep_dom(SeparateNumericalDom(is_bottom, table)) {}
+
+  public:
+    [[nodiscard]] static DomainKind get_kind() { return Kind; }
+    [[nodiscard]] static SharedVal default_val() {
+        return std::static_pointer_cast< AbsDomBase >(
+            std::make_shared< IntervalDom >(false, Map{}));
+    }
+    [[nodiscard]] static SharedVal bottom_val() {
+        return std::static_pointer_cast< AbsDomBase >(
+            std::make_shared< IntervalDom >(true, Map{}));
+    }
+
+    [[nodiscard]] AbsDomBase* clone() const override {
+        return new IntervalDom(m_sep_dom.is_bottom(), m_sep_dom.clone_table());
+    }
+
+    void normalize() override { m_sep_dom.normalize(); }
+
+    [[nodiscard]] bool is_bottom() const override {
+        return m_sep_dom.is_bottom();
+    }
+
+    [[nodiscard]] bool is_top() const override { return m_sep_dom.is_top(); }
+
+    void set_to_bottom() override { m_sep_dom.set_to_bottom(); }
+
+    void set_to_top() override { m_sep_dom.set_to_top(); }
+
+    void forget(const Var& x) override { m_sep_dom.forget(x); }
+
+    void join_with(const IntervalDomT& other) {
+        m_sep_dom.join_with(other.m_sep_dom);
+    }
+
+    void join_with_at_loop_head(const IntervalDomT& other) {
+        m_sep_dom.join_with_at_loop_head(other.m_sep_dom);
+    }
+
+    void join_consecutive_iter_with(const IntervalDomT& other) {
+        m_sep_dom.join_consecutive_iter_with(other.m_sep_dom);
+    }
+
+    void widen_with(const IntervalDomT& other) {
+        m_sep_dom.widen_with(other.m_sep_dom);
+    }
+
+    void meet_with(const IntervalDomT& other) {
+        m_sep_dom.meet_with(other.m_sep_dom);
+    }
+
+    void narrow_with(const IntervalDomT& other) {
+        m_sep_dom.narrow_with(other.m_sep_dom);
+    }
+
+    bool leq(const IntervalDomT& other) const {
+        return m_sep_dom.leq(other.m_sep_dom);
+    }
+
+    bool equals(const IntervalDomT& other) const {
+        return m_sep_dom.equals(other.m_sep_dom);
+    }
+
+    void dump(llvm::raw_ostream& os) const override { m_sep_dom.dump(os); }
+
+  public:
+    void widen_with_threshold(const IntervalDomT& other, Num threshold) {
+        m_sep_dom.widen_with_threshold(other.m_sep_dom, threshold);
+    }
+
+    void narrow_with_threshold(const IntervalDomT& other, Num threshold) {
+        m_sep_dom.narrow_with_threshold(other.m_sep_dom, threshold);
+    }
+
+    void assign_num(const Var& x, const Num& n) override {
+        m_sep_dom.assign_num(x, n);
+    }
+
+    void assign_var(const Var& x, const Var& y) override {
+        m_sep_dom.assign_var(x, y);
+    }
+
+    void assign_linear_expr(const Var& x, const LinearExpr& e) override {
+        m_sep_dom.assign_linear_expr(x, e);
+    }
+
+    void assign_unary(clang::UnaryOperatorKind op,
+                      const Var& x,
+                      const Var& y) override {
+        m_sep_dom.assign_unary(op, x, y);
+    }
+
+    void assign_binary_var_var_impl(clang::BinaryOperatorKind op,
+                                    const Var& x,
+                                    const Var& y,
+                                    const Var& z) override {
+        m_sep_dom.assign_binary_var_var_impl(op, x, y, z);
+    }
+
+    void assign_binary_var_num_impl(clang::BinaryOperatorKind op,
+                                    const Var& x,
+                                    const Var& y,
+                                    const Num& z) override {
+        m_sep_dom.assign_binary_var_num_impl(op, x, y, z);
+    }
+
+    void assign_cast(clang::QualType dst_type,
+                     unsigned dst_bit_width,
+                     const Var& x,
+                     const Var& y) override {
+        m_sep_dom.assign_cast(dst_type, dst_bit_width, x, y);
+    }
+
     Interval to_interval(const Var& x) const override {
-        return this->get_value(x);
+        return m_sep_dom.get_value(x);
     }
 
     void add_linear_constraint(const LinearConstraint& cst) override {
@@ -278,23 +407,23 @@ class IntervalDom : public SeparateNumericalDom< Num,
     }
 
     LinearConstraintSystem within_interval(const LinearExpr& expr,
-                                           const Interval& itv) {
+                                           const Interval& itv) const {
         LinearConstraintSystem csts;
 
         if (itv.is_bottom()) {
-            csts.add(LinearConstraint::contradiction());
+            csts.add_linear_constraint(LinearConstraint::contradiction());
         } else {
             auto lb = itv.get_lb().get_num_opt();
             auto ub = itv.get_ub().get_num_opt();
 
             if (lb && ub && *lb == *ub) {
-                csts.add(expr == *ub);
+                csts.add_linear_constraint(expr == *ub);
             } else {
                 if (lb) {
-                    csts.add(expr >= *lb);
+                    csts.add_linear_constraint(expr >= *lb);
                 }
                 if (ub) {
-                    csts.add(expr <= *ub);
+                    csts.add_linear_constraint(expr <= *ub);
                 }
             }
         }
@@ -302,19 +431,20 @@ class IntervalDom : public SeparateNumericalDom< Num,
         return csts;
     }
 
-    LinearConstraintSystem within_interval(const Var& x, const Interval& itv) {
+    LinearConstraintSystem within_interval(const Var& x,
+                                           const Interval& itv) const {
         return within_interval(LinearExpr(x), itv);
     }
 
     [[nodiscard]] LinearConstraintSystem to_linear_constraint_system()
         const override {
-        if (this->is_bottom()) {
-            return LinearConstraintSystemT(LinearConstraint::contradiction());
+        if (m_sep_dom.is_bottom()) {
+            return LinearConstraintSystem(LinearConstraint::contradiction());
         }
 
         LinearConstraintSystem csts;
-        for (auto& [var, itv] : this->get_table()) {
-            csts.add(within_interval(var, itv));
+        for (auto& [var, itv] : this->m_sep_dom.get_table()) {
+            csts.merge_linear_constraint_system(within_interval(var, itv));
         }
 
         return csts;
@@ -322,7 +452,11 @@ class IntervalDom : public SeparateNumericalDom< Num,
 
 }; // class IntervalDom
 
-using ZIntervalDom = IntervalDom< llvm::APSInt >;
-using QIntervalDom = IntervalDom< llvm::APFloat >;
+using ZIntervalDom = IntervalDom< ZNum,
+                                  DomainKind::ZIntervalDomain,
+                                  DomainKind::ZIntervalSeparate >;
+using QIntervalDom = IntervalDom< QNum,
+                                  DomainKind::QIntervalDomain,
+                                  DomainKind::QIntervalSeparate >;
 
 } // namespace knight::dfa

@@ -13,19 +13,15 @@
 
 #pragma once
 
+#include "clang/AST/Type.h"
 #include "dfa/domain/bound.hpp"
 #include "dfa/domain/dom_base.hpp"
 #include "dfa/domain/domains.hpp"
-#include "dfa/domain/map/map_domain.hpp"
-#include "dfa/region/region.hpp"
-#include "llvm/ADT/APFloat.h"
-#include "llvm/ADT/APSInt.h"
+#include "dfa/domain/num/qnum.hpp"
+#include "dfa/domain/num/znum.hpp"
 #include "util/assert.hpp"
 
 #include <clang/AST/Decl.h>
-
-#include <climits>
-
 namespace knight::dfa {
 
 template < typename Num >
@@ -45,8 +41,8 @@ class Interval : public AbsDom< Interval< Num > > {
 
   public:
     /// \brief specify the domain kind
-    [[nodiscard]] static DomainKind get_kind() { return DomainKind::Interval; }
-
+    [[nodiscard]] static DomainKind get_kind() { return DomainKind::ZInterval; }
+    Interval() : m_lb(Bound::ninf()), m_ub(Bound::pinf()) {}
     Interval(Bound lb, Bound ub) : m_lb(std::move(lb)), m_ub(std::move(ub)) {
         knight_assert(m_lb.is_finite() || m_ub.is_finite() || m_lb != m_ub);
         if (this->m_lb > this->m_ub) {
@@ -64,9 +60,9 @@ class Interval : public AbsDom< Interval< Num > > {
     Interval& operator=(const Interval&) noexcept = default;
     Interval& operator=(Interval&&) noexcept = default;
 
-    ~Interval() = default;
+    ~Interval() override = default;
 
-  private:
+  public:
     explicit Interval(Top) // NOLINT(readability-named-parameter)
         : Interval(Bound::ninf(), Bound::pinf()) {}
 
@@ -249,12 +245,10 @@ class Interval : public AbsDom< Interval< Num > > {
 
     /// \brief Return true if the interval contains n
     [[nodiscard]] bool contains(const Num& n) const {
-        return !this->is_bottom() && m_lb <= n && m_ub >= n;
+        return !this->is_bottom() && m_lb <= Bound(n) && m_ub >= Bound(n);
     }
 
-    void cast(clang::QualType type, unsigned bit_width) {
-        // TODO add signedness and bit width support
-    }
+    void cast(clang::QualType type, unsigned bit_width) {}
 
     void dump(llvm::raw_ostream& os) const override {
         if (is_bottom()) {
@@ -321,15 +315,20 @@ inline Interval< Num > operator/(const Interval< Num >& lhs,
     if (lhs.is_bottom() || rhs.is_bottom()) {
         return IntervalT::bottom();
     }
-    if (rhs.contains(0)) {
-        IntervalT l(rhs.get_lb(), BoundT(-1));
-        IntervalT u(BoundT(1), rhs.get_ub());
-        return (lhs / l).join(lhs / u);
+    if (rhs.contains(Num(0))) {
+        IntervalT l(rhs.get_lb(), BoundT(Num(-1)));
+        IntervalT u(BoundT(Num(1)), rhs.get_ub());
+        Interval res(lhs / l);
+        res.join_with(lhs / u);
+        return res;
     }
-    if (lhs.contains(0)) {
-        IntervalT l(lhs.get_lb(), BoundT(-1));
-        IntervalT u(BoundT(1), lhs.get_ub());
-        return (l / rhs).join(u / rhs).join(IntervalT(0));
+    if (lhs.contains(Num(0))) {
+        IntervalT l(lhs.get_lb(), BoundT(Num(-1)));
+        IntervalT u(BoundT(Num(1)), lhs.get_ub());
+        IntervalT res(l / rhs);
+        res.join_with(u / rhs);
+        res.join_with(IntervalT(Num(0)));
+        return res;
     }
     BoundT ll = lhs.get_lb() / rhs.get_lb();
     BoundT lu = lhs.get_lb() / rhs.get_ub();
@@ -356,9 +355,9 @@ inline Interval< Num > operator%(const Interval< Num >& lhs,
     if (n_opt && d_opt) {
         return IntervalT(*n_opt % *d_opt);
     }
-    BoundT zero(0);
+    BoundT zero(Num(0));
     BoundT n_ub = max(abs(lhs.get_lb()), abs(lhs.get_ub()));
-    BoundT d_ub = max(abs(rhs.get_lb()), abs(rhs.get_ub())) - BoundT(1);
+    BoundT d_ub = max(abs(rhs.get_lb()), abs(rhs.get_ub())) - BoundT(Num(1));
     BoundT ub = min(n_ub, d_ub);
 
     if (lhs.get_lb() < zero) {
@@ -399,10 +398,10 @@ inline Interval< Num > mod(const Interval< Num >& lhs,
         if (mod_ub - mod_lb == ub - lb) {
             return IntervalT(BoundT(mod_lb), BoundT(mod_ub));
         }
-        return IntervalT(BoundT(0), BoundT(abs(*d_opt) - 1));
+        return IntervalT(BoundT(Num(0)), BoundT(abs(*d_opt) - 1));
     }
-    BoundT ub = max(abs(rhs.get_lb()), abs(rhs.get_ub())) - BoundT(1);
-    return IntervalT(BoundT(0), ub);
+    BoundT ub = max(abs(rhs.get_lb()), abs(rhs.get_ub())) - BoundT(Num(1));
+    return IntervalT(BoundT(Num(0)), ub);
 }
 
 template < typename Num >
@@ -414,15 +413,17 @@ inline Interval< Num > operator<<(const Interval< Num >& lhs,
     if (lhs.is_bottom() || rhs.is_bottom()) {
         return IntervalT::bottom();
     }
-    IntervalT shift = rhs.meet(IntervalT(BoundT(0), BoundT::pinf()));
+
+    IntervalT shift = rhs;
+    shift.meet_with(IntervalT(BoundT(Num(0)), BoundT::pinf()));
 
     if (shift.is_bottom()) {
         return IntervalT::bottom();
     }
 
-    IntervalT coeff(BoundT(1 << *shift.get_lb().get_num_opt()),
+    IntervalT coeff(BoundT(Num(1) << *shift.get_lb().get_num_opt()),
                     shift.get_ub().is_finite()
-                        ? BoundT(1 << *shift.get_ub().get_num_opt())
+                        ? BoundT(Num(1) << *shift.get_ub().get_num_opt())
                         : BoundT::pinf());
     return lhs * coeff;
 }
@@ -436,16 +437,20 @@ inline Interval< Num > operator>>(const Interval< Num >& lhs,
     if (lhs.is_bottom() || rhs.is_bottom()) {
         return IntervalT::bottom();
     }
-    IntervalT shift = rhs.meet(IntervalT(BoundT(0), BoundT::pinf()));
+    IntervalT shift = rhs;
+    shift.meet_with(IntervalT(BoundT(Num(0)), BoundT::pinf()));
 
     if (shift.is_bottom()) {
         return IntervalT::bottom();
     }
 
-    if (lhs.contains(0)) {
-        IntervalT l(lhs.get_lb(), BoundT(-1));
-        IntervalT u(BoundT(1), lhs.get_ub());
-        return (l >> rhs).join(u >> rhs).join(IntervalT(0));
+    if (lhs.contains(Num(0))) {
+        IntervalT l(lhs.get_lb(), BoundT(Num(-1)));
+        IntervalT u(BoundT(Num(1)), lhs.get_ub());
+        IntervalT res(l >> rhs);
+        res.join_with(u >> rhs);
+        res.join_with(IntervalT(Num(0)));
+        return res;
     }
     BoundT ll = lhs.get_lb() >> shift.get_lb();
     BoundT lu = lhs.get_lb() >> shift.get_ub();
@@ -470,7 +475,7 @@ inline Interval< Num > operator&(const Interval< Num >& lhs,
         return IntervalT(*l_opt & *r_opt);
     }
     if ((l_opt && *l_opt == 0) || (r_opt && *r_opt == 0)) {
-        return IntervalT(0);
+        return IntervalT(Num(0));
     }
     if (l_opt && *l_opt == -1) {
         return rhs;
@@ -478,14 +483,14 @@ inline Interval< Num > operator&(const Interval< Num >& lhs,
     if (r_opt && *r_opt == -1) {
         return lhs;
     }
-    if (lhs.get_lb() >= BoundT(0) && rhs.get_lb() >= BoundT(0)) {
-        return IntervalT(BoundT(0), min(lhs.get_ub(), rhs.get_ub()));
+    if (lhs.get_lb() >= BoundT(Num(0)) && rhs.get_lb() >= BoundT(Num(0))) {
+        return IntervalT(BoundT(Num(0)), min(lhs.get_ub(), rhs.get_ub()));
     }
-    if (lhs.get_lb() >= BoundT(0)) {
-        return IntervalT(BoundT(0), lhs.get_ub());
+    if (lhs.get_lb() >= BoundT(Num(0))) {
+        return IntervalT(BoundT(Num(0)), lhs.get_ub());
     }
-    if (rhs.get_lb() >= BoundT(0)) {
-        return IntervalT(BoundT(0), rhs.get_ub());
+    if (rhs.get_lb() >= BoundT(Num(0))) {
+        return IntervalT(BoundT(Num(0)), rhs.get_ub());
     }
     return IntervalT::top();
 }
@@ -506,7 +511,7 @@ inline Interval< Num > operator|(const Interval< Num >& lhs,
         return IntervalT(*l | *r);
     }
     if ((l && *l == -1) || (r && *r == -1)) {
-        return IntervalT(-1);
+        return IntervalT(Num(-1));
     }
     if (l && *l == 0) {
         return rhs;
@@ -514,11 +519,11 @@ inline Interval< Num > operator|(const Interval< Num >& lhs,
     if (r && *r == 0) {
         return lhs;
     }
-    if (lhs.get_lb() >= BoundT(0) && lhs.get_ub().is_finite() &&
-        rhs.get_lb() >= BoundT(0) && rhs.get_ub().is_finite()) {
+    if (lhs.get_lb() >= BoundT(Num(0)) && lhs.get_ub().is_finite() &&
+        rhs.get_lb() >= BoundT(Num(0)) && rhs.get_ub().is_finite()) {
         Num m = max(lhs.get_ub().get_num(), rhs.get_ub().get_num());
-        Num ub = ((m + 1 <= 1) ? 1 : (1 << m)) - 1;
-        return IntervalT(BoundT(0), BoundT(ub));
+        Num ub = ((m + 1 <= 1) ? Num(1) : (Num(1) << m)) - 1;
+        return IntervalT(BoundT(Num(0)), BoundT(ub));
     }
     return IntervalT::top();
 }
@@ -544,30 +549,30 @@ inline Interval< Num > operator^(const Interval< Num >& lhs,
     if (r && *r == 0) {
         return lhs;
     }
-    if (lhs.get_lb() >= BoundT(0) && lhs.get_ub().is_finite() &&
-        rhs.get_lb() >= BoundT(0) && rhs.get_ub().is_finite()) {
+    if (lhs.get_lb() >= BoundT(Num(0)) && lhs.get_ub().is_finite() &&
+        rhs.get_lb() >= BoundT(Num(0)) && rhs.get_ub().is_finite()) {
         Num m = max(lhs.get_ub().get_num(), rhs.get_ub().get_num());
-        Num ub = ((m + 1 <= 1) ? 1 : (1 << m)) - 1;
-        return IntervalT(BoundT(0), BoundT(ub));
+        Num ub = ((m + 1 <= 1) ? Num(1) : (Num(1) << m)) - 1;
+        return IntervalT(BoundT(Num(0)), BoundT(ub));
     }
     return IntervalT::top();
 }
 
-using ZInterval = Interval< llvm::APSInt >;
-using QInterval = Interval< llvm::APFloat >;
+using ZInterval = Interval< ZNum >;
+using QInterval = Interval< QNum >;
 
 inline ZInterval trim_bound(const ZInterval& itv, const ZBound& b) {
     knight_assert(!itv.is_bottom());
     if (itv.get_lb() == b) {
-        return {b + ZBound(llvm::APSInt(1)), itv.get_ub()};
+        return {b + ZBound(ZNum(1)), itv.get_ub()};
     }
     if (itv.get_ub() == b) {
-        return {itv.get_lb(), b - ZBound(llvm::APSInt(1))};
+        return {itv.get_lb(), b - ZBound(ZNum(1))};
     }
     return itv;
 }
 
-inline QInterval trim_bound(const QInterval& itv, const QBound&) {
+inline QInterval trim_bound(const QInterval& itv, const QBound&) { // NOLINT
     return itv;
 }
 

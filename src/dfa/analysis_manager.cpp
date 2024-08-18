@@ -212,7 +212,7 @@ std::optional< AnalysisManager::DomainBottomValFn > AnalysisManager::
 void AnalysisManager::register_for_stmt(internal::AnalyzeStmtCallBack cb,
                                         internal::MatchStmtCallBack match_cb,
                                         internal::VisitStmtKind kind) {
-    m_stmt_analyses.emplace_back(cb, match_cb, kind);
+    m_stmt_analyses.push_back({cb, match_cb, kind});
 }
 
 void AnalysisManager::register_for_begin_function(

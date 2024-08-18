@@ -39,6 +39,8 @@ class AnalysisContext {
     RegionManager& m_region_manager;
     SymbolManager& m_sym_manager;
 
+    bool m_is_state_changed = false;
+
   public:
     explicit AnalysisContext(KnightContext& ctx,
                              RegionManager& region_manager,
@@ -57,6 +59,7 @@ class AnalysisContext {
     [[nodiscard]] ProgramStateRef get_state() const;
     void set_current_stack_frame(const StackFrame* frame);
     void set_state(ProgramStateRef state);
+    [[nodiscard]] bool is_state_changed() const { return m_is_state_changed; }
 }; // class AnalysisContext
 
 } // namespace dfa

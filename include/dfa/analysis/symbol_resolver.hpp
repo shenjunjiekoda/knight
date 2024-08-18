@@ -14,7 +14,9 @@
 #pragma once
 
 #include "dfa/analysis/analysis_base.hpp"
+#include "dfa/analysis/numerical_event.hpp"
 #include "dfa/analysis_context.hpp"
+#include "dfa/constraint/linear.hpp"
 #include "dfa/region/region.hpp"
 #include "dfa/symbol.hpp"
 #include "dfa/symbol_manager.hpp"
@@ -32,7 +34,9 @@
 namespace knight::dfa {
 
 class SymbolResolver
-    : public Analysis< SymbolResolver, analyze::EvalStmt< clang::Stmt > >,
+    : public Analysis< SymbolResolver,
+                       analyze::EvalStmt< clang::Stmt >,
+                       analyze::EventDispatcher< LinearAssignEvent > >,
       public clang::ConstStmtVisitor< SymbolResolver > {
   private:
     mutable AnalysisContext* m_ctx{};
@@ -56,7 +60,8 @@ class SymbolResolver
 
         SymbolManager& symbol_manager = m_ctx->get_symbol_manager();
         const auto* scalar =
-            symbol_manager.get_scalar_int(aps_int, integer_literal->getType());
+            symbol_manager.get_scalar_int(ZNum(aps_int.getZExtValue()),
+                                          integer_literal->getType());
         m_ctx->set_state(state->set_stmt_sexpr(integer_literal, scalar));
     }
 
@@ -68,7 +73,7 @@ class SymbolResolver
 
         SymbolManager& symbol_manager = m_ctx->get_symbol_manager();
         const auto* scalar =
-            symbol_manager.get_scalar_float(aps_float,
+            symbol_manager.get_scalar_float(QNum(aps_float.convertToDouble()),
                                             floating_literal->getType());
         m_ctx->set_state(state->set_stmt_sexpr(floating_literal, scalar));
     }
@@ -82,19 +87,79 @@ class SymbolResolver
         auto* lhs_expr = binary_operator->getLHS();
         auto* rhs_expr = binary_operator->getRHS();
 
-        SExprRef rhs_sexpr =
-            state->get_stmt_sexpr_or_conjured(lhs_expr,
-                                              m_ctx->get_current_stack_frame());
+        bool is_int = binary_operator->getType()->isIntegralOrEnumerationType();
+        bool is_float = binary_operator->getType()->isFloatingType();
+        if (!is_int || !is_float) {
+            return;
+        }
 
         SExprRef lhs_sexpr =
             state->get_stmt_sexpr_or_conjured(rhs_expr,
                                               m_ctx->get_current_stack_frame());
-        SExprRef res = sym_mgr.normalize(
+
+        SExprRef rhs_sexpr =
+            state->get_stmt_sexpr_or_conjured(lhs_expr,
+                                              m_ctx->get_current_stack_frame());
+
+        SExprRef binary_sexpr =
             sym_mgr.get_binary_sym_expr(lhs_sexpr,
                                         rhs_sexpr,
                                         binary_operator->getOpcode(),
-                                        binary_operator->getType()));
-        state = state->set_stmt_sexpr(binary_operator, res);
+                                        binary_operator->getType());
+
+        if (is_int) {
+            if (auto zexpr = binary_sexpr->get_as_zexpr()) {
+                ZVariable x(
+                    sym_mgr
+                        .get_symbol_conjured(binary_operator,
+                                             m_ctx->get_current_stack_frame()));
+
+                if (auto znum = binary_sexpr->get_as_znum()) {
+                    dispatch_event(LinearAssignEvent(ZVarAssignZNum{x, *znum},
+                                                     state,
+                                                     m_ctx));
+                    binary_sexpr =
+                        sym_mgr.get_scalar_int(*znum,
+                                               binary_operator->getType());
+                } else if (auto zvar = binary_sexpr->get_as_zvariable()) {
+                    dispatch_event(LinearAssignEvent(ZVarAssignZVar{x, *zvar},
+                                                     state,
+                                                     m_ctx));
+                } else {
+                    dispatch_event(
+                        LinearAssignEvent(ZVarAssignZLinearExpr{x, *zexpr},
+                                          state,
+                                          m_ctx));
+                }
+                if (m_ctx->is_state_changed()) {
+                    state = m_ctx->get_state();
+                }
+            }
+        } else if (auto qexpr = binary_sexpr->get_as_qexpr()) {
+            QVariable x(
+                sym_mgr.get_symbol_conjured(binary_operator,
+                                            m_ctx->get_current_stack_frame()));
+
+            if (auto qnum = binary_sexpr->get_as_qnum()) {
+                dispatch_event(
+                    LinearAssignEvent(QVarAssignQNum{x, *qnum}, state, m_ctx));
+                binary_sexpr =
+                    sym_mgr.get_scalar_float(*qnum, binary_operator->getType());
+            } else if (auto qvar = binary_sexpr->get_as_qvariable()) {
+                dispatch_event(
+                    LinearAssignEvent(QVarAssignQVar{x, *qvar}, state, m_ctx));
+            } else {
+                dispatch_event(
+                    LinearAssignEvent(QVarAssignQLinearExpr{x, *qexpr},
+                                      state,
+                                      m_ctx));
+            }
+            if (m_ctx->is_state_changed()) {
+                state = m_ctx->get_state();
+            }
+        }
+
+        state = state->set_stmt_sexpr(binary_operator, binary_sexpr);
 
         if (clang::BinaryOperator::isAssignmentOp(
                 binary_operator->getOpcode())) {

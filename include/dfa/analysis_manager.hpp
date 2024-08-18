@@ -14,6 +14,7 @@
 #pragma once
 
 #include "dfa/analysis/analyses.hpp"
+#include "dfa/analysis/events.hpp"
 #include "dfa/domain/dom_base.hpp"
 #include "dfa/proc_cfg.hpp"
 #include "dfa/region/region.hpp"
@@ -78,7 +79,6 @@ using AnalyzeStmtCallBack = AnalysisCallBack< void(StmtRef, AnalysisContext&) >;
 using MatchStmtCallBack = bool (*)(StmtRef S);
 enum class VisitStmtKind { Pre, Eval, Post };
 
-using EventTag = void*;
 using EventListenerCallback = AnalysisCallBack< void(const void* event) >;
 
 constexpr unsigned SmallAlignedSize = 32U;
@@ -142,7 +142,7 @@ class AnalysisManager {
     /// \brief visit statement callbacks
     std::vector< internal::StmtAnalysisInfo > m_stmt_analyses;
 
-    using EventsTy = llvm::DenseMap< internal::EventTag, internal::EventInfo >;
+    using EventsTy = llvm::DenseMap< unsigned, internal::EventInfo >;
     EventsTy m_events;
 
   public:
@@ -220,13 +220,15 @@ class AnalysisManager {
 
     template < event EVENT >
     void register_for_event_listener(internal::EventListenerCallback cb) {
-        internal::EventInfo& info = m_events[&EVENT::tag];
+        auto kind = EVENT::get_kind();
+        internal::EventInfo& info = m_events[get_event_id(kind)];
         info.listeners.push_back(cb);
     }
 
     template < event EVENT >
     void register_for_event_dispatcher() {
-        internal::EventInfo& info = m_events[&EVENT::tag];
+        auto kind = EVENT::get_kind();
+        internal::EventInfo& info = m_events[get_event_id(kind)];
         info.has_dispatcher = true;
     }
     /// @}
@@ -234,7 +236,8 @@ class AnalysisManager {
     /// \brief event dispatching
     template < event EVENT >
     void dispatch_event(const EVENT& event) const {
-        auto it = m_events.find(&EVENT::Tag);
+        auto kind = EVENT::get_kind();
+        auto it = m_events.find(get_event_id(kind));
         if (it == m_events.end()) {
             return;
         }

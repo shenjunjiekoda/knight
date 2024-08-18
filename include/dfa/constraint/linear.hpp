@@ -20,6 +20,8 @@
 #include <llvm/ADT/FoldingSet.h>
 #include <llvm/Support/raw_ostream.h>
 
+#include "dfa/domain/num/qnum.hpp"
+#include "dfa/domain/num/znum.hpp"
 #include "support/dumpable.hpp"
 #include "util/assert.hpp"
 
@@ -35,6 +37,7 @@ using SymbolRef = const Sym*;
 using SExprRef = const SymExpr*;
 
 void profile_symbol(llvm::FoldingSetNodeID& id, SymbolRef sym);
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, SymbolRef& var);
 
 template < typename Num >
 struct Variable : public llvm::FoldingSetNode {
@@ -47,13 +50,27 @@ struct Variable : public llvm::FoldingSetNode {
     Variable& operator=(Variable&&) = default;
     ~Variable() = default;
 
+    inline bool operator==(const Variable< Num >& other) const {
+        return m_symbol == other.m_symbol;
+    }
+
+    inline bool operator!=(const Variable< Num >& other) const {
+        return m_symbol != other.m_symbol;
+    }
+
     // NOLINTNEXTLINE
     void Profile(llvm::FoldingSetNodeID& id) const { id.AddPointer(m_symbol); }
 
 } __attribute__((packed)); // struct Variable < Num >
 
-using ZVariable = Variable< llvm::APSInt >;
-using QVariable = Variable< llvm::APFloat >;
+template < typename Num >
+inline llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
+                                     const Variable< Num >& var) {
+    return os << var.m_symbol;
+}
+
+using ZVariable = Variable< ZNum >;
+using QVariable = Variable< QNum >;
 
 } // namespace knight::dfa
 
@@ -196,7 +213,7 @@ class LinearExpr : public llvm::FoldingSetNode {
             }
         } else {
             if (factor != 0) {
-                this->m_terms.emplace(var, factor);
+                this->m_terms.try_emplace(var, factor);
             }
         }
     }
@@ -233,15 +250,15 @@ class LinearExpr : public llvm::FoldingSetNode {
         return Num(0.);
     }
 
-    void operator+=(const Num& n) { this->m_constant += n; }
+    void operator+=(const Num& n) { this->m_constant += Num(n); }
     void operator+=(Var var) { this->plus(var); }
 
     /// \brief Plus a linear expression
     void operator+=(const LinearExpr& expr) {
-        for (const auto& [var, factor] : expr) {
+        for (const auto& [var, factor] : expr.get_variable_terms()) {
             this->plus(factor, var);
         }
-        this->m_constant += expr.constant();
+        this->m_constant += expr.get_constant_term();
     }
 
     /// \brief Subtract a num
@@ -253,16 +270,16 @@ class LinearExpr : public llvm::FoldingSetNode {
 
     /// \brief Subtract a linear expression
     void operator-=(const LinearExpr& expr) {
-        for (const auto& term : expr) {
-            this->plus(-term.second, term.first);
+        for (const auto& [var, factor] : expr.m_terms) {
+            this->plus(-factor, var);
         }
-        this->m_constant -= expr.constant();
+        this->m_constant -= expr.get_constant_term();
     }
 
     /// \brief Unary minus
     [[nodiscard]] LinearExpr operator-() const {
         LinearExpr r(*this);
-        r *= -1;
+        r *= Num(-1);
         return r;
     }
 
@@ -276,18 +293,6 @@ class LinearExpr : public llvm::FoldingSetNode {
                 term.second *= n;
             }
             this->m_constant *= n;
-        }
-    }
-
-    /// \brief Multiply by a constant
-    void operator*=(int k) {
-        if (k == 0) {
-            set_to_zero();
-        } else {
-            for (auto& [var, factor] : this->m_terms) {
-                factor *= k;
-            }
-            this->m_constant *= k;
         }
     }
 
@@ -334,8 +339,8 @@ class LinearExpr : public llvm::FoldingSetNode {
     }
 }; // class LinearExpr
 
-using ZLinearExpr = LinearExpr< llvm::APSInt >;
-using QLinearExpr = LinearExpr< llvm::APFloat >;
+using ZLinearExpr = LinearExpr< ZNum >;
+using QLinearExpr = LinearExpr< QNum >;
 
 template < typename Num >
 [[nodiscard]] inline LinearExpr< Num > operator*(Variable< Num > var,
@@ -463,7 +468,7 @@ template < typename Num >
 template < typename Num >
 [[nodiscard]] inline LinearExpr< Num > operator-(
     const Num& n, LinearExpr< Num > linear_expr) {
-    linear_expr *= -1;
+    linear_expr *= Num(-1);
     linear_expr += n;
     return linear_expr;
 }
@@ -499,6 +504,7 @@ class LinearConstraint : public llvm::FoldingSetNode {
     using LinearExpr = knight::dfa::LinearExpr< Num >;
     using Var = Variable< Num >;
     using VarSet = std::unordered_set< Var >;
+    using NumT = Num;
 
   private:
     LinearExpr m_linear_expr;
@@ -533,6 +539,24 @@ class LinearConstraint : public llvm::FoldingSetNode {
         return LinearConstraint(LinearExpr(), LCK_Disequation);
     }
 
+    [[nodiscard]] LinearConstraint negate() const {
+        switch (this->m_kind) {
+            case LCK_Equality: {
+                return LinearConstraint(this->m_linear_expr, LCK_Disequation);
+            }
+            case LCK_Disequation: {
+                return LinearConstraint(this->m_linear_expr, LCK_Equality);
+            }
+            case LCK_Inequality: {
+                return LinearConstraint(Num(1) - this->m_linear_expr,
+                                        LCK_Inequality);
+            }
+            default:
+                break;
+        }
+        knight_unreachable("Invalid constraint kind");
+    }
+
     /// \brief Return true if the constraint is a tautology
     [[nodiscard]] bool is_tautology() const {
         if (!this->m_linear_expr.is_constant()) {
@@ -541,13 +565,13 @@ class LinearConstraint : public llvm::FoldingSetNode {
 
         switch (this->m_kind) {
             case LCK_Equality: {
-                return this->m_linear_expr.constant() == 0;
+                return this->m_linear_expr.get_constant_term() == 0;
             }
             case LCK_Disequation: {
-                return this->m_linear_expr.constant() != 0;
+                return this->m_linear_expr.get_constant_term() != 0;
             }
             case LCK_Inequality: {
-                return this->m_linear_expr.constant() <= 0;
+                return this->m_linear_expr.get_constant_term() <= 0;
             }
             default:
                 break;
@@ -564,15 +588,15 @@ class LinearConstraint : public llvm::FoldingSetNode {
         switch (this->m_kind) {
             case LCK_Equality: {
                 // x == 0
-                return this->m_linear_expr.constant() != 0;
+                return this->m_linear_expr.get_constant_term() != 0;
             }
             case LCK_Disequation: {
                 // x != 0
-                return this->m_linear_expr.constant() == 0;
+                return this->m_linear_expr.get_constant_term() == 0;
             }
             case LCK_Inequality: {
                 // x <= 0
-                return this->m_linear_expr.constant() > 0;
+                return this->m_linear_expr.get_constant_term() > 0;
             }
             default:
                 break;
@@ -606,11 +630,12 @@ class LinearConstraint : public llvm::FoldingSetNode {
         return this->m_linear_expr.get_variable_terms();
     }
 
-    [[nodiscard]] Num get_constant_term() const {
-        return -this->m_linear_expr.constant();
-    }
     [[nodiscard]] std::size_t num_variable_terms() const {
         return this->m_linear_expr.num_variable_terms();
+    }
+
+    [[nodiscard]] Num get_constant_term() const {
+        return -this->m_linear_expr.get_constant_term();
     }
 
     [[nodiscard]] Num get_factor_of(Var var) const {
@@ -655,8 +680,8 @@ class LinearConstraint : public llvm::FoldingSetNode {
     }
 }; // class LinearConstraint
 
-using ZLinearConstraint = LinearConstraint< llvm::APSInt >;
-using QLinearConstraint = LinearConstraint< llvm::APFloat >;
+using ZLinearConstraint = LinearConstraint< ZNum >;
+using QLinearConstraint = LinearConstraint< QNum >;
 
 template < typename Num >
 [[nodiscard]] inline LinearConstraint< Num > operator<=(
@@ -676,91 +701,91 @@ template < typename Num >
 [[nodiscard]] inline LinearConstraint< Num > operator<=(Variable< Num > x,
                                                         const Num& n) {
     return LinearConstraint< Num >(std::move(x) - n,
-                                   LinearConstraint< Num >::Inequality);
+                                   LinearConstraintKind::LCK_Inequality);
 }
 
 template < typename Num >
 [[nodiscard]] inline LinearConstraint< Num > operator<=(Variable< Num > x,
                                                         Variable< Num > y) {
     return LinearConstraint< Num >(std::move(x) - std::move(y),
-                                   LinearConstraint< Num >::Inequality);
+                                   LinearConstraintKind::LCK_Inequality);
 }
 
 template < typename Num >
 [[nodiscard]] inline LinearConstraint< Num > operator<=(Variable< Num > x,
                                                         LinearExpr< Num > y) {
     return LinearConstraint< Num >(std::move(x) - std::move(y),
-                                   LinearConstraint< Num >::Inequality);
+                                   LinearConstraintKind::LCK_Inequality);
 }
 
 template < typename Num >
 [[nodiscard]] inline LinearConstraint< Num > operator<=(
     LinearExpr< Num > x, const LinearExpr< Num >& y) {
     return LinearConstraint< Num >(std::move(x) - y,
-                                   LinearConstraint< Num >::Inequality);
+                                   LinearConstraintKind::LCK_Inequality);
 }
 
 template < typename Num >
 [[nodiscard]] inline LinearConstraint< Num > operator>=(
     LinearExpr< Num > linear_expr, const Num& n) {
     return LinearConstraint< Num >(n - std::move(linear_expr),
-                                   LinearConstraint< Num >::Inequality);
+                                   LinearConstraintKind::LCK_Inequality);
 }
 
 template < typename Num >
 [[nodiscard]] inline LinearConstraint< Num > operator>=(
     LinearExpr< Num > linear_expr, Variable< Num > x) {
     return LinearConstraint< Num >(std::move(x) - std::move(linear_expr),
-                                   LinearConstraint< Num >::Inequality);
+                                   LinearConstraintKind::LCK_Inequality);
 }
 
 template < typename Num >
 [[nodiscard]] inline LinearConstraint< Num > operator>=(Variable< Num > x,
                                                         const Num& n) {
     return LinearConstraint< Num >(n - std::move(x),
-                                   LinearConstraint< Num >::Inequality);
+                                   LinearConstraintKind::LCK_Inequality);
 }
 
 template < typename Num >
 [[nodiscard]] inline LinearConstraint< Num > operator>=(Variable< Num > x,
                                                         Variable< Num > y) {
     return LinearConstraint< Num >(std::move(y) - std::move(x),
-                                   LinearConstraint< Num >::Inequality);
+                                   LinearConstraintKind::LCK_Inequality);
 }
 
 template < typename Num >
 [[nodiscard]] inline LinearConstraint< Num > operator>=(
     Variable< Num > x, LinearExpr< Num > linear_expr) {
     return LinearConstraint< Num >(std::move(linear_expr) - std::move(x),
-                                   LinearConstraint< Num >::Inequality);
+                                   LinearConstraintKind::LCK_Inequality);
 }
 
 template < typename Num >
 [[nodiscard]] inline LinearConstraint< Num > operator>=(
     const LinearExpr< Num >& x, LinearExpr< Num > y) {
     return LinearConstraint< Num >(std::move(y) - x,
-                                   LinearConstraint< Num >::Inequality);
+                                   LinearConstraintKind::LCK_Inequality);
 }
 
 template < typename Num >
 [[nodiscard]] inline LinearConstraint< Num > operator==(
     LinearExpr< Num > linear_expr, const Num& n) {
     return LinearConstraint< Num >(std::move(linear_expr) - n,
-                                   LinearConstraint< Num >::Equality);
+                                   LinearConstraintKind::LCK_Equality);
 }
 
 template < typename Num >
 [[nodiscard]] inline LinearConstraint< Num > operator==(
     LinearExpr< Num > linear_expr, Variable< Num > x) {
     return LinearConstraint< Num >(std::move(linear_expr) - std::move(x),
-                                   LinearConstraint< Num >::Equality);
+                                   LinearConstraintKind::LCK_Equality);
 }
 
 template < typename Num >
 [[nodiscard]] inline LinearConstraint< Num > operator==(Variable< Num > x,
                                                         const Num& n) {
     return LinearConstraint< Num >(std::move(x) - n,
-                                   LinearConstraint< Num >::Equality);
+                                   LinearConstraintKind::LCK_Equality);
 }
 
 template < typename Num >
@@ -774,56 +799,56 @@ template < typename Num >
 [[nodiscard]] inline LinearConstraint< Num > operator==(
     Variable< Num > x, LinearExpr< Num > linear_expr) {
     return LinearConstraint< Num >(std::move(linear_expr) - std::move(x),
-                                   LinearConstraint< Num >::Equality);
+                                   LinearConstraintKind::LCK_Equality);
 }
 
 template < typename Num >
 [[nodiscard]] inline LinearConstraint< Num > operator==(
     LinearExpr< Num > x, const LinearExpr< Num >& y) {
     return LinearConstraint< Num >(std::move(x) - y,
-                                   LinearConstraint< Num >::Equality);
+                                   LinearConstraintKind::LCK_Equality);
 }
 
 template < typename Num >
 [[nodiscard]] inline LinearConstraint< Num > operator!=(
     LinearExpr< Num > linear_expr, const Num& n) {
     return LinearConstraint< Num >(std::move(linear_expr) - n,
-                                   LinearConstraint< Num >::Disequation);
+                                   LinearConstraintKind::LCK_Disequation);
 }
 
 template < typename Num >
 [[nodiscard]] inline LinearConstraint< Num > operator!=(
     LinearExpr< Num > linear_expr, Variable< Num > x) {
     return LinearConstraint< Num >(std::move(linear_expr) - std::move(x),
-                                   LinearConstraint< Num >::Disequation);
+                                   LinearConstraintKind::LCK_Disequation);
 }
 
 template < typename Num >
 [[nodiscard]] inline LinearConstraint< Num > operator!=(Variable< Num > x,
                                                         const Num& n) {
     return LinearConstraint< Num >(std::move(x) - n,
-                                   LinearConstraint< Num >::Disequation);
+                                   LinearConstraintKind::LCK_Disequation);
 }
 
 template < typename Num >
 [[nodiscard]] inline LinearConstraint< Num > operator!=(Variable< Num > x,
                                                         Variable< Num > y) {
     return LinearConstraint< Num >(std::move(x) - std::move(y),
-                                   LinearConstraint< Num >::Disequation);
+                                   LinearConstraintKind::LCK_Disequation);
 }
 
 template < typename Num >
 [[nodiscard]] inline LinearConstraint< Num > operator!=(
     Variable< Num > x, LinearExpr< Num > linear_expr) {
     return LinearConstraint< Num >(std::move(linear_expr) - std::move(x),
-                                   LinearConstraint< Num >::Disequation);
+                                   LinearConstraintKind::LCK_Disequation);
 }
 
 template < typename Num >
 [[nodiscard]] inline LinearConstraint< Num > operator!=(
     LinearExpr< Num > x, const LinearExpr< Num >& y) {
     return LinearConstraint< Num >(std::move(x) - y,
-                                   LinearConstraint< Num >::Disequation);
+                                   LinearConstraintKind::LCK_Disequation);
 }
 
 template < typename Num >
@@ -901,6 +926,9 @@ class LinearConstraintSystem : public llvm::FoldingSetNode {
         return vars;
     }
 
+    auto begin() const { return m_linear_csts.begin(); }
+    auto end() const { return m_linear_csts.end(); }
+
     void dump(llvm::raw_ostream& os) const {
         os << "{";
         for (auto it = this->m_linear_csts.begin(),
@@ -917,7 +945,7 @@ class LinearConstraintSystem : public llvm::FoldingSetNode {
 
 }; // end class LinearConstraintSystem
 
-using ZLinearConstraintSystem = LinearConstraintSystem< llvm::APSInt >;
-using QLinearConstraintSystem = LinearConstraintSystem< llvm::APFloat >;
+using ZLinearConstraintSystem = LinearConstraintSystem< ZNum >;
+using QLinearConstraintSystem = LinearConstraintSystem< QNum >;
 
 } // namespace knight::dfa

@@ -82,19 +82,23 @@ class MapDom : public AbsDom< MapDom< Key, SeparateValue, domain_kind > > {
     void meet_value(const Key& key, const SeparateValue& value) {
         if (this->is_bottom()) {
             return;
-        } else if (value.is_bottom()) {
+        }
+
+        if (value.is_bottom()) {
             this->set_to_bottom();
-        } else if (value.is_top()) {
+        }
+
+        if (value.is_top()) {
             return;
-        } else {
-            auto it = m_table.find(key);
-            if (it == m_table.end()) {
-                return;
-            }
-            it->second.meet_with(value);
-            if (it->second.is_bottom()) {
-                this->set_to_bottom();
-            }
+        }
+
+        auto it = m_table.find(key);
+        if (it == m_table.end()) {
+            return;
+        }
+        it->second.meet_with(value);
+        if (it->second.is_bottom()) {
+            this->set_to_bottom();
         }
     }
 

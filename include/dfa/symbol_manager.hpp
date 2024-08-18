@@ -31,13 +31,13 @@ class SymbolManager {
     explicit SymbolManager(llvm::BumpPtrAllocator& allocator)
         : m_allocator(allocator) {}
 
-    [[nodiscard]] const ScalarInt* get_scalar_int(const llvm::APSInt& value,
+    [[nodiscard]] const ScalarInt* get_scalar_int(const ZNum& value,
                                                   clang::QualType type) {
         return get_persistent_sepxr< ScalarInt >(value, type);
     }
 
-    [[nodiscard]] const ScalarFloat* get_scalar_float(
-        const llvm::APFloat& value, clang::QualType type) {
+    [[nodiscard]] const ScalarFloat* get_scalar_float(const QNum& value,
+                                                      clang::QualType type) {
         return get_persistent_sepxr< ScalarFloat >(value, type);
     }
 
@@ -78,47 +78,6 @@ class SymbolManager {
         clang::BinaryOperator::Opcode op,
         const clang::QualType& type) {
         return get_persistent_sepxr< BinarySymExpr >(lhs, rhs, op, type);
-    }
-
-    [[nodiscard]] SExprRef normalize(SExprRef sexpr) {
-        if (const auto* binary_sexpr = llvm::dyn_cast< BinarySymExpr >(sexpr)) {
-            SExprRef lhs = binary_sexpr->get_lhs();
-            SExprRef rhs = binary_sexpr->get_rhs();
-            if (lhs->get_kind() == SymExprKind::Int &&
-                rhs->get_kind() == SymExprKind::Int) {
-                auto lhs_val = llvm::cast< ScalarInt >(lhs)->get_value();
-                auto rhs_val = llvm::cast< ScalarInt >(rhs)->get_value();
-                switch (binary_sexpr->get_opcode()) {
-                    case clang::BO_Add:
-                        return get_scalar_int(lhs_val + rhs_val,
-                                              sexpr->get_type());
-                    case clang::BO_Sub:
-                        return get_scalar_int(lhs_val - rhs_val,
-                                              sexpr->get_type());
-                    case clang::BO_Mul:
-                        return get_scalar_int(lhs_val * rhs_val,
-                                              sexpr->get_type());
-                    case clang::BO_Div:
-                        return get_scalar_int(lhs_val / rhs_val,
-                                              sexpr->get_type());
-                    case clang::BO_Rem:
-                        return get_scalar_int(lhs_val % rhs_val,
-                                              sexpr->get_type());
-                    case clang::BO_And:
-                        return get_scalar_int(lhs_val & rhs_val,
-                                              sexpr->get_type());
-                    case clang::BO_Or:
-                        return get_scalar_int(lhs_val | rhs_val,
-                                              sexpr->get_type());
-                    case clang::BO_Xor:
-                        return get_scalar_int(lhs_val ^ rhs_val,
-                                              sexpr->get_type());
-                    default:
-                        break;
-                }
-            }
-        }
-        return sexpr;
     }
 
   private:

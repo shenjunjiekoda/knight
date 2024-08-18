@@ -45,7 +45,7 @@ std::optional< CheckerBase* > CheckerManager::get_checker(CheckerID id) {
 void CheckerManager::register_for_stmt(internal::CheckStmtCallBack cb,
                                        internal::MatchStmtCallBack match_fn,
                                        internal::CheckStmtKind kind) {
-    m_stmt_checks.emplace_back(cb, match_fn, kind);
+    m_stmt_checks.push_back({cb, match_fn, kind});
 }
 
 void CheckerManager::register_for_begin_function(

@@ -12,12 +12,16 @@
 //===------------------------------------------------------------------===//
 
 #include "dfa/symbol.hpp"
+#include "clang/AST/OperationKinds.h"
 #include "dfa/constraint/linear.hpp"
 #include "dfa/region/region.hpp"
 #include "dfa/stack_frame.hpp"
+#include "llvm/ADT/APFloat.h"
+#include "llvm/ADT/APSInt.h"
 
 #include <clang/AST/Expr.h>
 
+#include <optional>
 #include <queue>
 
 namespace knight::dfa {
@@ -28,6 +32,11 @@ bool is_valid_type_for_sym_expr(clang::QualType type) {
 
 void profile_symbol(llvm::FoldingSetNodeID& id, SymbolRef sym) {
     sym->Profile(id);
+}
+
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, SymbolRef& var) {
+    var->dump(os);
+    return os;
 }
 
 void SymIterator::resolve(SExprRef sym_expr) {
@@ -171,36 +180,234 @@ void CastSymExpr::dump(llvm::raw_ostream& os) const {
 }
 
 std::optional< ZLinearExpr > SymExpr::get_as_zexpr() const {
-    // TODO: handle more cases
-    if (const auto* sym = dyn_cast< Sym >(this);
-        sym != nullptr && sym->get_type()->isIntegralOrEnumerationType()) {
+    if (!get_type()->isIntegralOrEnumerationType()) {
+        return std::nullopt;
+    }
+    if (const auto* sym = dyn_cast< Sym >(this)) {
         return ZLinearExpr(ZVariable(sym));
     }
     if (const auto* scalar_int = dyn_cast< ScalarInt >(this)) {
         return ZLinearExpr(scalar_int->get_value());
     }
+    if (const auto* unary = dyn_cast< UnarySymExpr >(this)) {
+        switch (unary->get_opcode()) {
+            using enum clang::UnaryOperatorKind;
+            case clang::UO_Plus:
+                return unary->get_operand()->get_as_zexpr();
+            case clang::UO_Minus: {
+                if (auto zexpr_opt = unary->get_operand()->get_as_zexpr()) {
+                    return -zexpr_opt.value();
+                }
+                break;
+                default:
+                    break;
+            }
+        }
+        return std::nullopt;
+    }
+
+    if (const auto* binary = dyn_cast< BinarySymExpr >(this)) {
+        auto lhs = binary->get_lhs()->get_as_zexpr();
+        auto rhs = binary->get_rhs()->get_as_zexpr();
+        if (!lhs || !rhs) {
+            return std::nullopt;
+        }
+        switch (binary->get_opcode()) {
+            using enum clang::BinaryOperatorKind;
+            case clang::BO_Add:
+                return lhs.value() + rhs.value();
+            case clang::BO_Sub:
+                return lhs.value() - rhs.value();
+            case clang::BO_Mul:
+                if (lhs->is_constant()) {
+                    return lhs.value().get_constant_term() * rhs.value();
+                } else if (rhs->is_constant()) {
+                    return lhs.value() * rhs.value().get_constant_term();
+                } else {
+                    return std::nullopt;
+                }
+            default:
+                break;
+        }
+    }
     return std::nullopt;
 }
 
 std::optional< ZLinearConstraint > SymExpr::get_as_zconstraint() const {
-    // TODO: handle more cases
+    if (!get_type()->isBooleanType()) {
+        return std::nullopt;
+    }
+    if (const auto* scalar_int = dyn_cast< ScalarInt >(this)) {
+        return scalar_int->get_value() == 0 ? ZLinearConstraint::contradiction()
+                                            : ZLinearConstraint::tautology();
+    }
+    if (const auto* unary = dyn_cast< UnarySymExpr >(this)) {
+        if (unary->get_opcode() == clang::UO_LNot) {
+            if (auto zconstraint = unary->get_operand()->get_as_zconstraint()) {
+                return zconstraint.value().negate();
+            }
+        }
+        return std::nullopt;
+    }
+    if (const auto* binary = dyn_cast< BinarySymExpr >(this)) {
+        auto lhs = binary->get_lhs()->get_as_zexpr();
+        auto rhs = binary->get_rhs()->get_as_zexpr();
+        if (!lhs || !rhs) {
+            return std::nullopt;
+        }
+        switch (binary->get_opcode()) {
+            using enum clang::BinaryOperatorKind;
+            case clang::BO_EQ:
+                return lhs.value() == rhs.value();
+            case clang::BO_NE:
+                return lhs.value() != rhs.value();
+            case clang::BO_LT:
+                return lhs.value() <= (rhs.value() - ZNum(1));
+            case clang::BO_GT:
+                return lhs.value() >= (rhs.value() + ZNum(1));
+            case clang::BO_LE:
+                return lhs.value() <= rhs.value();
+            case clang::BO_GE:
+                return lhs.value() >= rhs.value();
+            default:
+                break;
+        }
+    }
+
     return std::nullopt;
 }
 
 std::optional< QLinearExpr > SymExpr::get_as_qexpr() const {
-    // TODO: handle more cases
-    if (const auto* sym = dyn_cast< Sym >(this);
-        sym != nullptr && sym->get_type()->isFloatingType()) {
+    if (!get_type()->isFloatingType()) {
+        return std::nullopt;
+    }
+    if (const auto* sym = dyn_cast< Sym >(this)) {
         return QLinearExpr(QVariable(sym));
     }
     if (const auto* scalar_fp = dyn_cast< ScalarFloat >(this)) {
         return QLinearExpr(scalar_fp->get_value());
     }
+    if (const auto* unary = dyn_cast< UnarySymExpr >(this)) {
+        switch (unary->get_opcode()) {
+            using enum clang::UnaryOperatorKind;
+            case clang::UO_Plus:
+                return unary->get_operand()->get_as_qexpr();
+            case clang::UO_Minus: {
+                if (auto qexpr_opt = unary->get_operand()->get_as_qexpr()) {
+                    return -qexpr_opt.value();
+                }
+                break;
+                default:
+                    break;
+            }
+                return std::nullopt;
+        }
+    }
+
+    if (const auto* binary = dyn_cast< BinarySymExpr >(this)) {
+        auto lhs = binary->get_lhs()->get_as_qexpr();
+        auto rhs = binary->get_rhs()->get_as_qexpr();
+        if (!lhs || !rhs) {
+            return std::nullopt;
+        }
+        switch (binary->get_opcode()) {
+            using enum clang::BinaryOperatorKind;
+            case clang::BO_Add:
+                return lhs.value() + rhs.value();
+            case clang::BO_Sub:
+                return lhs.value() - rhs.value();
+            case clang::BO_Mul:
+                if (lhs->is_constant()) {
+                    return lhs.value().get_constant_term() * rhs.value();
+                } else if (rhs->is_constant()) {
+                    return lhs.value() * rhs.value().get_constant_term();
+                } else {
+                    return std::nullopt;
+                }
+            default:
+                break;
+        }
+    }
     return std::nullopt;
 }
 
 std::optional< QLinearConstraint > SymExpr::get_as_qconstraint() const {
-    // TODO: handle more cases
+    if (!get_type()->isBooleanType()) {
+        return std::nullopt;
+    }
+    if (const auto* scalar_int = dyn_cast< ScalarInt >(this)) {
+        return scalar_int->get_value() == 0 ? QLinearConstraint::contradiction()
+                                            : QLinearConstraint::tautology();
+    }
+    if (const auto* unary = dyn_cast< UnarySymExpr >(this)) {
+        if (unary->get_opcode() == clang::UO_LNot) {
+            if (auto qconstraint = unary->get_operand()->get_as_qconstraint()) {
+                return qconstraint.value().negate();
+            }
+            return std::nullopt;
+        }
+    }
+    if (const auto* binary = dyn_cast< BinarySymExpr >(this)) {
+        auto lhs = binary->get_lhs()->get_as_qexpr();
+        auto rhs = binary->get_rhs()->get_as_qexpr();
+        if (!lhs || !rhs) {
+            return std::nullopt;
+        }
+        switch (binary->get_opcode()) {
+            using enum clang::BinaryOperatorKind;
+            case clang::BO_EQ:
+                return lhs.value() == rhs.value();
+            case clang::BO_NE:
+                return lhs.value() != rhs.value();
+            case clang::BO_LT:
+                return lhs.value() <= (rhs.value() - QNum(1.0));
+            case clang::BO_GT:
+                return lhs.value() >= (rhs.value() + QNum(1.0));
+            case clang::BO_LE:
+                return lhs.value() <= rhs.value();
+            case clang::BO_GE:
+                return lhs.value() >= rhs.value();
+            default:
+                break;
+        }
+    }
+
+    return std::nullopt;
+}
+
+std::optional< ZNum > SymExpr::get_as_znum() const {
+    if (auto zexpr_opt = get_as_zexpr()) {
+        if (zexpr_opt->is_constant()) {
+            return zexpr_opt.value().get_constant_term();
+        }
+    }
+
+    return std::nullopt;
+}
+
+std::optional< ZVariable > SymExpr::get_as_zvariable() const {
+    if (auto zexpr_opt = get_as_zexpr()) {
+        return zexpr_opt->get_as_single_variable();
+    }
+
+    return std::nullopt;
+}
+
+std::optional< QNum > SymExpr::get_as_qnum() const {
+    if (auto qexpr_opt = get_as_qexpr()) {
+        if (qexpr_opt->is_constant()) {
+            return qexpr_opt.value().get_constant_term();
+        }
+    }
+
+    return std::nullopt;
+}
+
+std::optional< QVariable > SymExpr::get_as_qvariable() const {
+    if (auto qexpr_opt = get_as_qexpr()) {
+        return qexpr_opt->get_as_single_variable();
+    }
+
     return std::nullopt;
 }
 

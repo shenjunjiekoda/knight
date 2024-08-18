@@ -18,6 +18,8 @@
 
 #include <llvm/Support/raw_ostream.h>
 
+#include "dfa/domain/num/qnum.hpp"
+#include "dfa/domain/num/znum.hpp"
 #include "util/assert.hpp"
 
 #include <optional>
@@ -31,7 +33,9 @@ class Bound {
     Num m_val;
 
   private:
-    Bound(bool is_inf, Num val) : m_is_inf(is_inf), m_val(val) { normalize(); }
+    Bound(bool is_inf, Num val) : m_is_inf(is_inf), m_val(std::move(val)) {
+        normalize();
+    }
 
     void normalize() {
         if (!m_is_inf) {
@@ -62,10 +66,10 @@ class Bound {
 
   public:
     /// \brief get the positive infinity bound
-    [[nodiscard]] static Bound pinf() { return Bound(true, 1); }
+    [[nodiscard]] static Bound pinf() { return Bound(true, Num(1)); }
 
     /// \brief get the negative infinity bound
-    [[nodiscard]] static Bound ninf() { return Bound(true, -1); }
+    [[nodiscard]] static Bound ninf() { return Bound(true, Num(-1)); }
 
   public:
     [[nodiscard]] bool is_inf() const { return m_is_inf; }
@@ -73,9 +77,9 @@ class Bound {
     [[nodiscard]] bool is_pinf() const { return m_is_inf && m_val == 1; }
     [[nodiscard]] bool is_ninf() const { return m_is_inf && m_val == -1; }
 
-    [[nodiscard]] bool is_num(Num n) { return !m_is_inf && m_val == n; }
-    [[nodiscard]] bool is_zero() { return is_num(Num(0.)); }
-    [[nodiscard]] bool is_one() { return is_num(Num(1.)); }
+    [[nodiscard]] bool is_num(Num n) const { return !m_is_inf && m_val == n; }
+    [[nodiscard]] bool is_zero() const { return is_num(Num(0.)); }
+    [[nodiscard]] bool is_one() const { return is_num(Num(1.)); }
 
     [[nodiscard]] std::optional< Num > get_num_opt() const {
         return m_is_inf ? std::nullopt : std::make_optional(m_val);
@@ -215,6 +219,12 @@ class Bound {
     template < typename T >
     inline Bound< T > abs(const Bound< T >& b);
 
+    friend Bound< ZNum > operator<<(const Bound< ZNum >& lhs,
+                                    const Bound< ZNum >& rhs);
+
+    friend Bound< ZNum > operator>>(const Bound< ZNum >& lhs,
+                                    const Bound< ZNum >& rhs);
+
 }; // class Bound<Num>
 
 template < typename Num >
@@ -260,7 +270,7 @@ inline Bound< Num > operator*(const Bound< Num >& lhs,
                               const Bound< Num >& rhs) {
     using BoundT = Bound< Num >;
     if (lhs.is_zero() || rhs.is_zero()) {
-        return BoundT(0);
+        return BoundT(Num(0));
     }
     return BoundT(lhs.m_is_inf || rhs.m_is_inf, lhs.m_val * rhs.m_val);
 }
@@ -276,7 +286,7 @@ inline Bound< Num > operator/(const Bound< Num >& lhs,
         return BoundT(lhs.m_val / rhs.m_val);
     }
     if (lhs.is_finite() && rhs.is_inf()) {
-        return BoundT(0);
+        return BoundT(Num(0));
     }
     if (lhs.is_inf() && rhs.is_finite()) {
         return rhs.m_val >= 0 ? lhs : -lhs;
@@ -326,13 +336,48 @@ inline const Bound< Num >& max(const Bound< Num >& a,
 
 template < typename Num >
 inline Bound< Num > abs(const Bound< Num >& b) {
-    if (b >= Bound< Num >(0)) {
+    if (b >= Bound< Num >(Num(0))) {
         return b;
     }
     return -b;
 }
 
-using ZBound = Bound< llvm::APSInt >;
-using QBound = Bound< llvm::APFloat >;
+/// \brief Left binary shift of bounds
+inline Bound< ZNum > operator<<(const Bound< ZNum >& lhs,
+                                const Bound< ZNum >& rhs) {
+    using BoundT = Bound< ZNum >;
+    knight_assert_msg(rhs >= (BoundT(ZNum(0))), "right hand side is negative");
+
+    if (lhs.is_zero()) {
+        return lhs;
+    }
+    if (lhs.is_inf()) {
+        return lhs;
+    }
+    if (rhs.is_inf()) {
+        return BoundT(true, lhs.m_val);
+    }
+    return BoundT(lhs.m_val << rhs.m_val);
+}
+
+inline Bound< ZNum > operator>>(const Bound< ZNum >& lhs,
+                                const Bound< ZNum >& rhs) {
+    using BoundT = Bound< ZNum >;
+    knight_assert_msg(rhs >= (BoundT(ZNum(0))), "right hand side is negative");
+
+    if (lhs.is_zero()) {
+        return lhs;
+    }
+    if (lhs.is_inf()) {
+        return lhs;
+    }
+    if (rhs.is_inf()) {
+        return BoundT(ZNum((lhs.m_val >= 0) ? 0 : -1));
+    }
+    return BoundT(lhs.m_val >> rhs.m_val);
+}
+
+using ZBound = Bound< ZNum >;
+using QBound = Bound< QNum >;
 
 } // namespace knight::dfa

@@ -66,7 +66,7 @@ const StackFrame* LocationManager::create_from_node(
     llvm::FoldingSetNodeID id;
     auto called_decl_opt = get_called_decl(callsite_expr);
     knight_assert_msg(called_decl_opt.has_value(), "invalid call site");
-    const CallSiteInfo callsite_info(callsite_expr, node, stmt_idx);
+    const CallSiteInfo callsite_info{callsite_expr, node, stmt_idx};
     StackFrame::profile(id, *called_decl_opt, parent, callsite_info);
 
     void* insert_pos; // NOLINT

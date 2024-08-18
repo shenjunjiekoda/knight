@@ -10,14 +10,15 @@ _Knight_ is a static analysis tool for C/C++ programs written in C++20.
 
 - cmake
 - llvm/clang(>=18 is best)
+- GMP (>= 6 is best)
 
 You can install llvm by your package manager
 
 ```SHELL
-apt install llvm # for Ubuntu
-brew install llvm # for Homebrew
-yum install llvm # for CentOS
-sudo pacman -S llvm # for Arch Linux
+apt install llvm libgmp-dev libedit-dev # for Ubuntu
+brew install llvm gmp # for Homebrew
+yum install llvm gmp-devel libedit-devel # for CentOS
+sudo pacman -S llvm gmp # for Arch Linux
 ```
 
 or [build from source](https://llvm.org/docs/GettingStarted.html).

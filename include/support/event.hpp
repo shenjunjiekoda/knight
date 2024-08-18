@@ -16,12 +16,13 @@
 #include <llvm/Support/raw_ostream.h>
 
 #include <concepts>
+#include "dfa/analysis/events.hpp"
 
 namespace knight {
 
 template < typename T >
 concept event = requires {
-    { T::get_kind() } -> std::same_as< unsigned >;
+    { T::get_kind() } -> std::same_as< dfa::EventKind >;
 }; // concept event
 
 template < typename T >

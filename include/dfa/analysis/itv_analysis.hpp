@@ -14,10 +14,12 @@
 #pragma once
 
 #include "dfa/analysis/analysis_base.hpp"
+#include "dfa/analysis/numerical_event.hpp"
 #include "dfa/analysis_context.hpp"
 #include "dfa/constraint/linear.hpp"
 #include "dfa/domain/demo_dom.hpp"
 #include "dfa/domain/interval_dom.hpp"
+#include "dfa/program_state.hpp"
 #include "dfa/region/region.hpp"
 #include "tooling/context.hpp"
 
@@ -30,10 +32,12 @@
 
 namespace knight::dfa {
 
-class ItvAnalysis : public Analysis< ItvAnalysis,
-                                     analyze::BeginFunction,
-                                     analyze::PreStmt< clang::ReturnStmt >,
-                                     analyze::PreStmt< clang::DeclStmt > > {
+constexpr unsigned EventHandlerAlignment = 32U;
+class ItvAnalysis
+    : public Analysis< ItvAnalysis,
+                       analyze::BeginFunction,
+                       analyze::EventListener< LinearAssignEvent >,
+                       analyze::PreStmt< clang::ReturnStmt > > {
   public:
     explicit ItvAnalysis(KnightContext& ctx) : Analysis(ctx) {}
 
@@ -49,34 +53,45 @@ class ItvAnalysis : public Analysis< ItvAnalysis,
                    llvm::outs() << "\n";);
     }
 
-    // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
-    void pre_analyze_stmt(const clang::DeclStmt* decl_stmt,
-                          AnalysisContext& ctx) const {
-        LLVM_DEBUG(llvm::outs() << "ItvAnalysis::pre_analyze DeclStmt: \n";
-                   decl_stmt->dumpColor();
-                   llvm::outs() << "\n";);
+    struct EventHandler {
+        const ItvAnalysis& analysis;
+        ProgramStateRef state;
+        AnalysisContext* ctx;
 
-        auto state = ctx.get_state();
-        for (const auto* decl : decl_stmt->decls()) {
-            const auto* var_decl = dyn_cast_or_null< clang::VarDecl >(decl);
-            if (var_decl == nullptr || var_decl->getInit() == nullptr) {
-                continue;
-            }
-
-            LLVM_DEBUG(llvm::outs() << "var decl: "; var_decl->dumpColor();
-                       llvm::outs() << "\n";);
-
-            auto zvar_opt =
-                state->try_get_zvariable(var_decl,
-                                         ctx.get_current_stack_frame());
-            if (!zvar_opt) {
-                continue;
-            }
-
-            ZVariable zvar = *zvar_opt;
-            const auto* init_expr = var_decl->getInit()->IgnoreParenImpCasts();
+        template < typename T >
+        void operator()(const T& event) const {
+            this->handle(event);
         }
-        ctx.set_state(state);
+
+        void handle(const ZVarAssignZVar& var) const {
+            auto zitv = state->get_clone< ZIntervalDom >();
+            zitv->assign_var(var.x, var.y);
+            ctx->set_state(state->set< ZIntervalDom >(zitv));
+        }
+
+        void handle(const ZVarAssignZNum& var) const {
+            auto zitv = state->get_clone< ZIntervalDom >();
+            zitv->assign_num(var.x, var.y);
+            ctx->set_state(state->set< ZIntervalDom >(zitv));
+        }
+
+        void handle(const ZVarAssignZLinearExpr& var) const {
+            auto zitv = state->get_clone< ZIntervalDom >();
+            zitv->assign_linear_expr(var.x, var.y);
+            ctx->set_state(state->set< ZIntervalDom >(zitv));
+        }
+
+        void handle(const QVarAssignQVar& var) const {}
+
+        void handle(const QVarAssignQNum& var) const {}
+
+        void handle(const QVarAssignQLinearExpr& var) const {}
+
+    } __attribute__((aligned(EventHandlerAlignment))); // struct EventHandler
+
+    void handle_event(const LinearAssignEvent* event) const {
+        std::visit(EventHandler{*this, event->state, event->ctx},
+                   event->assign);
     }
 
     // NOLINTNEXTLINE(readability-convert-member-functions-to-static)

@@ -17,6 +17,7 @@
 #include "dfa/domain/dom_base.hpp"
 #include "dfa/domain/interval.hpp"
 
+#include <clang/AST/Expr.h>
 #include <clang/AST/OperationKinds.h>
 
 namespace knight::dfa {
@@ -26,10 +27,16 @@ namespace knight::dfa {
 /// it should also implement the following *required* methods:
 /// - `widen_with_threshold(const Derived&, const Num&)`
 /// - `narrow_with_threshold(const Derived&, const Num&)`
-/// - `transfer_assign_constant(Var, const Num &)`
-/// - `transfer_assign_variable(Var, Var)`
-/// - `transfer_assign_linear_expr(Var, const LinearExpr&)`
-/// - `apply(clang::BinaryOperatorKind, Var)`
+/// - `assign_num(Var, const Num &)`
+/// - `assign_variable(Var, Var)`
+/// - `assign_linear_expr(Var, const LinearExpr&)`
+/// - `assign_unary(clang::UnaryOperatorKind, Var, Var)`
+/// - `assign_binary_var_var_impl(clang::BinaryOperatorKind,Var,Var,Var)`
+/// - `assign_binary_var_num_impl(clang::BinaryOperatorKind,Var,Var,const Num&)`
+/// - `assign_cast(clang::QualType, unsigned, Var, Var)`
+/// - `add_linear_constraint(const LinearConstraint&)`
+/// - `merge_with_linear_constraint_system(const LinearConstraintSystem&)`
+/// - `to_linear_constraint_system() const`
 template < typename Derived, typename Num >
 class NumericalDom : public AbsDom< Derived > {
   public:
@@ -53,18 +60,20 @@ class NumericalDom : public AbsDom< Derived > {
     }
 
     /// \brief Assign `x = n`
-    virtual void assign_num(Var x, const Num& n) = 0;
+    virtual void assign_num(const Var& x, const Num& n) = 0;
 
     /// \brief Assign `x = y`
-    virtual void assign_var(Var x, Var y) = 0;
+    virtual void assign_var(const Var& x, const Var& y) = 0;
 
     /// \brief Assign `x = expr`
     ///
     /// This method is often
-    virtual void assign_linear_expr(Var x, const LinearExpr& expr) = 0;
+    virtual void assign_linear_expr(const Var& x, const LinearExpr& expr) = 0;
 
     /// \brief Assign `x = op y`
-    virtual void assign_unary(clang::UnaryOperatorKind op, Var x, Var y) = 0;
+    virtual void assign_unary(clang::UnaryOperatorKind op,
+                              const Var& x,
+                              const Var& y) = 0;
 
     /// \brief Apply `x = y op z`
     ///
@@ -72,9 +81,9 @@ class NumericalDom : public AbsDom< Derived > {
 
     /// Split assignment and normal binary operation
     void assign_binary_var_var(clang::BinaryOperatorKind op,
-                               Var x,
-                               Var y,
-                               Var z) {
+                               const Var& x,
+                               const Var& y,
+                               const Var& z) {
         bool is_assign_op = clang::BinaryOperator::isAssignmentOp(op);
         bool is_compound_assign_op =
             clang::BinaryOperator::isCompoundAssignmentOp(op);
@@ -95,14 +104,14 @@ class NumericalDom : public AbsDom< Derived > {
 
     /// op is not assignment
     virtual void assign_binary_var_var_impl(clang::BinaryOperatorKind op,
-                                            Var x,
-                                            Var y,
-                                            Var z) = 0;
+                                            const Var& x,
+                                            const Var& y,
+                                            const Var& z) = 0;
 
     /// Split assignment and normal binary operation
     void assign_binary_var_num(clang::BinaryOperatorKind op,
-                               Var x,
-                               Var y,
+                               const Var& x,
+                               const Var& y,
                                const Num& z) {
         bool is_assign_op = clang::BinaryOperator::isAssignmentOp(op);
         bool is_compound_assign_op =
@@ -124,8 +133,8 @@ class NumericalDom : public AbsDom< Derived > {
 
     /// op is not assignment
     virtual void assign_binary_var_num_impl(clang::BinaryOperatorKind op,
-                                            Var x,
-                                            Var y,
+                                            const Var& x,
+                                            const Var& y,
                                             const Num& z) = 0;
 
     /// @}
@@ -133,8 +142,8 @@ class NumericalDom : public AbsDom< Derived > {
     /// \brief Apply `x = (T)y`
     virtual void assign_cast(clang::QualType dst_type,
                              unsigned dst_bit_width,
-                             Var x,
-                             Var y) = 0;
+                             const Var& x,
+                             const Var& y) = 0;
 
     /// \brief Add a linear constraint
     virtual void add_linear_constraint(const LinearConstraint& cst) = 0;
@@ -148,9 +157,9 @@ class NumericalDom : public AbsDom< Derived > {
         const = 0;
 
     /// \brief Forget a numerical variable
-    virtual void forget(Var x) = 0;
+    virtual void forget(const Var& x) = 0;
 
-    [[nodiscard]] virtual Interval< Num > to_interval(Var x) const = 0;
+    [[nodiscard]] virtual Interval< Num > to_interval(const Var& x) const = 0;
 
 }; // class NumericalDom
 

@@ -18,6 +18,7 @@
 #include <utility>
 
 #include "dfa/constraint/linear.hpp"
+#include "dfa/domain/num/znum.hpp"
 #include "dfa/location_context.hpp"
 #include "dfa/stack_frame.hpp"
 #include "support/dumpable.hpp"
@@ -118,8 +119,13 @@ class SymExpr : public llvm::FoldingSetNode {
 
     std::optional< ZLinearExpr > get_as_zexpr() const;
     std::optional< ZLinearConstraint > get_as_zconstraint() const;
+    std::optional< ZNum > get_as_znum() const;
+    std::optional< ZVariable > get_as_zvariable() const;
+
     std::optional< QLinearExpr > get_as_qexpr() const;
     std::optional< QLinearConstraint > get_as_qconstraint() const;
+    std::optional< QNum > get_as_qnum() const;
+    std::optional< QVariable > get_as_qvariable() const;
 
     virtual bool is_leaf() const { return false; }
 
@@ -147,14 +153,14 @@ class Scalar : public SymExpr {
 
 class ScalarInt : public Scalar {
   private:
-    llvm::APSInt m_value;
+    ZNum m_value;
     clang::QualType m_type;
 
   public:
-    explicit ScalarInt(llvm::APSInt value, clang::QualType type)
+    explicit ScalarInt(ZNum value, clang::QualType type)
         : Scalar(SymExprKind::Int), m_value(std::move(value)), m_type(type) {}
 
-    [[nodiscard]] llvm::APSInt get_value() const { return m_value; }
+    [[nodiscard]] ZNum get_value() const { return m_value; }
     [[nodiscard]] bool is_integer() const override { return true; }
     [[nodiscard]] static bool classof(const SymExpr* sym_expr) {
         return sym_expr->get_kind() == SymExprKind::Int;
@@ -166,10 +172,10 @@ class ScalarInt : public Scalar {
     [[nodiscard]] clang::QualType get_type() const override { return m_type; }
 
     static void profile(llvm::FoldingSetNodeID& id,
-                        const llvm::APSInt& value,
+                        const ZNum& value,
                         clang::QualType type) {
         id.AddInteger(static_cast< unsigned >(SymExprKind::Int));
-        id.Add(value);
+        value.Profile(id);
         id.Add(type);
     }
 
@@ -180,14 +186,14 @@ class ScalarInt : public Scalar {
 
 class ScalarFloat : public Scalar {
   private:
-    llvm::APFloat m_value;
+    QNum m_value;
     clang::QualType m_type;
 
   public:
-    explicit ScalarFloat(llvm::APFloat value, clang::QualType type)
+    explicit ScalarFloat(QNum value, clang::QualType type)
         : Scalar(SymExprKind::Float), m_value(std::move(value)), m_type(type) {}
 
-    [[nodiscard]] llvm::APFloat get_value() const { return m_value; }
+    [[nodiscard]] QNum get_value() const { return m_value; }
     [[nodiscard]] bool is_float() const override { return true; }
     [[nodiscard]] static bool classof(const SymExpr* sym_expr) {
         return sym_expr->get_kind() == SymExprKind::Float;
@@ -198,10 +204,10 @@ class ScalarFloat : public Scalar {
 
     [[nodiscard]] clang::QualType get_type() const override { return m_type; }
     static void profile(llvm::FoldingSetNodeID& id,
-                        const llvm::APFloat& value,
+                        const QNum& value,
                         clang::QualType type) {
         id.AddInteger(static_cast< unsigned >(SymExprKind::Float));
-        id.Add(value);
+        value.Profile(id);
         id.Add(type);
     }
 
