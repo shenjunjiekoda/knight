@@ -28,8 +28,6 @@
 #include <clang/AST/Stmt.h>
 #include <llvm/Support/raw_ostream.h>
 
-#define DEBUG_TYPE "itv_analysis"
-
 namespace knight::dfa {
 
 constexpr unsigned EventHandlerAlignment = 32U;
@@ -37,7 +35,7 @@ class ItvAnalysis
     : public Analysis< ItvAnalysis,
                        analyze::BeginFunction,
                        analyze::EventListener< LinearAssignEvent >,
-                       analyze::PreStmt< clang::ReturnStmt > > {
+                       analyze::PostStmt< clang::ReturnStmt > > {
   public:
     explicit ItvAnalysis(KnightContext& ctx) : Analysis(ctx) {}
 
@@ -45,13 +43,7 @@ class ItvAnalysis
         return AnalysisKind::ItvAnalysis;
     }
 
-    // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
-    void analyze_begin_function([[maybe_unused]] AnalysisContext& ctx) const {
-        LLVM_DEBUG(llvm::outs()
-                       << "ItvAnalysis::analyze_begin_function()\nstate:";
-                   ctx.get_state()->dump(llvm::outs());
-                   llvm::outs() << "\n";);
-    }
+    void analyze_begin_function([[maybe_unused]] AnalysisContext& ctx) const;
 
     struct EventHandler {
         const ItvAnalysis& analysis;
@@ -63,29 +55,41 @@ class ItvAnalysis
             this->handle(event);
         }
 
-        void handle(const ZVarAssignZVar& var) const {
+        void handle(const ZVarAssignZVar& assign) const {
+            llvm::outs() << "ZVarAssignZVar: ";
+            assign.dump(llvm::outs());
+            llvm::outs() << "\n";
+
             auto zitv = state->get_clone< ZIntervalDom >();
-            zitv->assign_var(var.x, var.y);
+            zitv->assign_var(assign.x, assign.y);
             ctx->set_state(state->set< ZIntervalDom >(zitv));
         }
 
-        void handle(const ZVarAssignZNum& var) const {
+        void handle(const ZVarAssignZNum& assign) const {
+            llvm::outs() << "ZVarAssignZNum: ";
+            assign.dump(llvm::outs());
+            llvm::outs() << "\n";
+
             auto zitv = state->get_clone< ZIntervalDom >();
-            zitv->assign_num(var.x, var.y);
+            zitv->assign_num(assign.x, assign.y);
             ctx->set_state(state->set< ZIntervalDom >(zitv));
         }
 
-        void handle(const ZVarAssignZLinearExpr& var) const {
+        void handle(const ZVarAssignZLinearExpr& assign) const {
+            llvm::outs() << "ZVarAssignZLinearExpr: ";
+            assign.dump(llvm::outs());
+            llvm::outs() << "\n";
+
             auto zitv = state->get_clone< ZIntervalDom >();
-            zitv->assign_linear_expr(var.x, var.y);
+            zitv->assign_linear_expr(assign.x, assign.y);
             ctx->set_state(state->set< ZIntervalDom >(zitv));
         }
 
-        void handle(const QVarAssignQVar& var) const {}
+        void handle(const QVarAssignQVar& assign) const {}
 
-        void handle(const QVarAssignQNum& var) const {}
+        void handle(const QVarAssignQNum& assign) const {}
 
-        void handle(const QVarAssignQLinearExpr& var) const {}
+        void handle(const QVarAssignQLinearExpr& assign) const {}
 
     } __attribute__((aligned(EventHandlerAlignment))); // struct EventHandler
 
@@ -94,13 +98,8 @@ class ItvAnalysis
                    event->assign);
     }
 
-    // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
-    void pre_analyze_stmt(const clang::ReturnStmt* return_stmt,
-                          AnalysisContext& ctx) const {
-        LLVM_DEBUG(llvm::outs() << "ItvAnalysis::pre_analyze ReturnStmt: \n";
-                   return_stmt->dumpColor();
-                   llvm::outs() << "\n";);
-    }
+    void post_analyze_stmt(const clang::ReturnStmt* return_stmt,
+                           AnalysisContext& ctx) const;
 
     static void add_dependencies(AnalysisManager& mgr) {
         // add dependencies here

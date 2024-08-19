@@ -339,6 +339,10 @@ class IntervalDom
         return m_sep_dom.equals(other.m_sep_dom);
     }
 
+    Interval get_value(const Var& key) const {
+        return m_sep_dom.get_value(key);
+    }
+
     void dump(llvm::raw_ostream& os) const override { m_sep_dom.dump(os); }
 
   public:

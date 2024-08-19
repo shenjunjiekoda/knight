@@ -18,6 +18,7 @@
 #include "dfa/analysis/events.hpp"
 #include "dfa/constraint/linear.hpp"
 #include "dfa/program_state.hpp"
+#include "llvm/Support/raw_ostream.h"
 
 namespace knight::dfa {
 
@@ -28,31 +29,39 @@ constexpr unsigned AssignEventAlignBigSize = 128U;
 struct ZVarAssignZVar {
     ZVariable x;
     ZVariable y;
+
+    void dump(llvm::raw_ostream& os) const { os << x << " = " << y; }
 } __attribute__((aligned(AssignEventAlignSmallSize)));
 
 struct ZVarAssignZNum {
     ZVariable x;
     ZNum y;
+
+    void dump(llvm::raw_ostream& os) const { os << x << " = " << y; }
 } __attribute__((aligned(AssignEventAlignSize)));
 
 struct ZVarAssignZLinearExpr {
     ZVariable x;
     ZLinearExpr y;
+    void dump(llvm::raw_ostream& os) const { os << x << " = " << y; }
 } __attribute__((aligned(AssignEventAlignBigSize)));
 
 struct QVarAssignQVar {
     QVariable x;
     QVariable y;
+    void dump(llvm::raw_ostream& os) const { os << x << " = " << y; }
 } __attribute__((aligned(AssignEventAlignSmallSize)));
 
 struct QVarAssignQNum {
     QVariable x;
     QNum y;
+    void dump(llvm::raw_ostream& os) const { os << x << " = " << y; }
 } __attribute__((aligned(AssignEventAlignSize)));
 
 struct QVarAssignQLinearExpr {
     QVariable x;
     QLinearExpr y;
+    void dump(llvm::raw_ostream& os) const { os << x << " = " << y; }
 } __attribute__((aligned(AssignEventAlignBigSize)));
 
 struct LinearAssignEvent {

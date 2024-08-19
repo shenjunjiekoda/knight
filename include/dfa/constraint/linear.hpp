@@ -263,10 +263,10 @@ class LinearExpr : public llvm::FoldingSetNode {
 
     /// \brief Subtract a num
     void operator-=(const Num& n) { this->m_constant -= n; }
-    void operator-=(Var var) { this->plus(-1., var); }
+    void operator-=(Var var) { this->plus(Num(-1), var); }
 
     /// \brief Subtract a variable
-    void operator-=(SExprRef var) { this->plus(-1., var); }
+    void operator-=(SExprRef var) { this->plus(Num(-1), var); }
 
     /// \brief Subtract a linear expression
     void operator-=(const LinearExpr& expr) {
@@ -341,6 +341,13 @@ class LinearExpr : public llvm::FoldingSetNode {
 
 using ZLinearExpr = LinearExpr< ZNum >;
 using QLinearExpr = LinearExpr< QNum >;
+
+template < typename Num >
+inline llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
+                                     const LinearExpr< Num >& linear_expr) {
+    linear_expr.dump(os);
+    return os;
+}
 
 template < typename Num >
 [[nodiscard]] inline LinearExpr< Num > operator*(Variable< Num > var,
@@ -684,6 +691,13 @@ using ZLinearConstraint = LinearConstraint< ZNum >;
 using QLinearConstraint = LinearConstraint< QNum >;
 
 template < typename Num >
+inline llvm::raw_ostream& operator<<(
+    llvm::raw_ostream& os, const LinearConstraint< Num >& linear_cst) {
+    linear_cst.dump(os);
+    return os;
+}
+
+template < typename Num >
 [[nodiscard]] inline LinearConstraint< Num > operator<=(
     LinearExpr< Num > linear_expr, const Num& n) {
     return LinearConstraint< Num >(std::move(linear_expr) - n,
@@ -947,5 +961,12 @@ class LinearConstraintSystem : public llvm::FoldingSetNode {
 
 using ZLinearConstraintSystem = LinearConstraintSystem< ZNum >;
 using QLinearConstraintSystem = LinearConstraintSystem< QNum >;
+
+template < typename Num >
+inline llvm::raw_ostream& operator<<(
+    llvm::raw_ostream& os, const LinearConstraintSystem< Num >& system) {
+    system.dump(os);
+    return os;
+}
 
 } // namespace knight::dfa
