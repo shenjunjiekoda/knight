@@ -55,8 +55,8 @@ ProgramStateRef AnalysisContext::get_state() const {
 void AnalysisContext::set_state(ProgramStateRef state) {
     if (state != m_state) {
         m_is_state_changed = true;
+        m_state = std::move(state);
     }
-    m_state = std::move(state);
 }
 
 const clang::Decl* AnalysisContext::get_current_decl() const {

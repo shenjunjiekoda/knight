@@ -37,7 +37,7 @@ using SymbolRef = const Sym*;
 using SExprRef = const SymExpr*;
 
 void profile_symbol(llvm::FoldingSetNodeID& id, SymbolRef sym);
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, SymbolRef& var);
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, const SymbolRef& var);
 
 template < typename Num >
 struct Variable : public llvm::FoldingSetNode {
@@ -58,6 +58,8 @@ struct Variable : public llvm::FoldingSetNode {
         return m_symbol != other.m_symbol;
     }
 
+    void dump(llvm::raw_ostream& os) const { os << m_symbol; }
+
     // NOLINTNEXTLINE
     void Profile(llvm::FoldingSetNodeID& id) const { id.AddPointer(m_symbol); }
 
@@ -66,7 +68,8 @@ struct Variable : public llvm::FoldingSetNode {
 template < typename Num >
 inline llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
                                      const Variable< Num >& var) {
-    return os << var.m_symbol;
+    var.dump(os);
+    return os;
 }
 
 using ZVariable = Variable< ZNum >;

@@ -134,34 +134,10 @@ std::optional< QVariable > ProgramState::try_get_qvariable(
     return QVariable(sym);
 }
 
-std::optional< SExprRef > ProgramState::try_get_sexpr(
-    ProcCFG::StmtRef expr, const LocationContext* loc_ctx) const {
-    if (auto res = get_stmt_sexpr(expr)) {
-        return res;
-    }
-
-    auto region_opt = get_region(expr, loc_ctx->get_stack_frame());
-    if (!region_opt.has_value()) {
-        return std::nullopt;
-    }
-
-    auto region_sexpr_opt = get_region_sexpr(region_opt.value());
-    if (!region_sexpr_opt.has_value()) {
-        if (const auto* typed_region =
-                llvm::dyn_cast< TypedRegion >(region_opt.value())) {
-            // Use region sval as sexpr if we did not bind this region
-            // before.
-            return m_state_mgr->m_symbol_mgr.get_region_sym_val(typed_region,
-                                                                loc_ctx);
-        }
-    }
-    return region_sexpr_opt;
-}
-
 std::optional< MemRegionRef > ProgramState::get_region(
-    ProcCFG::StmtRef expr, const StackFrame* frame) const {
+    ProcCFG::StmtRef stmt, const StackFrame* frame) const {
     if (const auto* decl_ref_expr =
-            llvm::dyn_cast< clang::DeclRefExpr >(expr)) {
+            llvm::dyn_cast< clang::DeclRefExpr >(stmt)) {
         const auto* decl = decl_ref_expr->getDecl();
         if (decl == nullptr) {
             return std::nullopt;
@@ -228,10 +204,27 @@ std::optional< SExprRef > ProgramState::get_stmt_sexpr(
 SExprRef ProgramState::get_stmt_sexpr_or_conjured(
     ProcCFG::StmtRef stmt,
     const clang::QualType& type,
-    const StackFrame* frame) const {
+    const LocationContext* loc_ctx) const {
+    const auto* frame = loc_ctx->get_stack_frame();
     if (auto res = get_stmt_sexpr(stmt, frame)) {
         return res.value();
     }
+
+    auto region_opt = get_region(stmt, frame);
+    if (region_opt.has_value()) {
+        if (const auto* typed_region =
+                llvm::dyn_cast< TypedRegion >(region_opt.value())) {
+            // Use region sval as sexpr if we did not bind this region
+            // before.
+            return m_state_mgr->m_symbol_mgr.get_region_sym_val(typed_region,
+                                                                loc_ctx);
+        }
+
+        if (auto region_sexpr = get_region_sexpr(region_opt.value())) {
+            return *region_sexpr;
+        }
+    }
+
     return m_state_mgr->m_symbol_mgr.get_symbol_conjured(stmt, type, frame);
 }
 

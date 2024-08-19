@@ -18,6 +18,7 @@
 #include "dfa/constraint/linear.hpp"
 #include "dfa/domain/dom_base.hpp"
 #include "dfa/domain/domains.hpp"
+#include "dfa/location_context.hpp"
 #include "dfa/proc_cfg.hpp"
 #include "dfa/region/region.hpp"
 #include "dfa/stack_frame.hpp"
@@ -132,9 +133,7 @@ class ProgramState : public llvm::FoldingSetNode {
     [[nodiscard]] std::optional< MemRegionRef > get_region(
         ProcCFG::DeclRef decl, const StackFrame*) const;
     [[nodiscard]] std::optional< MemRegionRef > get_region(
-        ProcCFG::StmtRef expr, const StackFrame*) const;
-    [[nodiscard]] std::optional< SExprRef > try_get_sexpr(
-        ProcCFG::StmtRef expr, const LocationContext*) const;
+        ProcCFG::StmtRef stmt, const StackFrame*) const;
 
     [[nodiscard]] std::optional< ZVariable > try_get_zvariable(
         ProcCFG::DeclRef decl, const StackFrame* frame) const;
@@ -157,10 +156,10 @@ class ProgramState : public llvm::FoldingSetNode {
     [[nodiscard]] SExprRef get_stmt_sexpr_or_conjured(
         ProcCFG::StmtRef stmt,
         const clang::QualType& type,
-        const StackFrame* frame) const;
+        const LocationContext* loc_ctx) const;
     [[nodiscard]] SExprRef get_stmt_sexpr_or_conjured(
-        const clang::Expr* expr, const StackFrame* frame) const {
-        return get_stmt_sexpr_or_conjured(expr, expr->getType(), frame);
+        const clang::Expr* expr, const LocationContext* loc_ctx) const {
+        return get_stmt_sexpr_or_conjured(expr, expr->getType(), loc_ctx);
     }
 
   public:

@@ -171,6 +171,8 @@ class ScalarInt : public Scalar {
 
     [[nodiscard]] clang::QualType get_type() const override { return m_type; }
 
+    void dump(llvm::raw_ostream& os) const override { os << m_value; }
+
     static void profile(llvm::FoldingSetNodeID& id,
                         const ZNum& value,
                         clang::QualType type) {
@@ -210,6 +212,8 @@ class ScalarFloat : public Scalar {
         value.Profile(id);
         id.Add(type);
     }
+
+    void dump(llvm::raw_ostream& os) const override { os << m_value; }
 
     void Profile(llvm::FoldingSetNodeID& id) const override { // NOLINT
         ScalarFloat::profile(id, m_value, m_type);

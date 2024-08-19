@@ -221,6 +221,8 @@ class AnalysisManager {
     template < event EVENT >
     void register_for_event_listener(internal::EventListenerCallback cb) {
         auto kind = EVENT::get_kind();
+        llvm::outs() << "registering for event listend: "
+                     << get_event_name(kind) << "\n";
         internal::EventInfo& info = m_events[get_event_id(kind)];
         info.listeners.push_back(cb);
     }
@@ -228,6 +230,8 @@ class AnalysisManager {
     template < event EVENT >
     void register_for_event_dispatcher() {
         auto kind = EVENT::get_kind();
+        llvm::outs() << "registering for event dispatcher: "
+                     << get_event_name(kind) << "\n";
         internal::EventInfo& info = m_events[get_event_id(kind)];
         info.has_dispatcher = true;
     }
@@ -237,10 +241,14 @@ class AnalysisManager {
     template < event EVENT >
     void dispatch_event(const EVENT& event) const {
         auto kind = EVENT::get_kind();
+        llvm::outs() << "dispatching event " << get_event_name(kind) << "\n";
         auto it = m_events.find(get_event_id(kind));
         if (it == m_events.end()) {
             return;
         }
+        llvm::outs() << "has dispatcher: " << it->second.has_dispatcher
+                     << "\nlisteners size: " << it->second.listeners.size()
+                     << "\n";
         for (const auto& listener : it->second.listeners) {
             listener(&event);
         }

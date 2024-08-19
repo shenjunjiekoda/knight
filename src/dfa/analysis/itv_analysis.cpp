@@ -30,7 +30,7 @@ void ItvAnalysis::analyze_begin_function(
 
 void ItvAnalysis::post_analyze_stmt(const clang::ReturnStmt* return_stmt,
                                     AnalysisContext& ctx) const {
-    LLVM_DEBUG(llvm::outs() << "ItvAnalysis::pre_analyze ReturnStmt: \n";
+    LLVM_DEBUG(llvm::outs() << "ItvAnalysis::post analyze ReturnStmt: \n";
                return_stmt->dumpColor();
                llvm::outs() << "\n";);
     const auto* ret_val = return_stmt->getRetValue();
@@ -39,14 +39,19 @@ void ItvAnalysis::post_analyze_stmt(const clang::ReturnStmt* return_stmt,
         return;
     }
     auto state = ctx.get_state();
-    SExprRef ret_val_sexpr =
-        state->get_stmt_sexpr_or_conjured(ret_val,
-                                          ctx.get_current_stack_frame());
-    if (auto znum = ret_val_sexpr->get_as_znum()) {
+    auto ret_val_sexpr = state->get_stmt_sexpr(ret_val);
+    if (!ret_val_sexpr) {
+        return;
+    }
+    LLVM_DEBUG(llvm::outs() << "returning sexpr: ";
+               ret_val_sexpr.value()->dump(llvm::outs());
+               llvm::outs() << "\n";);
+
+    if (auto znum = ret_val_sexpr.value()->get_as_znum()) {
         LLVM_DEBUG(llvm::outs() << "return znum: " << *znum << "\n";);
         return;
     }
-    auto zvar = ret_val_sexpr->get_as_zvariable();
+    auto zvar = ret_val_sexpr.value()->get_as_zvariable();
     if (!zvar) {
         return;
     }

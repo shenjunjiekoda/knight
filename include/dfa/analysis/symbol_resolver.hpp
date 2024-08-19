@@ -59,6 +59,8 @@ class SymbolResolver
 
     void VisitDeclRefExpr(const clang::DeclRefExpr* decl_ref_expr) const;
 
+    void VisitCastExpr(const clang::CastExpr* cast_expr) const;
+
     void analyze_stmt(const clang::Stmt* stmt, AnalysisContext& ctx) const;
 
     static UniqueAnalysisRef register_analysis(AnalysisManager& mgr,

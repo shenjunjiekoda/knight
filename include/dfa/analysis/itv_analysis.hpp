@@ -85,6 +85,8 @@ class ItvAnalysis
             ctx->set_state(state->set< ZIntervalDom >(zitv));
         }
 
+        void handle(const ZVarAssignZCast& assign) const {}
+
         void handle(const QVarAssignQVar& assign) const {}
 
         void handle(const QVarAssignQNum& assign) const {}

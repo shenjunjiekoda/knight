@@ -34,7 +34,7 @@ void profile_symbol(llvm::FoldingSetNodeID& id, SymbolRef sym) {
     sym->Profile(id);
 }
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, SymbolRef& var) {
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, const SymbolRef& var) {
     var->dump(os);
     return os;
 }
@@ -135,14 +135,13 @@ clang::QualType RegionSymExtent::get_type() const {
 }
 
 void SymbolConjured::dump(llvm::raw_ostream& os) const {
-    os << get_kind_name() << get_id() << "{" << get_type();
+    os << get_kind_name() << get_id() << "(" << get_type() << "){";
     if (m_stmt != nullptr) {
-        os << " at ";
         m_stmt->printPretty(os,
                             nullptr,
                             m_frame->get_ast_context().getPrintingPolicy());
     } else {
-        os << " at unknown stmt";
+        os << "`unknown stmt`";
     }
     os << "}";
 }

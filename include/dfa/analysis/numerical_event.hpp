@@ -46,6 +46,16 @@ struct ZVarAssignZLinearExpr {
     void dump(llvm::raw_ostream& os) const { os << x << " = " << y; }
 } __attribute__((aligned(AssignEventAlignBigSize)));
 
+struct ZVarAssignZCast {
+    unsigned dst_bit_width;
+    clang::QualType dst_type;
+    ZVariable x;
+    ZVariable y;
+    void dump(llvm::raw_ostream& os) const {
+        os << x << " = (" << dst_type << ")" << y;
+    }
+} __attribute__((aligned(AssignEventAlignSize)));
+
 struct QVarAssignQVar {
     QVariable x;
     QVariable y;
@@ -70,6 +80,7 @@ struct LinearAssignEvent {
     using AsignT = std::variant< ZVarAssignZVar,
                                  ZVarAssignZNum,
                                  ZVarAssignZLinearExpr,
+                                 ZVarAssignZCast,
                                  QVarAssignQVar,
                                  QVarAssignQNum,
                                  QVarAssignQLinearExpr >;
