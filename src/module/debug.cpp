@@ -1,4 +1,4 @@
-//===- core_module.cpp ------------------------------------------------===//
+//===- debug_module.cpp ------------------------------------------------===//
 //
 // Copyright (c) 2024 Junjie Shen
 //
@@ -7,35 +7,35 @@
 //
 //===------------------------------------------------------------------===//
 //
-//  This file implements core module.
+//  This file implements debug module.
 //
 //===------------------------------------------------------------------===//
 
 #include "dfa/analysis/analyses.hpp"
-#include "dfa/analysis/core/symbol_resolver.hpp"
+#include "dfa/analysis/debug/state_printer.hpp"
 #include "tooling/factory.hpp"
 #include "tooling/module.hpp"
 
 namespace knight {
 
-constexpr const char* ModName = "core";
+constexpr const char* ModName = "debug";
 
-class CoreModule : public KnightModule {
+class DebugModule : public KnightModule {
     void add_to_factory(KnightFactory& factory) override {
         // Register analyses.
-        factory.register_analysis< dfa::SymbolResolver >();
+        factory.register_analysis< dfa::StatePrinter >();
 
         // Register checkers.
     }
-}; // class CoreModule
+}; // class DebugModule
 
 /// \brief Register the AbseilModule using this statically initialized variable.
-static KnightModuleRegistry::Add< CoreModule > X( // NOLINT
+static KnightModuleRegistry::Add< DebugModule > X( // NOLINT
     ModName,
-    "Add core analyses and checkers.");
+    "Add debug analyses and checkers.");
 
 /// \brief This anchor is used to force the linker to link in the generated
-/// object file and thus register the CoreModule.
-volatile int CoreModuleAnchorSource = 0; // NOLINT
+/// object file and thus register the DebugModule.
+volatile int DebugModuleAnchorSource = 0; // NOLINT
 
 } // namespace knight

@@ -6,6 +6,7 @@ int foo(int x) {
     if (d > x) {
         d = 5;
     } else {
+        x = 2;
         d = x;
     }
     return d + 1;

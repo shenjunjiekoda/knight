@@ -11,8 +11,8 @@
 //
 //===------------------------------------------------------------------===//
 
-#include "dfa/analysis/symbol_resolver.hpp"
-#include "dfa/analysis/numerical_event.hpp"
+#include "dfa/analysis/core/symbol_resolver.hpp"
+#include "dfa/analysis/core/numerical_event.hpp"
 #include "dfa/constraint/linear.hpp"
 #include "llvm/Support/raw_ostream.h"
 

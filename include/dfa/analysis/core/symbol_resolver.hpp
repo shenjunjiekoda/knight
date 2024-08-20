@@ -14,7 +14,7 @@
 #pragma once
 
 #include "dfa/analysis/analysis_base.hpp"
-#include "dfa/analysis/numerical_event.hpp"
+#include "dfa/analysis/core/numerical_event.hpp"
 #include "dfa/analysis_context.hpp"
 #include "dfa/constraint/linear.hpp"
 #include "dfa/region/region.hpp"

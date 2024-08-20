@@ -12,7 +12,8 @@
 //===------------------------------------------------------------------===//
 
 #include "dfa/analysis/analyses.hpp"
-#include "dfa/analysis/demo_analysis.hpp"
+#include "dfa/analysis/demo/demo_analysis.hpp"
+#include "dfa/analysis/demo/itv_analysis.hpp"
 #include "dfa/checker/demo_checker.hpp"
 #include "tooling/factory.hpp"
 #include "tooling/module.hpp"
@@ -25,7 +26,7 @@ class DemoModule : public KnightModule {
     void add_to_factory(KnightFactory& factory) override {
         // Register analyses.
         factory.register_analysis< dfa::DemoAnalysis >();
-
+        factory.register_analysis< dfa::ItvAnalysis >();
         // Register checkers.
         factory.register_checker< dfa::DemoChecker >();
     }

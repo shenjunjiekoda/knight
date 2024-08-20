@@ -385,12 +385,39 @@ bool ProgramState::equals(const ProgramState& other) const {
 }
 
 void ProgramState::dump(llvm::raw_ostream& os) const {
-    os << "ProgramState:{\n";
+    os << "State:{\n";
+
+    os << "Regions: {\n";
+    for (const auto& [region, sexpr] : m_region_sexpr) {
+        region->dump(os);
+        os << ": ";
+        sexpr->dump(os);
+        os << "\n";
+    }
+    os << "}\n";
+
+    os << "Stmts: {\n";
+    for (const auto& [stmt, sexpr] : m_stmt_sexpr) {
+        os << "(" << stmt->getStmtClassName() << ") ";
+        stmt->printPretty(os,
+                          nullptr,
+                          get_region_manager()
+                              .get_ast_ctx()
+                              .getPrintingPolicy());
+        os << ": ";
+        sexpr->dump(os);
+        os << "\n";
+    }
+    os << "}\n";
+
+    os << "Domains: {";
     for (const auto& [id, aval] : m_dom_val) {
         os << "[" << get_domain_name_by_id(id) << "]: ";
         aval->dump(os);
         os << "\n";
     }
+    os << "}\n";
+
     os << "}\n";
 }
 

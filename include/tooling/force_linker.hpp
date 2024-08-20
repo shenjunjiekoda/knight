@@ -23,6 +23,11 @@ static int DemoModuleAnchorDestination [[maybe_unused]] =
 extern volatile int CoreModuleAnchorSource;
 static int CoreModuleAnchorDestination [[maybe_unused]] =
     CoreModuleAnchorSource;
+
+extern volatile int DebugModuleAnchorSource;
+static int DebugModuleAnchorDestination [[maybe_unused]] =
+    DebugModuleAnchorSource;
+
 // NOLINTEND
 
 } // namespace knight

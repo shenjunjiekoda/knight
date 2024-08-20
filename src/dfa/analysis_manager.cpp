@@ -101,8 +101,7 @@ std::vector< AnalysisID > get_subset_order(
 AnalysisManager::AnalysisManager(KnightContext& ctx) : m_ctx(ctx) {
     m_sym_mgr = std::make_unique< dfa::SymbolManager >(m_ctx.get_allocator());
     m_region_mgr =
-        std::make_unique< dfa::RegionManager >(*m_ctx.get_ast_context(),
-                                               m_ctx.get_allocator());
+        std::make_unique< dfa::RegionManager >(m_ctx.get_allocator());
     m_state_mgr =
         std::make_unique< dfa::ProgramStateManager >(*this,
                                                      *m_region_mgr,

@@ -1,5 +1,4 @@
-
-//===- intervcal_analysis.cpp -----------------------------------------===//
+//===- itv_analysis.cpp ----------------------------------------------===//
 //
 // Copyright (c) 2024 Junjie Shen
 //
@@ -12,7 +11,7 @@
 //
 //===------------------------------------------------------------------===//
 
-#include "dfa/analysis/itv_analysis.hpp"
+#include "dfa/analysis/demo/itv_analysis.hpp"
 #include "dfa/constraint/linear.hpp"
 #include "dfa/domain/interval_dom.hpp"
 #include "llvm/Support/raw_ostream.h"
@@ -33,12 +32,16 @@ void ItvAnalysis::post_analyze_stmt(const clang::ReturnStmt* return_stmt,
     LLVM_DEBUG(llvm::outs() << "ItvAnalysis::post analyze ReturnStmt: \n";
                return_stmt->dumpColor();
                llvm::outs() << "\n";);
+
+    auto state = ctx.get_state();
+
+    LLVM_DEBUG(state->dump(llvm::outs()););
+
     const auto* ret_val = return_stmt->getRetValue();
     if (ret_val == nullptr ||
         !ret_val->getType()->isIntegralOrEnumerationType()) {
         return;
     }
-    auto state = ctx.get_state();
     auto ret_val_sexpr = state->get_stmt_sexpr(ret_val);
     if (!ret_val_sexpr) {
         return;

@@ -93,6 +93,7 @@ std::unique_ptr< clang::ASTConsumer > KnightASTConsumerFactory::
     auto& file_mgr = source_mgr.getFileManager();
     m_ctx.set_current_file(file);
     m_ctx.set_current_ast_context(&ci.getASTContext());
+    m_analysis_manager->set_ast_context(ci.getASTContext());
 
     auto working_dir =
         file_mgr.getVirtualFileSystem().getCurrentWorkingDirectory();

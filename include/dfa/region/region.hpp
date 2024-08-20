@@ -26,6 +26,7 @@
 #include "dfa/region/regions.hpp"
 #include "dfa/stack_frame.hpp"
 #include "dfa/symbol.hpp"
+#include "tooling/diagnostic.hpp"
 
 namespace knight::dfa {
 
@@ -897,7 +898,7 @@ class SymbolicRegion : public MemRegion {
 
 class RegionManager {
   private:
-    clang::ASTContext& m_ast_ctx;
+    clang::ASTContext* m_ast_ctx;
 
     llvm::BumpPtrAllocator& m_allocator;
     llvm::FoldingSet< MemRegion > m_region_set;
@@ -915,11 +916,18 @@ class RegionManager {
         m_stack_arg_space_regions;
 
   public:
-    RegionManager(clang::ASTContext& ast_ctx, llvm::BumpPtrAllocator& allocator)
-        : m_ast_ctx(ast_ctx), m_allocator(allocator) {}
+    explicit RegionManager(llvm::BumpPtrAllocator& allocator)
+
+        : m_allocator(allocator) {}
 
   public:
-    [[nodiscard]] clang::ASTContext& get_ast_ctx() const { return m_ast_ctx; }
+    void set_ast_ctx(clang::ASTContext& ast_ctx) { m_ast_ctx = &ast_ctx; }
+
+    [[nodiscard]] clang::ASTContext& get_ast_ctx() const {
+        knight_assert_msg(m_ast_ctx != nullptr, "ast context is not set");
+        return *m_ast_ctx;
+    }
+
     [[nodiscard]] llvm::BumpPtrAllocator& get_allocator() const {
         return m_allocator;
     }

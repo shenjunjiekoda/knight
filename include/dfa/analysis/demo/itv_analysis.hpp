@@ -1,4 +1,4 @@
-//===- intervcal_analysis.hpp -----------------------------------------===//
+//===- itv_analysis.hpp -----------------------------------------------===//
 //
 // Copyright (c) 2024 Junjie Shen
 //
@@ -14,7 +14,7 @@
 #pragma once
 
 #include "dfa/analysis/analysis_base.hpp"
-#include "dfa/analysis/numerical_event.hpp"
+#include "dfa/analysis/core/numerical_event.hpp"
 #include "dfa/analysis_context.hpp"
 #include "dfa/constraint/linear.hpp"
 #include "dfa/domain/demo_dom.hpp"

@@ -150,6 +150,10 @@ class AnalysisManager {
     ~AnalysisManager() = default;
 
   public:
+    void set_ast_context(clang::ASTContext& ast_ctx) {
+        m_region_mgr->set_ast_ctx(ast_ctx);
+    }
+
     /// \brief specialized analysis management
     ///
     /// Dependencies shall be handled before the registration.

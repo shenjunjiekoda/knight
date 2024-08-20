@@ -11,7 +11,7 @@
 //
 //===------------------------------------------------------------------===//
 
-#include "dfa/analysis/demo_analysis.hpp"
+#include "dfa/analysis/demo/demo_analysis.hpp"
 
 #define DEBUG_TYPE "DemoAnalysis"
 

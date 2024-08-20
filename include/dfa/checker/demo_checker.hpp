@@ -13,7 +13,7 @@
 
 #pragma once
 
-#include "dfa/analysis/demo_analysis.hpp"
+#include "dfa/analysis/demo/demo_analysis.hpp"
 #include "dfa/checker/checker_base.hpp"
 #include "dfa/checker_context.hpp"
 #include "dfa/checker_manager.hpp"

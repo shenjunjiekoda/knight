@@ -24,3 +24,4 @@
 ANALYSIS_DEF(SymbolResolver, "core-symbol-resolver", 0, "Resolves symbols in the program.")
 ANALYSIS_DEF(DemoAnalysis, "demo-analysis", 1, "A demo analysis.")
 ANALYSIS_DEF(ItvAnalysis, "demo-itv-analysis", 2, "An interval analysis.")
+ANALYSIS_DEF(StatePrinter, "debug-itv-analysis", 3, "An interval analysis.")
