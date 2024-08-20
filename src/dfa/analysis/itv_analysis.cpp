@@ -68,4 +68,39 @@ void ItvAnalysis::post_analyze_stmt(const clang::ReturnStmt* return_stmt,
                });
 }
 
+void ItvAnalysis::EventHandler::handle(const ZVarAssignZVar& assign) const {
+    LLVM_DEBUG(llvm::outs() << "ZVarAssignZVar: "; assign.dump(llvm::outs());
+               llvm::outs() << "\n";);
+
+    auto zitv = state->get_clone< ZIntervalDom >();
+    zitv->assign_var(assign.x, assign.y);
+    ctx->set_state(state->set< ZIntervalDom >(zitv));
+}
+void ItvAnalysis::EventHandler::handle(const ZVarAssignZNum& assign) const {
+    LLVM_DEBUG(llvm::outs() << "ZVarAssignZNum: "; assign.dump(llvm::outs());
+               llvm::outs() << "\n";);
+
+    auto zitv = state->get_clone< ZIntervalDom >();
+    zitv->assign_num(assign.x, assign.y);
+    ctx->set_state(state->set< ZIntervalDom >(zitv));
+}
+void ItvAnalysis::EventHandler::handle(
+    const ZVarAssignZLinearExpr& assign) const {
+    LLVM_DEBUG(llvm::outs() << "ZVarAssignZLinearExpr: ";
+               assign.dump(llvm::outs());
+               llvm::outs() << "\n";);
+
+    auto zitv = state->get_clone< ZIntervalDom >();
+    zitv->assign_linear_expr(assign.x, assign.y);
+    ctx->set_state(state->set< ZIntervalDom >(zitv));
+}
+
+void ItvAnalysis::EventHandler::handle(const ZVarAssignZCast& assign) const {}
+
+void ItvAnalysis::EventHandler::handle(const QVarAssignQVar& assign) const {}
+
+void ItvAnalysis::EventHandler::handle(const QVarAssignQNum& assign) const {}
+
+void ItvAnalysis::EventHandler::handle(
+    const QVarAssignQLinearExpr& assign) const {}
 } // namespace knight::dfa

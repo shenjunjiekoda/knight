@@ -19,6 +19,9 @@
 #include "util/assert.hpp"
 
 #include <memory>
+
+#define DEBUG_TYPE "CheckerManager"
+
 namespace knight::dfa {
 
 void CheckerManager::add_required_checker(CheckerID id) {
@@ -103,4 +106,18 @@ void CheckerManager::run_checkers_for_end_function(CheckerContext& checker_ctx,
     }
 }
 
+void CheckerManager::add_all_required_analyses_by_checker_dependencies() {
+    for (auto& [checker_id, analysis_ids] : m_checker_dependencies) {
+        if (is_checker_required(checker_id)) {
+            for (auto analysis_id : analysis_ids) {
+                LLVM_DEBUG(llvm::outs()
+                           << "add checker: "
+                           << get_checker_name_by_id(checker_id)
+                           << " dependent analysis: "
+                           << get_analysis_name_by_id(analysis_id) << "\n");
+                m_analysis_mgr.add_required_analysis(analysis_id);
+            }
+        }
+    }
+}
 } // namespace knight::dfa

@@ -25,6 +25,8 @@
 #include <memory>
 #include <queue>
 
+#define DEBUG_TYPE "AnalysisManager"
+
 namespace knight::dfa {
 
 namespace {
@@ -136,6 +138,8 @@ void AnalysisManager::add_analysis_dependency(AnalysisID id,
 void AnalysisManager::compute_all_required_analyses_by_dependencies() {
     std::queue< AnalysisID > q;
     for (auto id : m_required_analyses) {
+        LLVM_DEBUG(llvm::outs() << "push one already in required analyses: "
+                                << get_analysis_name_by_id(id) << "\n");
         q.push(id);
     }
 
@@ -148,7 +152,16 @@ void AnalysisManager::compute_all_required_analyses_by_dependencies() {
         }
         visited.insert(id);
         add_required_analysis(id);
+
+        LLVM_DEBUG(llvm::outs() << "add required in dep-computing: "
+                                << get_analysis_name_by_id(id) << "\n";);
+
         for (auto dep_id : get_analysis_dependencies(id)) {
+            LLVM_DEBUG(llvm::outs()
+                           << "current:" << get_analysis_name_by_id(id)
+                           << " dep:" << get_analysis_name_by_id(dep_id)
+                           << "\n";);
+
             q.push(dep_id);
         }
     }
@@ -164,6 +177,8 @@ void AnalysisManager::enable_analysis(
     std::unique_ptr< AnalysisBase > analysis) {
     auto id = get_analysis_id(analysis->kind);
     m_enabled_analyses.emplace(id, std::move(analysis));
+    LLVM_DEBUG(llvm::outs()
+               << "Enabling analysis " << get_analysis_name_by_id(id) << "\n");
 }
 
 std::optional< AnalysisBase* > AnalysisManager::get_analysis(AnalysisID id) {

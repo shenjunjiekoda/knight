@@ -55,43 +55,19 @@ class ItvAnalysis
             this->handle(event);
         }
 
-        void handle(const ZVarAssignZVar& assign) const {
-            llvm::outs() << "ZVarAssignZVar: ";
-            assign.dump(llvm::outs());
-            llvm::outs() << "\n";
+        void handle(const ZVarAssignZVar& assign) const;
 
-            auto zitv = state->get_clone< ZIntervalDom >();
-            zitv->assign_var(assign.x, assign.y);
-            ctx->set_state(state->set< ZIntervalDom >(zitv));
-        }
+        void handle(const ZVarAssignZNum& assign) const;
 
-        void handle(const ZVarAssignZNum& assign) const {
-            llvm::outs() << "ZVarAssignZNum: ";
-            assign.dump(llvm::outs());
-            llvm::outs() << "\n";
+        void handle(const ZVarAssignZLinearExpr& assign) const;
 
-            auto zitv = state->get_clone< ZIntervalDom >();
-            zitv->assign_num(assign.x, assign.y);
-            ctx->set_state(state->set< ZIntervalDom >(zitv));
-        }
+        void handle(const ZVarAssignZCast& assign) const;
 
-        void handle(const ZVarAssignZLinearExpr& assign) const {
-            llvm::outs() << "ZVarAssignZLinearExpr: ";
-            assign.dump(llvm::outs());
-            llvm::outs() << "\n";
+        void handle(const QVarAssignQVar& assign) const;
 
-            auto zitv = state->get_clone< ZIntervalDom >();
-            zitv->assign_linear_expr(assign.x, assign.y);
-            ctx->set_state(state->set< ZIntervalDom >(zitv));
-        }
+        void handle(const QVarAssignQNum& assign) const;
 
-        void handle(const ZVarAssignZCast& assign) const {}
-
-        void handle(const QVarAssignQVar& assign) const {}
-
-        void handle(const QVarAssignQNum& assign) const {}
-
-        void handle(const QVarAssignQLinearExpr& assign) const {}
+        void handle(const QVarAssignQLinearExpr& assign) const;
 
     } __attribute__((aligned(EventHandlerAlignment))); // struct EventHandler
 

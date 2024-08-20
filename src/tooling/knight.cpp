@@ -21,6 +21,8 @@
 
 #include <clang/Tooling/Tooling.h>
 
+#define DEBUG_TYPE "Knight"
+
 LLVM_INSTANTIATE_REGISTRY(knight::KnightModuleRegistry); // NOLINT
 
 namespace knight {
@@ -102,12 +104,17 @@ std::unique_ptr< clang::ASTConsumer > KnightASTConsumerFactory::
         m_checker_manager->add_required_checker(id);
     }
     auto checkers = m_factory->create_checkers(*m_checker_manager, &m_ctx);
+    m_checker_manager->add_all_required_analyses_by_checker_dependencies();
 
     for (const auto& [id, _] : get_directly_enabled_analyses()) {
+        LLVM_DEBUG(llvm::outs() << "add required by directly enabled: "
+                                << dfa::get_analysis_name_by_id(id) << "\n";);
         m_analysis_manager->add_required_analysis(id);
     }
 
     for (const auto& [id, _] : get_enabled_core_analyses()) {
+        LLVM_DEBUG(llvm::outs() << "add required by core enabled: "
+                                << dfa::get_analysis_name_by_id(id) << "\n";);
         m_analysis_manager->add_required_analysis(id);
     }
 

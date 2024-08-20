@@ -13,10 +13,13 @@
 
 #pragma once
 
+#include "dfa/analysis/analyses.hpp"
 #include "dfa/analysis_manager.hpp"
 #include "dfa/checker/checkers.hpp"
 #include "dfa/checker_context.hpp"
 #include "dfa/proc_cfg.hpp"
+#include "llvm/Support/Debug.h"
+#include "llvm/Support/raw_ostream.h"
 #include "tooling/context.hpp"
 
 #include <memory>
@@ -95,6 +98,7 @@ class CheckerManager {
     std::unordered_map< CheckerID, std::unique_ptr< CheckerBase > >
         m_enabled_checkers;
     CheckerIDSet m_required_checkers;
+    std::unordered_map< CheckerID, AnalysisIDSet > m_checker_dependencies;
 
     /// \brief visit begin function callbacks
     std::vector< internal::CheckBeginFunctionCallBack > m_begin_function_checks;
@@ -139,9 +143,18 @@ class CheckerManager {
     void add_checker_dependency() {
         CheckerID id = get_checker_id(Checker::get_kind());
         AnalysisID required_analysis_id = get_analysis_id(Analysis::get_kind());
-        m_analysis_mgr.add_required_analysis(required_analysis_id);
+        add_checker_dependency(id, required_analysis_id);
+        llvm::outs() << "checker" << get_checker_name_by_id(id)
+                     << " depends on: "
+                     << get_analysis_name_by_id(required_analysis_id) << "\n";
     }
     /// @}
+
+    void add_checker_dependency(CheckerID checker_id, AnalysisID analysis_id) {
+        m_checker_dependencies[checker_id].insert(analysis_id);
+    }
+
+    void add_all_required_analyses_by_checker_dependencies();
 
     /// \brief callback registrations
     /// @{
@@ -165,6 +178,11 @@ class CheckerManager {
     [[nodiscard]] const std::vector< internal::StmtCheckerInfo >& stmt_checks()
         const {
         return m_stmt_checks;
+    }
+
+    [[nodiscard]] const std::unordered_map< CheckerID, AnalysisIDSet >&
+    get_checker_dependencies() const {
+        return m_checker_dependencies;
     }
 
     void run_checkers_for_stmt(CheckerContext& checker_ctx,
