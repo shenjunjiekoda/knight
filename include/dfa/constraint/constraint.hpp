@@ -82,6 +82,29 @@ class ConstraintSystem : public llvm::FoldingSetNode {
         m_non_linear_constraint_set.insert(set.begin(), set.end());
     }
 
+    void dump(llvm::raw_ostream& os) const {
+        os << "Constraint System:{";
+        if (!m_zlinear_constraint_system.is_empty()) {
+            os << "\nZ:\n";
+            m_zlinear_constraint_system.dump(os);
+            os << "\n";
+        }
+
+        if (!m_qlinear_constraint_system.is_empty()) {
+            os << "Q:\n";
+            m_qlinear_constraint_system.dump(os);
+            os << "\n";
+        }
+
+        if (!m_non_linear_constraint_set.empty()) {
+            os << "N:\n";
+            for (const auto& constraint : m_non_linear_constraint_set) {
+                os << constraint << "\n";
+            }
+        }
+        os << "}\n";
+    }
+
 }; // class ConstraintSystem
 
 } // namespace knight::dfa

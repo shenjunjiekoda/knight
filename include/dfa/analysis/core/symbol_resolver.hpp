@@ -52,6 +52,8 @@ class SymbolResolver
     void VisitFloatingLiteral(
         const clang::FloatingLiteral* floating_literal) const;
 
+    void VisitUnaryOperator(const clang::UnaryOperator* unary_operator) const;
+
     void VisitBinaryOperator(
         const clang::BinaryOperator* binary_operator) const;
 

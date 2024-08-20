@@ -296,7 +296,7 @@ ProgramStateRef ProgramState::join(const ProgramStateRef& other) const {
         if (it == m_dom_val.end()) {
             new_map[other_id] = other_val->clone_shared();
         } else {
-            auto new_val = it->second->clone();
+            auto* new_val = it->second->clone();
             new_val->join_with(*other_val);
             new_map[other_id] = SharedVal(new_val);
         }
@@ -387,18 +387,21 @@ bool ProgramState::equals(const ProgramState& other) const {
 void ProgramState::dump(llvm::raw_ostream& os) const {
     os << "State:{\n";
 
-    os << "Regions: {\n";
+    os << "Regions: {";
     for (const auto& [region, sexpr] : m_region_sexpr) {
+        os << "\n";
         region->dump(os);
         os << ": ";
         sexpr->dump(os);
+    }
+    if (!m_region_sexpr.empty()) {
         os << "\n";
     }
-    os << "}\n";
+    os << "},\n";
 
-    os << "Stmts: {\n";
+    os << "Stmts: {";
     for (const auto& [stmt, sexpr] : m_stmt_sexpr) {
-        os << "(" << stmt->getStmtClassName() << ") ";
+        os << "\n(" << stmt->getStmtClassName() << ") ";
         stmt->printPretty(os,
                           nullptr,
                           get_region_manager()
@@ -406,14 +409,20 @@ void ProgramState::dump(llvm::raw_ostream& os) const {
                               .getPrintingPolicy());
         os << ": ";
         sexpr->dump(os);
+    }
+    if (!m_stmt_sexpr.empty()) {
         os << "\n";
     }
-    os << "}\n";
+    os << "},\n";
+
+    m_constraint_system.dump(os);
 
     os << "Domains: {";
     for (const auto& [id, aval] : m_dom_val) {
-        os << "[" << get_domain_name_by_id(id) << "]: ";
+        os << "\n[" << get_domain_name_by_id(id) << "]: ";
         aval->dump(os);
+    }
+    if (!m_dom_val.empty()) {
         os << "\n";
     }
     os << "}\n";

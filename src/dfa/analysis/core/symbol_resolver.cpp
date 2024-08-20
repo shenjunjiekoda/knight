@@ -70,6 +70,41 @@ void SymbolResolver::VisitFloatingLiteral(
     m_ctx->set_state(state->set_stmt_sexpr(floating_literal, scalar));
 }
 
+void SymbolResolver::VisitUnaryOperator(
+    const clang::UnaryOperator* unary_operator) const {
+    auto state = m_ctx->get_state();
+    auto& sym_mgr = m_ctx->get_symbol_manager();
+    auto* operand_expr = unary_operator->getSubExpr();
+
+    SExprRef operand_sexpr =
+        state
+            ->get_stmt_sexpr_or_conjured(operand_expr,
+                                         m_ctx->get_current_location_context());
+    if (auto y_var = operand_sexpr->get_as_zvariable()) {
+        ZVariable x(
+            sym_mgr.get_symbol_conjured(unary_operator,
+                                        m_ctx->get_current_stack_frame()));
+        // dispatch_event() ;
+    }
+    SExprRef unary_sexpr =
+        sym_mgr.get_unary_sym_expr(operand_sexpr,
+                                   unary_operator->getOpcode(),
+                                   unary_operator->getType());
+
+    LLVM_DEBUG(llvm::outs() << "SymbolResolver::VisitUnaryOperator: "
+                            << "set unary operator: ";
+               unary_operator
+                   ->printPretty(llvm::outs(),
+                                 nullptr,
+                                 m_ctx->get_ast_context().getPrintingPolicy());
+               llvm::outs() << " to sexpr: ";
+               unary_sexpr->dump(llvm::outs());
+               llvm::outs() << "\n";);
+
+    state = state->set_stmt_sexpr(unary_operator, unary_sexpr);
+    m_ctx->set_state(state);
+}
+
 void SymbolResolver::VisitBinaryOperator(
     const clang::BinaryOperator* binary_operator) const {
     using enum clang::BinaryOperator::Opcode;

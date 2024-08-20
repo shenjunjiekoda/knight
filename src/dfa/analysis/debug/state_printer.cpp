@@ -18,10 +18,12 @@ namespace knight::dfa {
 
 void StatePrinter::pre_analyze_stmt(const clang::Stmt* stmt,
                                     AnalysisContext& ctx) const {
-    llvm::outs() << "State before analyzing statement: ";
+    llvm::outs().changeColor(llvm::raw_ostream::Colors::BLUE);
+    llvm::outs() << "STATE-BEFORE(" << stmt->getStmtClassName() << "): ";
     stmt->printPretty(llvm::outs(),
                       nullptr,
                       ctx.get_ast_context().getPrintingPolicy());
+    llvm::outs().resetColor();
     llvm::outs() << "\n";
 
     ctx.get_state()->dump(llvm::outs());
@@ -31,10 +33,12 @@ void StatePrinter::pre_analyze_stmt(const clang::Stmt* stmt,
 
 void StatePrinter::post_analyze_stmt(const clang::Stmt* stmt,
                                      AnalysisContext& ctx) const {
-    llvm::outs() << "State after analyzing statement: ";
+    llvm::outs().changeColor(llvm::raw_ostream::Colors::GREEN);
+    llvm::outs() << "STATE-AFTER(" << stmt->getStmtClassName() << "): ";
     stmt->printPretty(llvm::outs(),
                       nullptr,
                       ctx.get_ast_context().getPrintingPolicy());
+    llvm::outs().resetColor();
     llvm::outs() << "\n";
 
     ctx.get_state()->dump(llvm::outs());

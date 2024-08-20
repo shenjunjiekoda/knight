@@ -47,7 +47,7 @@ use `*` for all analyses enabled, and `-` prefix to disable
 analyses. You can provide a comma-separated glob list of 
 checker names.
 )"),
-                                       cl::init(""),
+                                       cl::init("-*"),
                                        cl::cat(knight_category));
 
 inline cl::opt< std::string > checkers("checkers",
@@ -56,7 +56,7 @@ use `*` for all checkers enabled, and `-` prefix to disable
 checkers. You can provide a comma-separated glob list of 
 checker names.
 )"),
-                                       cl::init(""),
+                                       cl::init("-*"),
                                        cl::cat(knight_category));
 
 inline cl::opt< bool > list_checkers("list-checkers",

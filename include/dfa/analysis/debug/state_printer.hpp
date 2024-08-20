@@ -14,19 +14,11 @@
 #pragma once
 
 #include "dfa/analysis/analysis_base.hpp"
-#include "dfa/analysis/core/numerical_event.hpp"
 #include "dfa/analysis_context.hpp"
-#include "dfa/constraint/linear.hpp"
-#include "dfa/region/region.hpp"
-#include "dfa/symbol.hpp"
-#include "dfa/symbol_manager.hpp"
-#include "tooling/context.hpp"
 
 #include <clang/AST/Decl.h>
 #include <clang/AST/Expr.h>
 #include <clang/AST/Stmt.h>
-#include <clang/AST/StmtVisitor.h>
-#include <llvm/ADT/APSInt.h>
 #include <llvm/Support/raw_ostream.h>
 
 namespace knight::dfa {

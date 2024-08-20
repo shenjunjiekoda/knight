@@ -35,8 +35,6 @@ void ItvAnalysis::post_analyze_stmt(const clang::ReturnStmt* return_stmt,
 
     auto state = ctx.get_state();
 
-    LLVM_DEBUG(state->dump(llvm::outs()););
-
     const auto* ret_val = return_stmt->getRetValue();
     if (ret_val == nullptr ||
         !ret_val->getType()->isIntegralOrEnumerationType()) {

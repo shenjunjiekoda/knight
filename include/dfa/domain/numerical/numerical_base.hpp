@@ -88,13 +88,13 @@ class NumericalDom : public AbsDom< Derived > {
         bool is_compound_assign_op =
             clang::BinaryOperator::isCompoundAssignmentOp(op);
         if (!is_assign_op) {
-            this->apply_binary_var_var(op, x, y, z);
+            this->apply_binary_var_var_impl(op, x, y, z);
             return;
         }
 
         if (is_compound_assign_op) {
             op = clang::BinaryOperator::getOpForCompoundAssignment(op);
-            this->apply_binary_var_var(op, y, y, z);
+            this->apply_binary_var_var_impl(op, y, y, z);
         }
 
         if (is_assign_op) {
@@ -117,13 +117,13 @@ class NumericalDom : public AbsDom< Derived > {
         bool is_compound_assign_op =
             clang::BinaryOperator::isCompoundAssignmentOp(op);
         if (!is_assign_op) {
-            this->apply_binary_var_num(op, x, y, z);
+            this->apply_binary_var_num_impl(op, x, y, z);
             return;
         }
 
         if (is_compound_assign_op) {
             op = clang::BinaryOperator::getOpForCompoundAssignment(op);
-            this->apply_binary_var_num(op, y, y, z);
+            this->apply_binary_var_num_impl(op, y, y, z);
         }
 
         if (is_assign_op) {
