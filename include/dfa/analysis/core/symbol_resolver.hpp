@@ -65,6 +65,13 @@ class SymbolResolver
 
     void analyze_stmt(const clang::Stmt* stmt, AnalysisContext& ctx) const;
 
+    std::pair< SExprRef, ZLinearExpr > handle_assign_sexpr_and_cstr(
+        const clang::BinaryOperator* binary_operator,
+        bool is_int,
+        SExprRef lhs_sexpr,
+        SExprRef rhs_sexpr,
+        bool is_direct_assign) const;
+
     static UniqueAnalysisRef register_analysis(AnalysisManager& mgr,
                                                KnightContext& ctx) {
         mgr.set_analysis_privileged< SymbolResolver >();

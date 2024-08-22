@@ -75,6 +75,8 @@ void SymbolResolver::VisitUnaryOperator(
     auto state = m_ctx->get_state();
     auto& sym_mgr = m_ctx->get_symbol_manager();
     auto* operand_expr = unary_operator->getSubExpr();
+    auto type = unary_operator->getType();
+    unsigned bit_width = m_ctx->get_ast_context().getTypeSize(type);
 
     SExprRef operand_sexpr =
         state
@@ -84,7 +86,10 @@ void SymbolResolver::VisitUnaryOperator(
         ZVariable x(
             sym_mgr.get_symbol_conjured(unary_operator,
                                         m_ctx->get_current_stack_frame()));
-        // dispatch_event() ;
+        dispatch_event(
+            LinearAssignEvent(ZVarAssignZCast{bit_width, type, x, *y_var},
+                              state,
+                              m_ctx));
     }
     SExprRef unary_sexpr =
         sym_mgr.get_unary_sym_expr(operand_sexpr,
@@ -105,53 +110,69 @@ void SymbolResolver::VisitUnaryOperator(
     m_ctx->set_state(state);
 }
 
-void SymbolResolver::VisitBinaryOperator(
-    const clang::BinaryOperator* binary_operator) const {
-    using enum clang::BinaryOperator::Opcode;
-
-    LLVM_DEBUG(llvm::dbgs() << "SymbolResolver::VisitBinaryOperator: "
-                            << binary_operator->getOpcodeStr() << "\n");
-
+std::pair< SExprRef, ZLinearExpr > SymbolResolver::handle_assign_sexpr_and_cstr(
+    const clang::BinaryOperator* binary_operator,
+    bool is_int,
+    SExprRef lhs_sexpr,
+    SExprRef rhs_sexpr,
+    bool is_direct_assign) const {
+    // We need to assign a var (use lhs)
     auto state = m_ctx->get_state();
     auto& sym_mgr = m_ctx->get_symbol_manager();
-
     auto* lhs_expr = binary_operator->getLHS();
     auto* rhs_expr = binary_operator->getRHS();
+    auto op = binary_operator->getOpcode();
 
-    bool is_int = binary_operator->getType()->isIntegralOrEnumerationType();
-    bool is_float = binary_operator->getType()->isFloatingType();
-    if (!is_int && !is_float) {
-        LLVM_DEBUG(llvm::outs() << "not int or float!\n");
-        return;
+    SExprRef binary_sexpr = nullptr;
+    if (is_direct_assign) {
+        binary_sexpr = rhs_sexpr;
+    } else {
+        op = clang::BinaryOperator::getOpForCompoundAssignment(op);
+        binary_sexpr = sym_mgr.get_binary_sym_expr(lhs_sexpr,
+                                                   rhs_sexpr,
+                                                   op,
+                                                   binary_operator->getType());
+    }
+    ZLinearExpr cstr;
+    auto treg =
+        state->get_typed_region(lhs_expr, m_ctx->get_current_stack_frame());
+    if (!treg) {
+        LLVM_DEBUG(llvm::outs() << "no typed region for lhs!\n");
+        return {binary_sexpr, cstr};
     }
 
-    SExprRef lhs_sexpr =
-        state
-            ->get_stmt_sexpr_or_conjured(lhs_expr,
-                                         m_ctx->get_current_location_context());
-
-    SExprRef rhs_sexpr =
-        state
-            ->get_stmt_sexpr_or_conjured(rhs_expr,
-                                         m_ctx->get_current_location_context());
-
-    SExprRef binary_sexpr =
-        sym_mgr.get_binary_sym_expr(lhs_sexpr,
-                                    rhs_sexpr,
-                                    binary_operator->getOpcode(),
-                                    binary_operator->getType());
-
-    LLVM_DEBUG(llvm::outs() << "lhs_sexpr: "; lhs_sexpr->dump(llvm::outs());
-               llvm::outs() << "\nrhs_sexpr: ";
-               rhs_sexpr->dump(llvm::outs());
-               llvm::outs() << "\n";);
-
     if (is_int) {
-        if (auto zexpr = binary_sexpr->get_as_zexpr()) {
-            ZVariable x(
-                sym_mgr.get_symbol_conjured(binary_operator,
-                                            m_ctx->get_current_stack_frame()));
-            ZLinearExpr cstr(x);
+        ZVariable x(
+            sym_mgr.get_region_sym_val(*treg,
+                                       m_ctx->get_current_location_context()));
+        cstr += x;
+
+        LLVM_DEBUG(llvm::outs() << "zvar x: "; x.dump(llvm::outs());
+                   llvm::outs() << "\n";);
+        auto lhs_var = lhs_sexpr->get_as_zvariable();
+        auto lhs_num = lhs_sexpr->get_as_znum();
+        auto rhs_var = rhs_sexpr->get_as_zvariable();
+        auto rhs_num = rhs_sexpr->get_as_znum();
+        if (!is_direct_assign && lhs_var && rhs_var) {
+            dispatch_event(LinearAssignEvent(ZVarAssignBinaryVarVar{op,
+                                                                    x,
+                                                                    *lhs_var,
+                                                                    *rhs_var},
+                                             state,
+                                             m_ctx));
+            cstr -= (*lhs_var + *rhs_var);
+        } else if (!is_direct_assign &&
+                   ((lhs_var && rhs_num) || (lhs_num && rhs_var))) {
+            dispatch_event(
+                LinearAssignEvent(ZVarAssignBinaryVarNum{op,
+                                                         x,
+                                                         lhs_var ? *lhs_var
+                                                                 : *rhs_var,
+                                                         lhs_var ? *rhs_num
+                                                                 : *lhs_num},
+                                  state,
+                                  m_ctx));
+        } else if (auto zexpr = binary_sexpr->get_as_zexpr()) {
             if (auto znum = binary_sexpr->get_as_znum()) {
                 dispatch_event(
                     LinearAssignEvent(ZVarAssignZNum{x, *znum}, state, m_ctx));
@@ -175,32 +196,152 @@ void SymbolResolver::VisitBinaryOperator(
             state = state->add_zlinear_constraint(
                 ZLinearConstraint(cstr, LinearConstraintKind::LCK_Equality));
         }
-    } else if (auto qexpr = binary_sexpr->get_as_qexpr()) {
-        QVariable x(
-            sym_mgr.get_symbol_conjured(binary_operator,
-                                        m_ctx->get_current_stack_frame()));
-        QLinearExpr cstr(x);
-        if (auto qnum = binary_sexpr->get_as_qnum()) {
-            dispatch_event(
-                LinearAssignEvent(QVarAssignQNum{x, *qnum}, state, m_ctx));
-            binary_sexpr =
-                sym_mgr.get_scalar_float(*qnum, binary_operator->getType());
-            cstr -= *qnum;
-        } else if (auto qvar = binary_sexpr->get_as_qvariable()) {
-            dispatch_event(
-                LinearAssignEvent(QVarAssignQVar{x, *qvar}, state, m_ctx));
-            cstr -= *qvar;
-        } else {
-            dispatch_event(LinearAssignEvent(QVarAssignQLinearExpr{x, *qexpr},
-                                             state,
-                                             m_ctx));
-            cstr -= *qexpr;
-        }
+    } else {
+        llvm::errs() << "floating point not implemented for now!\n";
+    }
+    return {binary_sexpr, cstr};
+}
+
+void SymbolResolver::VisitBinaryOperator(
+    const clang::BinaryOperator* binary_operator) const {
+    using enum clang::BinaryOperator::Opcode;
+
+    LLVM_DEBUG(llvm::dbgs() << "SymbolResolver::VisitBinaryOperator: "
+                            << binary_operator->getOpcodeStr() << "\n");
+
+    auto state = m_ctx->get_state();
+    auto& sym_mgr = m_ctx->get_symbol_manager();
+
+    auto* lhs_expr = binary_operator->getLHS();
+    auto* rhs_expr = binary_operator->getRHS();
+
+    bool is_int = binary_operator->getType()->isIntegralOrEnumerationType();
+    bool is_float = binary_operator->getType()->isFloatingType();
+    if (!is_int && !is_float) {
+        LLVM_DEBUG(llvm::outs() << "not int or float!\n");
+        return;
+    }
+    bool is_assign =
+        clang::BinaryOperator::isAssignmentOp(binary_operator->getOpcode());
+
+    SExprRef lhs_sexpr =
+        is_assign
+            ? sym_mgr.get_symbol_conjured(lhs_expr,
+                                          m_ctx->get_current_stack_frame())
+            : state->get_stmt_sexpr_or_conjured(
+                  lhs_expr, m_ctx->get_current_location_context());
+
+    SExprRef rhs_sexpr =
+        state
+            ->get_stmt_sexpr_or_conjured(rhs_expr,
+                                         m_ctx->get_current_location_context());
+    LLVM_DEBUG(llvm::outs() << "lhs_sexpr: "; lhs_sexpr->dump(llvm::outs());
+               llvm::outs() << "\nrhs_sexpr: ";
+               rhs_sexpr->dump(llvm::outs());
+               llvm::outs() << "\n";);
+
+    SExprRef binary_sexpr = nullptr;
+    if (is_assign) {
+        auto [binary_sexpr_, cstr] =
+            handle_assign_sexpr_and_cstr(binary_operator,
+                                         is_int,
+                                         lhs_sexpr,
+                                         rhs_sexpr,
+                                         !clang::BinaryOperator::
+                                             isCompoundAssignmentOp(
+                                                 binary_operator->getOpcode()));
         if (m_ctx->is_state_changed()) {
             state = m_ctx->get_state();
         }
-        state = state->add_qlinear_constraint(
-            QLinearConstraint(cstr, LinearConstraintKind::LCK_Equality));
+        binary_sexpr = binary_sexpr_;
+        state = state->add_zlinear_constraint(
+            ZLinearConstraint(cstr, LinearConstraintKind::LCK_Equality));
+    } else {
+        binary_sexpr = sym_mgr.get_binary_sym_expr(lhs_sexpr,
+                                                   rhs_sexpr,
+                                                   binary_operator->getOpcode(),
+                                                   binary_operator->getType());
+        if (is_int) {
+            ZVariable x(
+                sym_mgr.get_symbol_conjured(binary_operator,
+                                            m_ctx->get_current_stack_frame()));
+            LLVM_DEBUG(llvm::outs() << "zvar x: "; x.dump(llvm::outs());
+                       llvm::outs() << "\n";);
+
+            if (auto zexpr = binary_sexpr->get_as_zexpr()) {
+                ZLinearExpr cstr(x);
+                if (auto znum = binary_sexpr->get_as_znum()) {
+                    dispatch_event(LinearAssignEvent(ZVarAssignZNum{x, *znum},
+                                                     state,
+                                                     m_ctx));
+                    binary_sexpr =
+                        sym_mgr.get_scalar_int(*znum,
+                                               binary_operator->getType());
+                    cstr -= *znum;
+                } else if (auto zvar = binary_sexpr->get_as_zvariable()) {
+                    dispatch_event(LinearAssignEvent(ZVarAssignZVar{x, *zvar},
+                                                     state,
+                                                     m_ctx));
+                    cstr -= *zvar;
+                } else {
+                    dispatch_event(
+                        LinearAssignEvent(ZVarAssignZLinearExpr{x, *zexpr},
+                                          state,
+                                          m_ctx));
+                    cstr -= *zexpr;
+                }
+                if (m_ctx->is_state_changed()) {
+                    state = m_ctx->get_state();
+                }
+                state = state->add_zlinear_constraint(
+                    ZLinearConstraint(cstr,
+                                      LinearConstraintKind::LCK_Equality));
+            }
+        }
+        // else if (auto qexpr = binary_sexpr->get_as_qexpr()) {
+        //     QVariable x(
+        //         sym_mgr.get_symbol_conjured(binary_operator,
+        //                                     m_ctx->get_current_stack_frame()));
+        //     QLinearExpr cstr(x);
+        //     if (auto qnum = binary_sexpr->get_as_qnum()) {
+        //         dispatch_event(
+        //             LinearAssignEvent(QVarAssignQNum{x, *qnum}, state,
+        //             m_ctx));
+        //         binary_sexpr =
+        //             sym_mgr.get_scalar_float(*qnum,
+        //             binary_operator->getType());
+        //         cstr -= *qnum;
+        //     } else if (auto qvar = binary_sexpr->get_as_qvariable()) {
+        //         dispatch_event(
+        //             LinearAssignEvent(QVarAssignQVar{x, *qvar}, state,
+        //             m_ctx));
+        //         cstr -= *qvar;
+        //     } else {
+        //         dispatch_event(LinearAssignEvent(QVarAssignQLinearExpr{x,
+        //         *qexpr},
+        //                                          state,
+        //                                          m_ctx));
+        //         cstr -= *qexpr;
+        //     }
+        //     if (m_ctx->is_state_changed()) {
+        //         state = m_ctx->get_state();
+        //     }
+        //     state = state->add_qlinear_constraint(
+        //         QLinearConstraint(cstr, LinearConstraintKind::LCK_Equality));
+        // }
+    }
+
+    if (is_assign) {
+        if (auto lhs_region_opt =
+                state->get_region(lhs_expr, m_ctx->get_current_stack_frame())) {
+            LLVM_DEBUG(llvm::outs() << "\n set lhs region: ";
+                       lhs_region_opt.value()->dump(llvm::outs());
+                       llvm::outs() << " to binary_sexpr: ";
+                       binary_sexpr->dump(llvm::outs());
+                       llvm::outs() << "\n");
+
+            state = state->set_region_sexpr(*lhs_region_opt, binary_sexpr);
+        }
     }
 
     state = state->set_stmt_sexpr(binary_operator, binary_sexpr);
@@ -208,19 +349,6 @@ void SymbolResolver::VisitBinaryOperator(
     LLVM_DEBUG(llvm::outs() << "set binary_sexpr: ";
                binary_sexpr->dump(llvm::outs());
                llvm::outs() << "\n";);
-
-    if (clang::BinaryOperator::isAssignmentOp(binary_operator->getOpcode())) {
-        if (auto lhs_region_opt =
-                state->get_region(lhs_expr, m_ctx->get_current_stack_frame())) {
-            LLVM_DEBUG(llvm::outs() << "\n set lhs region: ";
-                       lhs_region_opt.value()->dump(llvm::outs());
-                       llvm::outs() << " to binary_sexpr: ";
-                       rhs_sexpr->dump(llvm::outs());
-                       llvm::outs() << "\n");
-
-            state = state->set_region_sexpr(*lhs_region_opt, binary_sexpr);
-        }
-    }
 
     m_ctx->set_state(state);
 }

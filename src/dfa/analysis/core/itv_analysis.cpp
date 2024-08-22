@@ -96,7 +96,38 @@ void ItvAnalysis::EventHandler::handle(
     ctx->set_state(state->set< ZIntervalDom >(zitv));
 }
 
-void ItvAnalysis::EventHandler::handle(const ZVarAssignZCast& assign) const {}
+void ItvAnalysis::EventHandler::handle(const ZVarAssignZCast& assign) const {
+    LLVM_DEBUG(llvm::outs() << "ZVarAssignZCast: "; assign.dump(llvm::outs()););
+
+    auto zitv = state->get_clone< ZIntervalDom >();
+    zitv->assign_cast(assign.dst_type,
+                      assign.dst_bit_width,
+                      assign.x,
+                      assign.y);
+    ctx->set_state(state->set< ZIntervalDom >(zitv));
+}
+
+void ItvAnalysis::EventHandler::handle(
+    const ZVarAssignBinaryVarVar& assign) const {
+    LLVM_DEBUG(llvm::outs() << "ZVarAssignBinaryVarVar: ";
+               assign.dump(llvm::outs());
+               llvm::outs() << "\n";);
+
+    auto zitv = state->get_clone< ZIntervalDom >();
+    zitv->assign_binary_var_var_impl(assign.op, assign.x, assign.y, assign.z);
+    ctx->set_state(state->set< ZIntervalDom >(zitv));
+}
+void ItvAnalysis::EventHandler::handle(
+    const ZVarAssignBinaryVarNum& assign) const {
+    LLVM_DEBUG(llvm::outs() << "ZVarAssignBinaryVarNum: ";
+               assign.dump(llvm::outs());
+               llvm::outs() << "\n";);
+
+    auto zitv = state->get_clone< ZIntervalDom >();
+    zitv->assign_binary_var_num_impl(assign.op, assign.x, assign.y, assign.z);
+
+    ctx->set_state(state->set< ZIntervalDom >(zitv));
+}
 
 void ItvAnalysis::EventHandler::handle(const QVarAssignQVar& assign) const {}
 

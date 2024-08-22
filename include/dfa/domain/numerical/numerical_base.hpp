@@ -80,27 +80,27 @@ class NumericalDom : public AbsDom< Derived > {
     /// @{
 
     /// Split assignment and normal binary operation
-    void assign_binary_var_var(clang::BinaryOperatorKind op,
-                               const Var& x,
-                               const Var& y,
-                               const Var& z) {
-        bool is_assign_op = clang::BinaryOperator::isAssignmentOp(op);
-        bool is_compound_assign_op =
-            clang::BinaryOperator::isCompoundAssignmentOp(op);
-        if (!is_assign_op) {
-            this->apply_binary_var_var_impl(op, x, y, z);
-            return;
-        }
+    // void assign_binary_var_var(clang::BinaryOperatorKind op,
+    //                            const Var& x,
+    //                            const Var& y,
+    //                            const Var& z) {
+    //     bool is_assign_op = clang::BinaryOperator::isAssignmentOp(op);
+    //     bool is_compound_assign_op =
+    //         clang::BinaryOperator::isCompoundAssignmentOp(op);
+    //     if (!is_assign_op) {
+    //         this->apply_binary_var_var_impl(op, x, y, z);
+    //         return;
+    //     }
 
-        if (is_compound_assign_op) {
-            op = clang::BinaryOperator::getOpForCompoundAssignment(op);
-            this->apply_binary_var_var_impl(op, y, y, z);
-        }
+    //     if (is_compound_assign_op) {
+    //         op = clang::BinaryOperator::getOpForCompoundAssignment(op);
+    //         this->apply_binary_var_var_impl(op, y, y, z);
+    //     }
 
-        if (is_assign_op) {
-            this->assign_var(x, y);
-        }
-    }
+    //     if (is_assign_op) {
+    //         this->assign_var(x, y);
+    //     }
+    // }
 
     /// op is not assignment
     virtual void assign_binary_var_var_impl(clang::BinaryOperatorKind op,
@@ -109,27 +109,27 @@ class NumericalDom : public AbsDom< Derived > {
                                             const Var& z) = 0;
 
     /// Split assignment and normal binary operation
-    void assign_binary_var_num(clang::BinaryOperatorKind op,
-                               const Var& x,
-                               const Var& y,
-                               const Num& z) {
-        bool is_assign_op = clang::BinaryOperator::isAssignmentOp(op);
-        bool is_compound_assign_op =
-            clang::BinaryOperator::isCompoundAssignmentOp(op);
-        if (!is_assign_op) {
-            this->apply_binary_var_num_impl(op, x, y, z);
-            return;
-        }
+    // void assign_binary_var_num(clang::BinaryOperatorKind op,
+    //                            const Var& x,
+    //                            const Var& y,
+    //                            const Num& z) {
+    //     bool is_assign_op = clang::BinaryOperator::isAssignmentOp(op);
+    //     bool is_compound_assign_op =
+    //         clang::BinaryOperator::isCompoundAssignmentOp(op);
+    //     if (!is_assign_op) {
+    //         this->apply_binary_var_num_impl(op, x, y, z);
+    //         return;
+    //     }
 
-        if (is_compound_assign_op) {
-            op = clang::BinaryOperator::getOpForCompoundAssignment(op);
-            this->apply_binary_var_num_impl(op, y, y, z);
-        }
+    //     if (is_compound_assign_op) {
+    //         op = clang::BinaryOperator::getOpForCompoundAssignment(op);
+    //         this->apply_binary_var_num_impl(op, y, y, z);
+    //     }
 
-        if (is_assign_op) {
-            this->assign(x, y);
-        }
-    }
+    //     if (is_assign_op) {
+    //         this->assign(x, y);
+    //     }
+    // }
 
     /// op is not assignment
     virtual void assign_binary_var_num_impl(clang::BinaryOperatorKind op,

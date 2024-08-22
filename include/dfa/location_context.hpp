@@ -24,6 +24,7 @@ class LocationContext : public llvm::FoldingSetNode {
   private:
     const LocationManager* m_location_manager;
     const StackFrame* m_stack_frame;
+    /// \brief -1 or >= 0, -1 means the start point of the block
     int m_element_id;
     const clang::CFGBlock* m_block;
 
@@ -44,6 +45,7 @@ class LocationContext : public llvm::FoldingSetNode {
     [[gnu::returns_nonnull, nodiscard]] const LocationManager*
     get_location_manager() const;
     [[nodiscard]] bool is_element() const { return m_element_id >= 0; }
+    [[nodiscard]] bool is_block_start() const { return m_element_id == -1; }
     [[nodiscard]] int get_element_id() const { return m_element_id; }
 
     [[gnu::returns_nonnull, nodiscard]] const clang::CFGBlock* get_block()

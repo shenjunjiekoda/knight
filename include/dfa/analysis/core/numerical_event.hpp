@@ -15,6 +15,7 @@
 
 #include <utility>
 #include <variant>
+#include "clang/AST/OperationKinds.h"
 #include "dfa/analysis/events.hpp"
 #include "dfa/constraint/linear.hpp"
 #include "dfa/program_state.hpp"
@@ -45,6 +46,22 @@ struct ZVarAssignZLinearExpr {
     ZLinearExpr y;
     void dump(llvm::raw_ostream& os) const { os << x << " = " << y; }
 } __attribute__((aligned(AssignEventAlignBigSize)));
+
+struct ZVarAssignBinaryVarVar {
+    clang::BinaryOperatorKind op;
+    ZVariable x;
+    ZVariable y;
+    ZVariable z;
+    void dump(llvm::raw_ostream& os) const { os << x << " = " << y << op << z; }
+} __attribute__((aligned(AssignEventAlignSize)));
+
+struct ZVarAssignBinaryVarNum {
+    clang::BinaryOperatorKind op;
+    ZVariable x;
+    ZVariable y;
+    ZNum z;
+    void dump(llvm::raw_ostream& os) const { os << x << " = " << y << op << z; }
+} __attribute__((aligned(AssignEventAlignSize)));
 
 struct ZVarAssignZCast {
     unsigned dst_bit_width;
@@ -80,6 +97,8 @@ struct LinearAssignEvent {
     using AsignT = std::variant< ZVarAssignZVar,
                                  ZVarAssignZNum,
                                  ZVarAssignZLinearExpr,
+                                 ZVarAssignBinaryVarVar,
+                                 ZVarAssignBinaryVarNum,
                                  ZVarAssignZCast,
                                  QVarAssignQVar,
                                  QVarAssignQNum,

@@ -311,13 +311,21 @@ ProgramStateRef ProgramState::join(const ProgramStateRef& other) const {
         if (it == region_sexpr.end() || it->second == sexpr) {
             region_sexpr[region] = sexpr;
         } else {
-            // region_sexpr[region];
+            // Do nothing here, we will not propagate the joined region
         }
     }
 
+    ConstraintSystem cst_system = m_constraint_system;
+    // TODO(constraint-join): handle constraint join more precisely.
+    cst_system.retain(other->m_constraint_system);
+
     return get_state_manager()
-        .get_persistent_state_with_copy_and_dom_val_map(*this,
-                                                        std ::move(new_map));
+        .get_persistent_state_with_copy_and_stateful_member_map(
+            *this,
+            std ::move(new_map),
+            std ::move(region_sexpr),
+            std ::move(stmt_sexpr),
+            std ::move(cst_system));
 }
 
 ProgramStateRef ProgramState::join_at_loop_head(
@@ -377,6 +385,16 @@ bool ProgramState::leq(const ProgramState& other) const {
 }
 
 bool ProgramState::equals(const ProgramState& other) const {
+    if (this == &other) {
+        return true;
+    }
+
+    if (m_region_sexpr != other.m_region_sexpr ||
+        m_stmt_sexpr != other.m_stmt_sexpr ||
+        m_constraint_system != other.m_constraint_system) {
+        return false;
+    }
+
     return llvm::all_of(this->m_dom_val, [&other](const auto& this_pair) {
         auto it = other.m_dom_val.find(this_pair.first);
         return it != other.m_dom_val.end() &&
@@ -547,6 +565,23 @@ ProgramStateRef ProgramStateManager::
                            state.m_region_sexpr,
                            state.m_stmt_sexpr,
                            std::move(cst_system));
+
+    return get_persistent_state(new_state);
+}
+
+[[nodiscard]] ProgramStateRef ProgramStateManager::
+    get_persistent_state_with_copy_and_stateful_member_map(
+        const ProgramState& state,
+        DomValMap dom_val,
+        RegionSExprMap region_sexpr,
+        StmtSExprMap stmt_sexpr,
+        ConstraintSystem system) {
+    ProgramState new_state(state.m_state_mgr,
+                           state.m_region_mgr,
+                           std::move(dom_val),
+                           std::move(region_sexpr),
+                           std::move(stmt_sexpr),
+                           std::move(system));
 
     return get_persistent_state(new_state);
 }

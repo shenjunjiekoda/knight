@@ -48,7 +48,7 @@ ProgramStateRef IntraProceduralFixpointIterator::transfer_node(
                                      m_symbol_mgr,
                                      m_location_mgr
                                          .create_location_context(m_frame,
-                                                                  -1,
+
                                                                   node));
         analysis_ctx.set_state(pre_state);
         m_analysis_mgr.run_analyses_for_begin_function(analysis_ctx);
@@ -76,6 +76,10 @@ ProgramStateRef IntraProceduralFixpointIterator::transfer_node(
                                 m_stmt_post,
                                 m_frame);
     engine.exec();
+    llvm::outs() << "after transfer node: " << node->getBlockID() << " "
+                 << "state: ";
+    engine.get_state()->dump(llvm::outs());
+    llvm::outs() << "\n";
     return engine.get_state();
 }
 

@@ -48,6 +48,11 @@ class LocationManager {
         [[gnu::nonnull]] const StackFrame* stack_frame,
         int element_id,
         const clang::CFGBlock* block);
+    const LocationContext* create_location_context(
+        [[gnu::nonnull]] const StackFrame* stack_frame,
+        const clang::CFGBlock* block) {
+        return create_location_context(stack_frame, -1, block);
+    }
 
   private:
     void ensure_cfg_created(ProcCFG::DeclRef decl);

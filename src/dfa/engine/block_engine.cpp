@@ -77,6 +77,7 @@ void BlockExecutionEngine::exec() {
             } break;
         }
     }
+    m_state = state;
 }
 
 [[nodiscard]] const LocationContext* BlockExecutionEngine::

@@ -202,7 +202,7 @@ class LinearExpr : public llvm::FoldingSetNode {
     void plus(const Num& n) { this->m_constant += n; }
 
     /// \brief Plus variable
-    void plus(Var var) { this->plus(1, var); }
+    void plus(Var var) { this->plus(Num(1), var); }
 
     /// \brief Plus k * var
     void plus(const Num& factor, Var var) {
@@ -339,6 +339,18 @@ class LinearExpr : public llvm::FoldingSetNode {
         if (this->m_constant != 0 || this->m_terms.empty()) {
             os << this->m_constant;
         }
+    }
+
+    bool equals(const LinearExpr& other) const {
+        if (this->m_constant != other.m_constant || m_terms != other.m_terms) {
+            return false;
+        }
+        for (const auto& [var, factor] : this->m_terms) {
+            if (other.get_factor_of(var) != factor) {
+                return false;
+            }
+        }
+        return true;
     }
 }; // class LinearExpr
 
@@ -688,6 +700,11 @@ class LinearConstraint : public llvm::FoldingSetNode {
         }
         os << cst;
     }
+
+    bool equals(const LinearConstraint& other) const {
+        return this->m_linear_expr.equals(other.m_linear_expr) &&
+               this->m_kind == other.m_kind;
+    }
 }; // class LinearConstraint
 
 using ZLinearConstraint = LinearConstraint< ZNum >;
@@ -919,6 +936,21 @@ class LinearConstraintSystem : public llvm::FoldingSetNode {
                                    csts.m_linear_csts.end());
     }
 
+    void retain_common_linear_constraint_system(
+        const LinearConstraintSystem& csts) {
+        auto it = this->m_linear_csts.begin();
+        while (it != this->m_linear_csts.end()) {
+            if (llvm::any_of(csts.m_linear_csts,
+                             [&](const LinearConstraint& cst) {
+                                 return cst.equals(*it);
+                             })) {
+                it = this->m_linear_csts.erase(it);
+            } else {
+                ++it;
+            }
+        }
+    }
+
     void merge_linear_constraint_system(LinearConstraintSystem&& csts) {
         this->m_linear_csts.reserve(this->m_linear_csts.size() + csts.size());
         this->m_linear_csts.insert(this->m_linear_csts.end(),
@@ -958,6 +990,18 @@ class LinearConstraintSystem : public llvm::FoldingSetNode {
             }
         }
         os << "}";
+    }
+
+    bool equals(const LinearConstraintSystem& other) const {
+        if (this->m_linear_csts.size() != other.m_linear_csts.size()) {
+            return false;
+        }
+        for (int i = 0, e = this->m_linear_csts.size(); i != e; ++i) {
+            if (!this->m_linear_csts[i].equals(other.m_linear_csts[i])) {
+                return false;
+            }
+        }
+        return true;
     }
 
 }; // end class LinearConstraintSystem

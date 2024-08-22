@@ -60,9 +60,30 @@ class ConstraintSystem : public llvm::FoldingSetNode {
         m_zlinear_constraint_system.add_linear_constraint(constraint);
     }
 
+    void merge(const ConstraintSystem& system) {
+        merge_zlinear_constraint_system(system.get_zlinear_constraint_system());
+        merge_qlinear_constraint_system(system.get_qlinear_constraint_system());
+        merge_non_linear_constraint_set(system.get_non_linear_constraint_set());
+    }
+
+    void retain(const ConstraintSystem& system) {
+        retain_zlinear_constraint_system(
+            system.get_zlinear_constraint_system());
+        retain_qlinear_constraint_system(
+            system.get_qlinear_constraint_system());
+        retain_non_linear_constraint_set(
+            system.get_non_linear_constraint_set());
+    }
+
     void merge_zlinear_constraint_system(
         const ZLinearConstraintSystem& system) {
         m_zlinear_constraint_system.merge_linear_constraint_system(system);
+    }
+
+    void retain_zlinear_constraint_system(
+        const ZLinearConstraintSystem& system) {
+        m_zlinear_constraint_system.retain_common_linear_constraint_system(
+            system);
     }
 
     void add_qlinear_constraint(const QLinearConstraint& constraint) {
@@ -74,12 +95,29 @@ class ConstraintSystem : public llvm::FoldingSetNode {
         m_qlinear_constraint_system.merge_linear_constraint_system(system);
     }
 
+    void retain_qlinear_constraint_system(
+        const QLinearConstraintSystem& system) {
+        m_qlinear_constraint_system.retain_common_linear_constraint_system(
+            system);
+    }
+
     void add_non_linear_constraint(const SExprRef& constraint) {
         m_non_linear_constraint_set.insert(constraint);
     }
 
     void merge_non_linear_constraint_set(const NonLinearConstraintSet& set) {
         m_non_linear_constraint_set.insert(set.begin(), set.end());
+    }
+
+    void retain_non_linear_constraint_set(const NonLinearConstraintSet& set) {
+        auto it = m_non_linear_constraint_set.begin();
+        while (it != m_non_linear_constraint_set.end()) {
+            if (set.find(*it) == set.end()) {
+                it = m_non_linear_constraint_set.erase(it);
+            } else {
+                ++it;
+            }
+        }
     }
 
     void dump(llvm::raw_ostream& os) const {
@@ -103,6 +141,14 @@ class ConstraintSystem : public llvm::FoldingSetNode {
             }
         }
         os << "}\n";
+    }
+
+    bool operator==(const ConstraintSystem& other) const {
+        return m_zlinear_constraint_system.equals(
+                   other.m_zlinear_constraint_system) &&
+               m_qlinear_constraint_system.equals(
+                   other.m_qlinear_constraint_system) &&
+               m_non_linear_constraint_set == other.m_non_linear_constraint_set;
     }
 
 }; // class ConstraintSystem

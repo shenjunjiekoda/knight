@@ -223,7 +223,7 @@ class WtoCycle final : public WtoComponent< G, GraphTrait > {
     }
 
     /// \brief Dump the cycle, for debugging purpose
-    void dump(std::ostream& o) const {
+    void dump(llvm::raw_ostream& o) const {
         o << "(";
         DumpableTrait< NodeRef >::dump(o, this->m_head);
         for (const auto& c : this->m_components) {

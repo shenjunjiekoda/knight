@@ -134,6 +134,27 @@ class ProgramState : public llvm::FoldingSetNode {
         ProcCFG::DeclRef decl, const StackFrame*) const;
     [[nodiscard]] std::optional< MemRegionRef > get_region(
         ProcCFG::StmtRef stmt, const StackFrame*) const;
+    [[nodiscard]] std::optional< const TypedRegion* > get_typed_region(
+        ProcCFG::DeclRef decl, const StackFrame* frame) const {
+        if (auto region = get_region(decl, frame)) {
+            if (const auto* typed_region =
+                    dyn_cast< TypedRegion >(region.value())) {
+                return typed_region;
+            }
+        }
+        return std::nullopt;
+    }
+    [[nodiscard]] std::optional< const TypedRegion* > get_typed_region(
+        ProcCFG::StmtRef stmt, const StackFrame* frame) const {
+        if (auto region = get_region(stmt, frame)) {
+            if (const auto* typed_region =
+                    dyn_cast< TypedRegion >(region.value())) {
+                return typed_region;
+            }
+        }
+
+        return std::nullopt;
+    }
 
     [[nodiscard]] std::optional< ZVariable > try_get_zvariable(
         ProcCFG::DeclRef decl, const StackFrame* frame) const;
@@ -392,6 +413,13 @@ class ProgramStateManager {
     [[nodiscard]] ProgramStateRef
     get_persistent_state_with_copy_and_constraint_system(
         const ProgramState& state, ConstraintSystem cst_system);
+    [[nodiscard]] ProgramStateRef
+    get_persistent_state_with_copy_and_stateful_member_map(
+        const ProgramState& state,
+        DomValMap dom_val,
+        RegionSExprMap region_sexpr,
+        StmtSExprMap stmt_sexpr,
+        ConstraintSystem system);
 
   private:
     friend void retain_state(const ProgramState* state);
