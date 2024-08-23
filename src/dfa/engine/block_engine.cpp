@@ -134,7 +134,7 @@ ProgramStateRef BlockExecutionEngine::exec_cfg_stmt(
                                  m_sym_manager,
                                  get_location_context());
     analysis_ctx.set_state(state);
-    m_stmt_post[stmt] = state;
+    m_stmt_pre[stmt] = state;
 
     m_analysis_manager.run_analyses_for_pre_stmt(analysis_ctx, stmt);
     m_analysis_manager.run_analyses_for_eval_stmt(analysis_ctx, stmt);

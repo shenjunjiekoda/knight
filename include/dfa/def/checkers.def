@@ -22,3 +22,4 @@
 #endif
 
 CHECKER_DEF(DemoChecker, "demo-checker", 0, "A demo checker.")
+CHECKER_DEF(DebugInspection, "debug-inspection", 1, "The expression inspection checker.")

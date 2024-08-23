@@ -14,7 +14,7 @@
 #include "dfa/analysis/analyses.hpp"
 #include "dfa/analysis/demo/demo_analysis.hpp"
 #include "dfa/analysis/demo/itv_analysis.hpp"
-#include "dfa/checker/demo_checker.hpp"
+#include "dfa/checker/demo/demo_checker.hpp"
 #include "tooling/factory.hpp"
 #include "tooling/module.hpp"
 

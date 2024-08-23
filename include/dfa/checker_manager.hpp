@@ -144,9 +144,10 @@ class CheckerManager {
         CheckerID id = get_checker_id(Checker::get_kind());
         AnalysisID required_analysis_id = get_analysis_id(Analysis::get_kind());
         add_checker_dependency(id, required_analysis_id);
-        llvm::outs() << "checker" << get_checker_name_by_id(id)
-                     << " depends on: "
-                     << get_analysis_name_by_id(required_analysis_id) << "\n";
+        // llvm::outs() << "checker " << get_checker_name_by_id(id)
+        //              << " depends on: "
+        //              << get_analysis_name_by_id(required_analysis_id) <<
+        //              "\n";
     }
     /// @}
 

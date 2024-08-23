@@ -228,7 +228,7 @@ class WtoIterator final : public WtoComponentVisitor< G, GraphTrait > {
     void visit(const WtoVertex& vertex) override {
         auto node = vertex.get_node();
         ProgramStateRef state_pre = this->m_fp_iterator.get_pre(node);
-        llvm::outs() << "wto visit node: " << node->getBlockID() << "\n";
+        // llvm::outs() << "wto visit node: " << node->getBlockID() << "\n";
 
         for (auto it = GraphTrait::pred_begin(node),
                   end = GraphTrait::pred_end(node);
@@ -236,14 +236,15 @@ class WtoIterator final : public WtoComponentVisitor< G, GraphTrait > {
              ++it) {
             auto pred = *it;
 
-            llvm::outs() << "join pred `" << node->getBlockID() << "` with"
-                         << " node `" << pred->getBlockID() << "`\n";
-            llvm::outs() << "state_pre before join: ";
-            state_pre->dump(llvm::outs());
-            llvm::outs() << "\n pre transfer edge state: ";
-            this->m_fp_iterator
-                .transfer_edge(pred, node, this->m_fp_iterator.get_post(pred))
-                ->dump(llvm::outs());
+            // llvm::outs() << "join pred `" << node->getBlockID() << "` with"
+            //              << " node `" << pred->getBlockID() << "`\n";
+            // llvm::outs() << "state_pre before join: ";
+            // state_pre->dump(llvm::outs());
+            // llvm::outs() << "\n pre transfer edge state: ";
+            // this->m_fp_iterator
+            //     .transfer_edge(pred, node,
+            //     this->m_fp_iterator.get_post(pred))
+            //     ->dump(llvm::outs());
 
             state_pre = state_pre->join(
                 this->m_fp_iterator.transfer_edge(pred,
@@ -251,8 +252,8 @@ class WtoIterator final : public WtoComponentVisitor< G, GraphTrait > {
                                                   this->m_fp_iterator.get_post(
                                                       pred)));
 
-            llvm::outs() << "state_pre after join: ";
-            state_pre->dump(llvm::outs());
+            // llvm::outs() << "state_pre after join: ";
+            // state_pre->dump(llvm::outs());
         }
         this->m_fp_iterator.set_pre(node, state_pre);
         this->m_fp_iterator

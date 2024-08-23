@@ -13,6 +13,7 @@
 
 #include "dfa/analysis/analyses.hpp"
 #include "dfa/analysis/debug/state_printer.hpp"
+#include "dfa/checker/debug/inspection.hpp"
 #include "tooling/factory.hpp"
 #include "tooling/module.hpp"
 
@@ -26,6 +27,7 @@ class DebugModule : public KnightModule {
         factory.register_analysis< dfa::StatePrinter >();
 
         // Register checkers.
+        factory.register_checker< dfa::InspectionChecker >();
     }
 }; // class DebugModule
 
