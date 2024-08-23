@@ -12,8 +12,10 @@
 //===------------------------------------------------------------------===//
 
 #include "dfa/analysis/core/symbol_resolver.hpp"
+#include <optional>
 #include "dfa/analysis/core/numerical_event.hpp"
 #include "dfa/constraint/linear.hpp"
+#include "dfa/region/region.hpp"
 #include "llvm/Support/raw_ostream.h"
 
 #define DEBUG_TYPE "SymbolResolver"
@@ -111,31 +113,28 @@ void SymbolResolver::VisitUnaryOperator(
 }
 
 std::pair< SExprRef, ZLinearExpr > SymbolResolver::handle_assign_sexpr_and_cstr(
-    const clang::BinaryOperator* binary_operator,
     bool is_int,
+    std::optional< const TypedRegion* > treg,
+    const clang::QualType& type,
     SExprRef lhs_sexpr,
     SExprRef rhs_sexpr,
-    bool is_direct_assign) const {
-    // We need to assign a var (use lhs)
+    clang::BinaryOperator::Opcode op) const {
+    knight_assert(rhs_sexpr != nullptr);
+
+    bool is_direct_assign = !clang::BinaryOperator::isCompoundAssignmentOp(op);
     auto state = m_ctx->get_state();
     auto& sym_mgr = m_ctx->get_symbol_manager();
-    auto* lhs_expr = binary_operator->getLHS();
-    auto* rhs_expr = binary_operator->getRHS();
-    auto op = binary_operator->getOpcode();
 
     SExprRef binary_sexpr = nullptr;
     if (is_direct_assign) {
         binary_sexpr = rhs_sexpr;
     } else {
         op = clang::BinaryOperator::getOpForCompoundAssignment(op);
-        binary_sexpr = sym_mgr.get_binary_sym_expr(lhs_sexpr,
-                                                   rhs_sexpr,
-                                                   op,
-                                                   binary_operator->getType());
+        binary_sexpr =
+            sym_mgr.get_binary_sym_expr(lhs_sexpr, rhs_sexpr, op, type);
     }
     ZLinearExpr cstr;
-    auto treg =
-        state->get_typed_region(lhs_expr, m_ctx->get_current_stack_frame());
+
     if (!treg) {
         LLVM_DEBUG(llvm::outs() << "no typed region for lhs!\n");
         return {binary_sexpr, cstr};
@@ -149,8 +148,10 @@ std::pair< SExprRef, ZLinearExpr > SymbolResolver::handle_assign_sexpr_and_cstr(
 
         LLVM_DEBUG(llvm::outs() << "zvar x: "; x.dump(llvm::outs());
                    llvm::outs() << "\n";);
-        auto lhs_var = lhs_sexpr->get_as_zvariable();
-        auto lhs_num = lhs_sexpr->get_as_znum();
+        auto lhs_var =
+            lhs_sexpr != nullptr ? lhs_sexpr->get_as_zvariable() : std::nullopt;
+        auto lhs_num =
+            lhs_sexpr != nullptr ? lhs_sexpr->get_as_znum() : std::nullopt;
         auto rhs_var = rhs_sexpr->get_as_zvariable();
         auto rhs_num = rhs_sexpr->get_as_znum();
         if (!is_direct_assign && lhs_var && rhs_var) {
@@ -176,8 +177,7 @@ std::pair< SExprRef, ZLinearExpr > SymbolResolver::handle_assign_sexpr_and_cstr(
             if (auto znum = binary_sexpr->get_as_znum()) {
                 dispatch_event(
                     LinearAssignEvent(ZVarAssignZNum{x, *znum}, state, m_ctx));
-                binary_sexpr =
-                    sym_mgr.get_scalar_int(*znum, binary_operator->getType());
+                binary_sexpr = sym_mgr.get_scalar_int(*znum, type);
                 cstr -= *znum;
             } else if (auto zvar = binary_sexpr->get_as_zvariable()) {
                 dispatch_event(
@@ -242,14 +242,15 @@ void SymbolResolver::VisitBinaryOperator(
 
     SExprRef binary_sexpr = nullptr;
     if (is_assign) {
+        auto treg =
+            state->get_typed_region(lhs_expr, m_ctx->get_current_stack_frame());
         auto [binary_sexpr_, cstr] =
-            handle_assign_sexpr_and_cstr(binary_operator,
-                                         is_int,
+            handle_assign_sexpr_and_cstr(is_int,
+                                         treg,
+                                         binary_operator->getType(),
                                          lhs_sexpr,
                                          rhs_sexpr,
-                                         !clang::BinaryOperator::
-                                             isCompoundAssignmentOp(
-                                                 binary_operator->getOpcode()));
+                                         binary_operator->getOpcode());
         if (m_ctx->is_state_changed()) {
             state = m_ctx->get_state();
         }
@@ -371,27 +372,42 @@ void SymbolResolver::VisitDeclStmt(const clang::DeclStmt* decl_stmt) const {
                 continue;
             }
 
-            stmt_sexpr = *init_sexpr_opt;
+            if (auto treg =
+                    state->get_typed_region(var_decl,
+                                            m_ctx->get_current_stack_frame())) {
+                auto type = treg.value()->get_value_type();
+                auto [sexpr, cstr] = handle_assign_sexpr_and_cstr(
+                    type->isIntegralOrEnumerationType(),
+                    treg,
+                    type,
+                    nullptr,
+                    init_sexpr_opt.value());
+                if (m_ctx->is_state_changed()) {
+                    state = m_ctx->get_state();
+                }
+                state = state->add_zlinear_constraint(
+                    ZLinearConstraint(cstr,
+                                      LinearConstraintKind::LCK_Equality));
 
-            if (auto var_region =
-                    state->get_region(var_decl,
-                                      m_ctx->get_current_stack_frame())) {
-                state = state->set_region_sexpr(*var_region,
-                                                init_sexpr_opt.value());
+                init_sexpr_opt = sexpr;
+                state = state->set_region_sexpr(*treg, *init_sexpr_opt);
 
-                LLVM_DEBUG(llvm::outs() << "set var region sexpr: ";
-                           var_region.value()->dump(llvm::outs());
+                LLVM_DEBUG(llvm::outs() << "set typed region sexpr: ";
+                           treg.value()->dump(llvm::outs());
                            llvm::outs() << " to: ";
                            init_sexpr_opt.value()->dump(llvm::outs());
                            llvm::outs() << "\n";);
+            } else {
+                llvm::errs() << "no typed region for decl!\n";
             }
+            stmt_sexpr = *init_sexpr_opt;
         }
     }
 
     if (stmt_sexpr != nullptr) {
         state = state->set_stmt_sexpr(decl_stmt, stmt_sexpr);
 
-        LLVM_DEBUG(llvm::outs() << "set decl_stmt sexpr: ";
+        LLVM_DEBUG(llvm::outs() << "set decl_stmt sexpr ";
                    llvm::outs() << " to: ";
                    stmt_sexpr->dump(llvm::outs());
                    llvm::outs() << "\n";);

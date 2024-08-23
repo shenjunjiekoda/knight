@@ -21,6 +21,7 @@
 #include "dfa/location_context.hpp"
 #include "dfa/proc_cfg.hpp"
 #include "dfa/region/region.hpp"
+#include "dfa/region/regions.hpp"
 #include "dfa/stack_frame.hpp"
 #include "dfa/symbol.hpp"
 
@@ -137,6 +138,8 @@ class ProgramState : public llvm::FoldingSetNode {
     [[nodiscard]] std::optional< const TypedRegion* > get_typed_region(
         ProcCFG::DeclRef decl, const StackFrame* frame) const {
         if (auto region = get_region(decl, frame)) {
+            llvm::outs() << get_region_kind_name(region.value()->get_kind())
+                         << "\n";
             if (const auto* typed_region =
                     dyn_cast< TypedRegion >(region.value())) {
                 return typed_region;

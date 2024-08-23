@@ -330,7 +330,7 @@ class TypedRegion : public MemRegion {
     [[nodiscard]] clang::QualType get_location_type() const;
 
     [[nodiscard]] static bool classof(MemRegionRef R) {
-        return R->get_kind() == RegionKind::TypedRegion;
+        return R->get_kind() != RegionKind::SymRegion;
     }
 
     static void profile(llvm::FoldingSetNodeID& id,
@@ -500,10 +500,6 @@ class CXXTempObjRegion : public TypedRegion {
         return R->get_kind() == RegionKind::TempObjRegion;
     }
 
-    [[nodiscard]] static bool classof(const TypedRegion* R) {
-        return R->get_kind() == RegionKind::TempObjRegion;
-    }
-
 }; // class CXXTempObjRegion
 
 class StringLitRegion : public TypedRegion {
@@ -613,10 +609,6 @@ class ElementRegion : public TypedRegion {
         return R->get_kind() == RegionKind::ElemRegion;
     }
 
-    [[nodiscard]] static bool classof(const TypedRegion* R) {
-        return R->get_kind() == RegionKind::ElemRegion;
-    }
-
 }; // class ElementRegion
 
 class DeclRegion : public TypedRegion {
@@ -634,7 +626,8 @@ class DeclRegion : public TypedRegion {
     }
 
     [[nodiscard]] static bool classof(MemRegionRef R) {
-        return R->get_kind() == RegionKind::DeclRegion;
+        return R->get_kind() >= RegionKind::DeclRegion &&
+               R->get_kind() <= RegionKind::FieldRegion;
     }
 
     static void profile(llvm::FoldingSetNodeID& id,
@@ -695,9 +688,9 @@ class VarRegion : public DeclRegion {
         }
     }
 
-    [[nodiscard]] static bool classof(MemRegionRef R) {
-        return R->get_kind() == RegionKind::VarRegion;
-    }
+    [[nodiscard]] static bool classof(MemRegionRef R) { return true; }
+
+    [[nodiscard]] static bool classof(const TypedRegion* R) { return true; }
 
     [[nodiscard]] static bool classof(const DeclRegion* R) {
         return R->get_kind() == RegionKind::VarRegion;
@@ -757,10 +750,6 @@ class ArgumentRegion : public DeclRegion {
     void set_arg_index(unsigned arg_idx) { m_arg_idx = arg_idx; }
 
     static bool classof(MemRegionRef R) {
-        return R->get_kind() == RegionKind::ArgRegion;
-    }
-
-    static bool classof(const DeclRegion* R) {
         return R->get_kind() == RegionKind::ArgRegion;
     }
 
@@ -858,10 +847,6 @@ class FieldRegion : public DeclRegion {
     }
 
     [[nodiscard]] static bool classof(MemRegionRef R) {
-        return R->get_kind() == RegionKind::FieldRegion;
-    }
-
-    [[nodiscard]] static bool classof(const DeclRegion* R) {
         return R->get_kind() == RegionKind::FieldRegion;
     }
 

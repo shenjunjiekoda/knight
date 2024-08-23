@@ -106,8 +106,9 @@ const TypedRegion* RegionSymVal::get_region() const {
 }
 
 void RegionSymVal::dump(llvm::raw_ostream& os) const {
-    os << get_kind_name() << get_id() << "<" << get_type() << ' '
-       << get_region() << '>';
+    os << get_kind_name() << get_id() << "<" << get_type() << ' ';
+    get_region()->dump(os);
+    os << '>';
 }
 
 std::optional< const MemRegion* > RegionSymVal::get_as_region() const {

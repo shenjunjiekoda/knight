@@ -13,6 +13,7 @@
 
 #pragma once
 
+#include "clang/AST/Type.h"
 #include "dfa/analysis/analysis_base.hpp"
 #include "dfa/analysis/core/numerical_event.hpp"
 #include "dfa/analysis_context.hpp"
@@ -66,11 +67,13 @@ class SymbolResolver
     void analyze_stmt(const clang::Stmt* stmt, AnalysisContext& ctx) const;
 
     std::pair< SExprRef, ZLinearExpr > handle_assign_sexpr_and_cstr(
-        const clang::BinaryOperator* binary_operator,
         bool is_int,
+        std::optional< const TypedRegion* > treg,
+        const clang::QualType& type,
         SExprRef lhs_sexpr,
         SExprRef rhs_sexpr,
-        bool is_direct_assign) const;
+        clang::BinaryOperator::Opcode op =
+            clang::BinaryOperator::Opcode::BO_Assign) const;
 
     static UniqueAnalysisRef register_analysis(AnalysisManager& mgr,
                                                KnightContext& ctx) {
