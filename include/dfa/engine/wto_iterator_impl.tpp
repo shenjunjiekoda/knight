@@ -3,13 +3,21 @@
 #include "dfa/location_context.hpp"
 #include "wto_iterator.hpp"
 
+#ifdef DEBUG_TYPE
+#    define DEBUG_TYPE_BACKUP DEBUG_TYPE
+#    undef DEBUG_TYPE
+#endif
+
+#define DEBUG_TYPE "wto-iterator"
+
 namespace knight::dfa::impl {
 
 template < graph G, typename GraphTrait >
 void WtoIterator< G, GraphTrait >::visit(const WtoVertex& vertex) {
     auto node = vertex.get_node();
     ProgramStateRef state_pre = this->m_fp_iterator.get_pre(node);
-    // llvm::outs() << "wto visit node: " << node->getBlockID() << "\n";
+    LLVM_DEBUG(llvm::outs()
+                   << "wto visit node: " << node->getBlockID() << "\n";);
 
     for (auto it = GraphTrait::pred_begin(node),
               end = GraphTrait::pred_end(node);
@@ -17,15 +25,15 @@ void WtoIterator< G, GraphTrait >::visit(const WtoVertex& vertex) {
          ++it) {
         auto pred = *it;
 
-        // llvm::outs() << "join pred `" << node->getBlockID() << "` with"
-        //              << " node `" << pred->getBlockID() << "`\n";
-        // llvm::outs() << "state_pre before join: ";
-        // state_pre->dump(llvm::outs());
-        // llvm::outs() << "\n pre transfer edge state: ";
-        // this->m_fp_iterator
-        //     .transfer_edge(pred, node,
-        //     this->m_fp_iterator.get_post(pred))
-        //     ->dump(llvm::outs());
+        LLVM_DEBUG(
+            llvm::outs() << "join pred `" << node->getBlockID() << "` with"
+                         << " node `" << pred->getBlockID() << "`\n";
+            llvm::outs() << "state_pre before join: ";
+            state_pre->dump(llvm::outs());
+            llvm::outs() << "\n pre transfer edge state: ";
+            this->m_fp_iterator
+                .transfer_edge(pred, node, this->m_fp_iterator.get_post(pred))
+                ->dump(llvm::outs()););
 
         state_pre =
             state_pre->join(this->m_fp_iterator
@@ -35,8 +43,8 @@ void WtoIterator< G, GraphTrait >::visit(const WtoVertex& vertex) {
                                                    pred)),
                             get_location_context(node));
 
-        // llvm::outs() << "state_pre after join: ";
-        // state_pre->dump(llvm::outs());
+        LLVM_DEBUG(llvm::outs() << "state_pre after join: ";
+                   state_pre->dump(llvm::outs()););
     }
     this->m_fp_iterator.set_pre(node, state_pre);
     this->m_fp_iterator
@@ -178,3 +186,10 @@ void WtoChecker< G, GraphTrait >::visit(const WtoCycle& cycle) {
 }
 
 } // namespace knight::dfa::impl
+
+#ifdef DEBUG_TYPE_BACKUP
+#    define DEBUG_TYPE DEBUG_TYPE_BACKUP
+#    undef DEBUG_TYPE_BACKUP
+#else
+#    undef DEBUG_TYPE
+#endif

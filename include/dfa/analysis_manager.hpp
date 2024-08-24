@@ -183,8 +183,6 @@ class AnalysisManager {
     void set_analysis_privileged() {
         auto analysis_id = get_analysis_id(Analysis::get_kind());
         m_privileged_analysis.insert(analysis_id);
-        llvm::outs() << "analysis added to privileged set: "
-                     << get_analysis_name_by_id(analysis_id) << "\n";
         m_required_analyses.insert(analysis_id);
     }
 

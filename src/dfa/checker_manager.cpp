@@ -117,16 +117,7 @@ void CheckerManager::log_checker_dependency(CheckerID id,
 
 void CheckerManager::add_all_required_analyses_by_checker_dependencies() {
     for (auto& [checker_id, analysis_ids] : m_checker_dependencies) {
-        llvm::outs() << "checker: " << get_checker_name_by_id(checker_id)
-                     << " depends on analyses: \n";
-        for (auto analysis_id : analysis_ids) {
-            llvm::outs() << get_analysis_name_by_id(analysis_id) << "\n";
-        }
-        llvm::outs() << "\n";
-
         if (is_checker_required(checker_id)) {
-            llvm::outs() << "checker is required: "
-                         << get_checker_name_by_id(checker_id) << "\n";
             for (auto analysis_id : analysis_ids) {
                 LLVM_DEBUG(llvm::outs()
                            << "add checker: "
