@@ -181,7 +181,9 @@ void IntraProceduralFixpointIterator::check_post(
 }
 
 void IntraProceduralFixpointIterator::run() {
-    FixPointIterator::run(m_state_mgr.get_default_state());
+    FixPointIterator::run(m_state_mgr.get_default_state(),
+                          m_location_mgr,
+                          m_frame);
 }
 
 } // namespace knight::dfa

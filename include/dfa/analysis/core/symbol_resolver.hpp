@@ -32,6 +32,12 @@
 
 namespace knight::dfa {
 
+namespace internal {
+
+constexpr unsigned AssignmentContextAlignment = 64U;
+
+} // namespace internal
+
 class SymbolResolver
     : public Analysis< SymbolResolver,
                        analyze::EvalStmt< clang::Stmt >,
@@ -66,20 +72,26 @@ class SymbolResolver
 
     void analyze_stmt(const clang::Stmt* stmt, AnalysisContext& ctx) const;
 
-    std::pair< SExprRef, ZLinearExpr > handle_assign_sexpr_and_cstr(
-        bool is_int,
-        std::optional< const TypedRegion* > treg,
-        const clang::QualType& type,
-        SExprRef lhs_sexpr,
-        SExprRef rhs_sexpr,
-        clang::BinaryOperator::Opcode op =
-            clang::BinaryOperator::Opcode::BO_Assign) const;
-
     static UniqueAnalysisRef register_analysis(AnalysisManager& mgr,
                                                KnightContext& ctx) {
         mgr.set_analysis_privileged< SymbolResolver >();
         return mgr.register_analysis< SymbolResolver >(ctx);
     }
+
+  private:
+    struct AssignmentContext {
+        bool is_int = true;
+        std::optional< const TypedRegion* > treg = std::nullopt;
+        clang::QualType type;
+        SExprRef lhs_sexpr{};
+        SExprRef rhs_sexpr{};
+        clang::BinaryOperator::Opcode op =
+            clang::BinaryOperator::Opcode::BO_Assign;
+    } __attribute__((aligned(internal::AssignmentContextAlignment)))
+    __attribute__((packed));
+
+    std::pair< SExprRef, ZLinearExpr > handle_assign_sexpr_and_cstr(
+        AssignmentContext assign_ctx) const;
 };
 
 } // namespace knight::dfa

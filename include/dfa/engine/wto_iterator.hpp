@@ -14,6 +14,7 @@
 #pragma once
 
 #include "dfa/engine/iterator.hpp"
+#include "dfa/location_context.hpp"
 #include "dfa/program_state.hpp"
 #include "dfa/stack_frame.hpp"
 #include "support/graph.hpp"
@@ -89,11 +90,12 @@ class WtoBasedFixPointIterator : public FixPointIterator< CFG, GraphTrait > {
         [[maybe_unused]] NodeRef head,
         unsigned iter_cnt,
         const ProgramStateRef& state_before,
-        const ProgramStateRef& state_after) {
+        const ProgramStateRef& state_after,
+        const LocationContext* loc_ctx) {
         if (iter_cnt < 2) {
-            return state_before->join_consecutive_iter(state_after);
+            return state_before->join_consecutive_iter(state_after, loc_ctx);
         }
-        return state_before->widen(state_after);
+        return state_before->widen(state_after, loc_ctx);
     }
 
     /// \brief Check if the increasing iterations fixpoint is reached
@@ -150,16 +152,18 @@ class WtoBasedFixPointIterator : public FixPointIterator< CFG, GraphTrait > {
     /// \brief Notify the end of the handling a cycle
     virtual void notify_exit_cycle([[maybe_unused]] NodeRef head) {}
 
-    void run(ProgramStateRef init_state) override {
+    void run(ProgramStateRef init_state,
+             LocationManager& loc_mgr,
+             const StackFrame* frame) override {
         this->clear();
         this->set_pre(GraphTrait::entry(this->m_cfg), std::move(init_state));
 
         // Compute the fixpoint
-        WtoIterator iterator(*this);
+        WtoIterator iterator(*this, loc_mgr, frame);
         this->m_wto.accept(iterator);
         this->m_converged = true;
 
-        WtoChecker checker(*this);
+        WtoChecker checker(*this, loc_mgr, frame);
         this->m_wto.accept(checker);
     }
 
@@ -215,9 +219,19 @@ class WtoIterator final : public WtoComponentVisitor< G, GraphTrait > {
     /// \brief Graph entry point
     NodeRef m_entry;
 
+    /// \brief Location manager
+    LocationManager& m_loc_mgr;
+
+    /// \brief Stack frame
+    const StackFrame* m_frame;
+
   public:
-    explicit WtoIterator(WtoFPIterator& fp_iter)
+    explicit WtoIterator(WtoFPIterator& fp_iter,
+                         LocationManager& loc_mgr,
+                         const StackFrame* frame)
         : m_fp_iterator(fp_iter),
+          m_loc_mgr(loc_mgr),
+          m_frame(frame),
           m_entry(GraphTrait::entry(fp_iter.get_cfg())) {}
 
   public:
@@ -225,149 +239,11 @@ class WtoIterator final : public WtoComponentVisitor< G, GraphTrait > {
     ///
     /// Use join of pred-dst edge out status to update the pre-state,
     /// and apply node transfer function on pre to update the post-state.
-    void visit(const WtoVertex& vertex) override {
-        auto node = vertex.get_node();
-        ProgramStateRef state_pre = this->m_fp_iterator.get_pre(node);
-        // llvm::outs() << "wto visit node: " << node->getBlockID() << "\n";
+    void visit(const WtoVertex& vertex) override;
 
-        for (auto it = GraphTrait::pred_begin(node),
-                  end = GraphTrait::pred_end(node);
-             it != end;
-             ++it) {
-            auto pred = *it;
+    void visit(const WtoCycle& cycle) override;
 
-            // llvm::outs() << "join pred `" << node->getBlockID() << "` with"
-            //              << " node `" << pred->getBlockID() << "`\n";
-            // llvm::outs() << "state_pre before join: ";
-            // state_pre->dump(llvm::outs());
-            // llvm::outs() << "\n pre transfer edge state: ";
-            // this->m_fp_iterator
-            //     .transfer_edge(pred, node,
-            //     this->m_fp_iterator.get_post(pred))
-            //     ->dump(llvm::outs());
-
-            state_pre = state_pre->join(
-                this->m_fp_iterator.transfer_edge(pred,
-                                                  node,
-                                                  this->m_fp_iterator.get_post(
-                                                      pred)));
-
-            // llvm::outs() << "state_pre after join: ";
-            // state_pre->dump(llvm::outs());
-        }
-        this->m_fp_iterator.set_pre(node, state_pre);
-        this->m_fp_iterator
-            .set_post(node,
-                      this->m_fp_iterator.transfer_node(node,
-                                                        std::move(state_pre)));
-    }
-
-    void visit(const WtoCycle& cycle) override {
-        auto head = cycle.get_head();
-        ProgramStateRef state_pre = this->m_fp_iterator.get_bottom();
-        auto& wto = this->m_fp_iterator.get_wto();
-        const auto& nesting = wto.get_nesting(head);
-
-        this->m_fp_iterator.notify_enter_cycle(head);
-
-        for (auto it = GraphTrait::pred_begin(head),
-                  end = GraphTrait::pred_end(head);
-             it != end;
-             ++it) {
-            auto pred = *it;
-            if (wto.get_nesting(pred) <= nesting) {
-                state_pre = state_pre->join(
-                    this->m_fp_iterator
-                        .transfer_edge(pred,
-                                       head,
-                                       this->m_fp_iterator.get_post(pred)));
-            }
-        }
-
-        // Compute the fixpoint
-        IterationKind kind = IterationKind::Increasing;
-        for (unsigned iter_cnt = 1;; ++iter_cnt) {
-            this->m_fp_iterator.notify_each_cycle_iteration(head,
-                                                            iter_cnt,
-                                                            kind);
-            this->m_fp_iterator.set_pre(head, state_pre);
-            this->m_fp_iterator
-                .set_post(head,
-                          this->m_fp_iterator.transfer_node(head, state_pre));
-
-            for (auto* component : cycle.components()) {
-                component->accept(*this);
-            }
-
-            // from the head of loop
-            ProgramStateRef new_state_front = this->m_fp_iterator.get_bottom();
-            // from the tail of loop
-            ProgramStateRef new_state_back = this->m_fp_iterator.get_bottom();
-
-            for (auto it = GraphTrait::pred_begin(head),
-                      end = GraphTrait::pred_end(head);
-                 it != end;
-                 ++it) {
-                auto pred = *it;
-                ProgramStateRef head_in =
-                    this->m_fp_iterator
-                        .transfer_edge(pred,
-                                       head,
-                                       this->m_fp_iterator.get_post(pred));
-                if (wto.get_nesting(pred) <= nesting) {
-                    new_state_front = new_state_front->join(head_in);
-                } else {
-                    new_state_back = new_state_back->join(head_in);
-                }
-            }
-
-            new_state_front =
-                new_state_front->join_at_loop_head(new_state_back);
-            new_state_front = new_state_front->normalize();
-            if (kind == IterationKind::Increasing) {
-                ProgramStateRef increased =
-                    this->m_fp_iterator
-                        .merge_at_head_when_increasing(head,
-                                                       iter_cnt,
-                                                       state_pre,
-                                                       new_state_front);
-                increased = increased->normalize();
-                if (this->m_fp_iterator
-                        .is_increasing_fixpoint_reached(head,
-                                                        iter_cnt,
-                                                        state_pre,
-                                                        increased)) {
-                    // Increasing fixpoint is reached
-                    kind = IterationKind::Decreasing;
-                    iter_cnt = 1U;
-                } else {
-                    state_pre = std::move(increased);
-                }
-            }
-
-            if (kind == IterationKind::Decreasing) {
-                ProgramStateRef refined =
-                    this->m_fp_iterator
-                        .narrow_at_loop_head_when_decreasing(head,
-                                                             iter_cnt,
-                                                             state_pre,
-                                                             new_state_front);
-                refined = refined->normalize();
-                if (this->m_fp_iterator
-                        .is_decreasing_fixpoint_reached(head,
-                                                        iter_cnt,
-                                                        state_pre,
-                                                        refined)) {
-                    // Decreasing fixpoint is reached
-                    this->m_fp_iterator.set_pre(head, std::move(refined));
-                    break;
-                }
-                state_pre = std::move(refined);
-            }
-        }
-
-        this->m_fp_iterator.notify_exit_cycle(head);
-    }
+    const LocationContext* get_location_context(const NodeRef& node) const;
 
 }; // class WtoIterator
 template < graph G, typename GraphTrait >
@@ -385,30 +261,25 @@ class WtoChecker final : public WtoComponentVisitor< G, GraphTrait > {
   private:
     WtoFPIterator& m_fp_iterator;
 
-  public:
-    explicit WtoChecker(WtoFPIterator& fp_iter) : m_fp_iterator(fp_iter) {}
+    LocationManager& m_loc_mgr;
+
+    const StackFrame* m_frame;
 
   public:
-    void visit(const WtoVertex& vertex) override {
-        auto node = vertex.get_node();
-        this->m_fp_iterator.check_pre(node, this->m_fp_iterator.get_pre(node));
-        this->m_fp_iterator.check_post(node,
-                                       this->m_fp_iterator.get_post(node));
-    }
+    explicit WtoChecker(WtoFPIterator& fp_iter,
+                        LocationManager& loc_mgr,
+                        const StackFrame* frame)
+        : m_fp_iterator(fp_iter), m_loc_mgr(loc_mgr), m_frame(frame) {}
 
-    void visit(const WtoCycle& cycle) override {
-        auto head = cycle.get_head();
-        this->m_fp_iterator.check_pre(head, this->m_fp_iterator.get_pre(head));
-        this->m_fp_iterator.check_post(head,
-                                       this->m_fp_iterator.get_post(head));
+  public:
+    void visit(const WtoVertex& vertex) override;
 
-        for (auto* component : cycle.components()) {
-            component->accept(*this);
-        }
-    }
+    void visit(const WtoCycle& cycle) override;
 
 }; // class WtoChecker
 
 } // namespace impl
 
 } // namespace knight::dfa
+
+#include "wto_iterator_impl.tpp"

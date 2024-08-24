@@ -61,7 +61,7 @@ namespace knight::dfa {
 
 using ProgramStateRef = llvm::IntrusiveRefCntPtr< const ProgramState >;
 using DomValMap = llvm::DenseMap< DomID, SharedVal >;
-using RegionSExprMap = llvm::DenseMap< MemRegionRef, SExprRef >;
+using RegionSExprMap = llvm::DenseMap< RegionRef, SExprRef >;
 using StmtSExprMap = llvm::DenseMap< ProcCFG::StmtRef, SExprRef >;
 
 namespace internal {
@@ -131,40 +131,17 @@ class ProgramState : public llvm::FoldingSetNode {
     }
 
   public:
-    [[nodiscard]] std::optional< MemRegionRef > get_region(
+    [[nodiscard]] std::optional< RegionRef > get_region(
         ProcCFG::DeclRef decl, const StackFrame*) const;
-    [[nodiscard]] std::optional< MemRegionRef > get_region(
+    [[nodiscard]] std::optional< RegionRef > get_region(
         ProcCFG::StmtRef stmt, const StackFrame*) const;
-    [[nodiscard]] std::optional< const TypedRegion* > get_typed_region(
-        ProcCFG::DeclRef decl, const StackFrame* frame) const {
-        if (auto region = get_region(decl, frame)) {
-            llvm::outs() << get_region_kind_name(region.value()->get_kind())
-                         << "\n";
-            if (const auto* typed_region =
-                    dyn_cast< TypedRegion >(region.value())) {
-                return typed_region;
-            }
-        }
-        return std::nullopt;
-    }
-    [[nodiscard]] std::optional< const TypedRegion* > get_typed_region(
-        ProcCFG::StmtRef stmt, const StackFrame* frame) const {
-        if (auto region = get_region(stmt, frame)) {
-            if (const auto* typed_region =
-                    dyn_cast< TypedRegion >(region.value())) {
-                return typed_region;
-            }
-        }
-
-        return std::nullopt;
-    }
 
     [[nodiscard]] std::optional< ZVariable > try_get_zvariable(
         ProcCFG::DeclRef decl, const StackFrame* frame) const;
     [[nodiscard]] std::optional< QVariable > try_get_qvariable(
         ProcCFG::DeclRef decl, const StackFrame* frame) const;
 
-    [[nodiscard]] ProgramStateRef set_region_sexpr(MemRegionRef region,
+    [[nodiscard]] ProgramStateRef set_region_sexpr(RegionRef region,
                                                    SExprRef sexpr) const;
     [[nodiscard]] ProgramStateRef set_stmt_sexpr(ProcCFG::StmtRef stmt,
                                                  SExprRef sexpr) const;
@@ -172,7 +149,7 @@ class ProgramState : public llvm::FoldingSetNode {
         const ConstraintSystem& cst_system) const;
 
     [[nodiscard]] std::optional< SExprRef > get_region_sexpr(
-        MemRegionRef region) const;
+        RegionRef region) const;
     [[nodiscard]] std::optional< SExprRef > get_stmt_sexpr(
         ProcCFG::StmtRef stmt) const;
     [[nodiscard]] std::optional< SExprRef > get_stmt_sexpr(
@@ -302,13 +279,15 @@ class ProgramState : public llvm::FoldingSetNode {
     /// We can add the constraint `sval = se1` and `sval = se2` to two
     /// states and join them, and `reg` will be assigned `sval` in the
     /// joined state.
-    [[nodiscard]] ProgramStateRef join(const ProgramStateRef& other) const;
+    [[nodiscard]] ProgramStateRef join(const ProgramStateRef& other,
+                                       const LocationContext* loc_ctx) const;
     [[nodiscard]] ProgramStateRef join_at_loop_head(
-        const ProgramStateRef& other) const;
+        const ProgramStateRef& other, const LocationContext* loc_ctx) const;
     [[nodiscard]] ProgramStateRef join_consecutive_iter(
-        const ProgramStateRef& other) const;
+        const ProgramStateRef& other, const LocationContext* loc_ctx) const;
 
-    [[nodiscard]] ProgramStateRef widen(const ProgramStateRef& other) const;
+    [[nodiscard]] ProgramStateRef widen(const ProgramStateRef& other,
+                                        const LocationContext* loc_ctx) const;
     [[nodiscard]] ProgramStateRef meet(const ProgramStateRef& other) const;
     [[nodiscard]] ProgramStateRef narrow(const ProgramStateRef& other) const;
 

@@ -89,7 +89,7 @@ const Sym* SymIterator::operator*() {
 }
 
 RegionSymVal::RegionSymVal(SymID id,
-                           const TypedRegion* region,
+                           RegionRef region,
                            const LocationContext* loc_ctx,
                            bool is_external)
     : Sym(id, SymExprKind::RegionSymbolVal),
@@ -101,7 +101,7 @@ RegionSymVal::RegionSymVal(SymID id,
                       "Invalid type for region symbol value");
 }
 
-const TypedRegion* RegionSymVal::get_region() const {
+RegionRef RegionSymVal::get_region() const {
     return m_region;
 }
 
@@ -111,7 +111,7 @@ void RegionSymVal::dump(llvm::raw_ostream& os) const {
     os << '>';
 }
 
-std::optional< const MemRegion* > RegionSymVal::get_as_region() const {
+std::optional< RegionRef > RegionSymVal::get_as_region() const {
     return m_region;
 }
 
@@ -119,10 +119,10 @@ clang::QualType RegionSymVal::get_type() const {
     return get_region()->get_value_type();
 }
 
-RegionSymExtent::RegionSymExtent(SymID id, const MemRegion* region)
+RegionSymExtent::RegionSymExtent(SymID id, RegionRef region)
     : Sym(id, SymExprKind::RegionSymbolExtent), m_region(region) {}
 
-const MemRegion* RegionSymExtent::get_region() const {
+RegionRef RegionSymExtent::get_region() const {
     return m_region;
 }
 

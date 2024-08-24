@@ -13,13 +13,14 @@
 
 #pragma once
 
+#include <llvm/Support/Debug.h>
+#include <llvm/Support/raw_ostream.h>
+
 #include "dfa/analysis/analyses.hpp"
 #include "dfa/analysis_manager.hpp"
 #include "dfa/checker/checkers.hpp"
 #include "dfa/checker_context.hpp"
 #include "dfa/proc_cfg.hpp"
-#include "llvm/Support/Debug.h"
-#include "llvm/Support/raw_ostream.h"
 #include "tooling/context.hpp"
 
 #include <memory>
@@ -144,16 +145,9 @@ class CheckerManager {
         CheckerID id = get_checker_id(Checker::get_kind());
         AnalysisID required_analysis_id = get_analysis_id(Analysis::get_kind());
         add_checker_dependency(id, required_analysis_id);
-        // llvm::outs() << "checker " << get_checker_name_by_id(id)
-        //              << " depends on: "
-        //              << get_analysis_name_by_id(required_analysis_id) <<
-        //              "\n";
+        log_checker_dependency(id, required_analysis_id);
     }
     /// @}
-
-    void add_checker_dependency(CheckerID checker_id, AnalysisID analysis_id) {
-        m_checker_dependencies[checker_id].insert(analysis_id);
-    }
 
     void add_all_required_analyses_by_checker_dependencies();
 
@@ -197,6 +191,13 @@ class CheckerManager {
     void run_checkers_for_end_function(CheckerContext& checker_ctx,
                                        ProcCFG::NodeRef node);
 
+  private:
+    static void log_checker_dependency(CheckerID id,
+                                       AnalysisID required_analysis_id);
+
+    void add_checker_dependency(CheckerID checker_id, AnalysisID analysis_id) {
+        m_checker_dependencies[checker_id].insert(analysis_id);
+    }
 }; // class CheckerManager
 
 } // namespace knight::dfa

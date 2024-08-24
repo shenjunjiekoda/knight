@@ -107,6 +107,14 @@ void CheckerManager::run_checkers_for_end_function(CheckerContext& checker_ctx,
     }
 }
 
+void CheckerManager::log_checker_dependency(CheckerID id,
+                                            AnalysisID required_analysis_id) {
+    LLVM_DEBUG(llvm::outs()
+                   << "checker " << get_checker_name_by_id(id)
+                   << " depends on: "
+                   << get_analysis_name_by_id(required_analysis_id) << "\n";);
+}
+
 void CheckerManager::add_all_required_analyses_by_checker_dependencies() {
     for (auto& [checker_id, analysis_ids] : m_checker_dependencies) {
         llvm::outs() << "checker: " << get_checker_name_by_id(checker_id)

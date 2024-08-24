@@ -14,16 +14,16 @@
 # ===------------------------------------------------------------------===#
 
 
-import os
 import argparse
-from pathlib import Path
+import os
 import re
 import subprocess
 import sys
+from pathlib import Path
 
 # Constants
 CLANG_FORMAT_VERSION = "16.0.6"
-SOURCE_EXTENSIONS = (".c", ".cpp", ".h", ".hpp")
+SOURCE_EXTENSIONS = (".c", ".cpp", ".h", ".hpp", ".tpp")
 IGNORE_DIRECTORIES = {".git", "build"}
 
 RESET_COLOR = "\033[0m"
@@ -76,7 +76,7 @@ def check_clang_format_version(clang_format):
                 file=sys.stderr,
             )
     except subprocess.CalledProcessError as e:
-        raise RuntimeError(f"Failed to execute '{clang_format}': {e}")
+        raise RuntimeError(f"Failed to execute '{clang_format}': {e}") from e
 
 
 def format_source_files(src_dir, clang_format):

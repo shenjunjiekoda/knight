@@ -113,47 +113,47 @@ void SymbolResolver::VisitUnaryOperator(
 }
 
 std::pair< SExprRef, ZLinearExpr > SymbolResolver::handle_assign_sexpr_and_cstr(
-    bool is_int,
-    std::optional< const TypedRegion* > treg,
-    const clang::QualType& type,
-    SExprRef lhs_sexpr,
-    SExprRef rhs_sexpr,
-    clang::BinaryOperator::Opcode op) const {
-    knight_assert(rhs_sexpr != nullptr);
-
+    AssignmentContext assign_ctx) const {
+    knight_assert_msg(assign_ctx.rhs_sexpr != nullptr,
+                      "rhs sexpr shall be nonnull in assignment context");
+    auto op = assign_ctx.op;
     bool is_direct_assign = !clang::BinaryOperator::isCompoundAssignmentOp(op);
     auto state = m_ctx->get_state();
     auto& sym_mgr = m_ctx->get_symbol_manager();
 
     SExprRef binary_sexpr = nullptr;
     if (is_direct_assign) {
-        binary_sexpr = rhs_sexpr;
+        binary_sexpr = assign_ctx.rhs_sexpr;
     } else {
         op = clang::BinaryOperator::getOpForCompoundAssignment(op);
-        binary_sexpr =
-            sym_mgr.get_binary_sym_expr(lhs_sexpr, rhs_sexpr, op, type);
+        binary_sexpr = sym_mgr.get_binary_sym_expr(assign_ctx.lhs_sexpr,
+                                                   assign_ctx.rhs_sexpr,
+                                                   op,
+                                                   assign_ctx.type);
     }
     ZLinearExpr cstr;
 
-    if (!treg) {
+    if (!assign_ctx.treg) {
         LLVM_DEBUG(llvm::outs() << "no typed region for lhs!\n");
         return {binary_sexpr, cstr};
     }
 
-    if (is_int) {
+    if (assign_ctx.is_int) {
         ZVariable x(
-            sym_mgr.get_region_sym_val(*treg,
+            sym_mgr.get_region_sym_val(*assign_ctx.treg,
                                        m_ctx->get_current_location_context()));
         cstr += x;
 
         LLVM_DEBUG(llvm::outs() << "zvar x: "; x.dump(llvm::outs());
                    llvm::outs() << "\n";);
-        auto lhs_var =
-            lhs_sexpr != nullptr ? lhs_sexpr->get_as_zvariable() : std::nullopt;
-        auto lhs_num =
-            lhs_sexpr != nullptr ? lhs_sexpr->get_as_znum() : std::nullopt;
-        auto rhs_var = rhs_sexpr->get_as_zvariable();
-        auto rhs_num = rhs_sexpr->get_as_znum();
+        auto lhs_var = assign_ctx.lhs_sexpr != nullptr
+                           ? assign_ctx.lhs_sexpr->get_as_zvariable()
+                           : std::nullopt;
+        auto lhs_num = assign_ctx.lhs_sexpr != nullptr
+                           ? assign_ctx.lhs_sexpr->get_as_znum()
+                           : std::nullopt;
+        auto rhs_var = assign_ctx.rhs_sexpr->get_as_zvariable();
+        auto rhs_num = assign_ctx.rhs_sexpr->get_as_znum();
         if (!is_direct_assign && lhs_var && rhs_var) {
             dispatch_event(LinearAssignEvent(ZVarAssignBinaryVarVar{op,
                                                                     x,
@@ -177,7 +177,7 @@ std::pair< SExprRef, ZLinearExpr > SymbolResolver::handle_assign_sexpr_and_cstr(
             if (auto znum = binary_sexpr->get_as_znum()) {
                 dispatch_event(
                     LinearAssignEvent(ZVarAssignZNum{x, *znum}, state, m_ctx));
-                binary_sexpr = sym_mgr.get_scalar_int(*znum, type);
+                binary_sexpr = sym_mgr.get_scalar_int(*znum, assign_ctx.type);
                 cstr -= *znum;
             } else if (auto zvar = binary_sexpr->get_as_zvariable()) {
                 dispatch_event(
@@ -243,14 +243,14 @@ void SymbolResolver::VisitBinaryOperator(
     SExprRef binary_sexpr = nullptr;
     if (is_assign) {
         auto treg =
-            state->get_typed_region(lhs_expr, m_ctx->get_current_stack_frame());
-        auto [binary_sexpr_, cstr] =
-            handle_assign_sexpr_and_cstr(is_int,
-                                         treg,
-                                         binary_operator->getType(),
-                                         lhs_sexpr,
-                                         rhs_sexpr,
-                                         binary_operator->getOpcode());
+            state->get_region(lhs_expr, m_ctx->get_current_stack_frame());
+        auto [binary_sexpr_, cstr] = handle_assign_sexpr_and_cstr(
+            AssignmentContext{is_int,
+                              treg,
+                              binary_operator->getType(),
+                              lhs_sexpr,
+                              rhs_sexpr,
+                              binary_operator->getOpcode()});
         if (m_ctx->is_state_changed()) {
             state = m_ctx->get_state();
         }
@@ -373,15 +373,15 @@ void SymbolResolver::VisitDeclStmt(const clang::DeclStmt* decl_stmt) const {
             }
 
             if (auto treg =
-                    state->get_typed_region(var_decl,
-                                            m_ctx->get_current_stack_frame())) {
+                    state->get_region(var_decl,
+                                      m_ctx->get_current_stack_frame())) {
                 auto type = treg.value()->get_value_type();
                 auto [sexpr, cstr] = handle_assign_sexpr_and_cstr(
-                    type->isIntegralOrEnumerationType(),
-                    treg,
-                    type,
-                    nullptr,
-                    init_sexpr_opt.value());
+                    AssignmentContext{type->isIntegralOrEnumerationType(),
+                                      treg,
+                                      type,
+                                      nullptr,
+                                      init_sexpr_opt.value()});
                 if (m_ctx->is_state_changed()) {
                     state = m_ctx->get_state();
                 }
@@ -467,7 +467,7 @@ void SymbolResolver::VisitCastExpr(const clang::CastExpr* cast_expr) const {
     bool float_cast = src_type->isFloatingType() && dst_type->isFloatingType();
 
     if (!int_cast && !float_cast) {
-        llvm::outs() << "not int or float cast!\n";
+        LLVM_DEBUG(llvm::outs() << "not int or float cast!\n";);
         return;
     }
     auto& ast_ctx = m_ctx->get_ast_context();

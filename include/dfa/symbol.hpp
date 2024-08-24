@@ -66,12 +66,12 @@ enum class SymExprKind {
 bool is_valid_type_for_sym_expr(clang::QualType type);
 
 class SymExpr;
-class MemRegion;
 class TypedRegion;
 class Sym;
 
 using SExprRef = const SymExpr*;
 using SymbolRef = const Sym*;
+using RegionRef = const TypedRegion*;
 
 class SymIterator {
   private:
@@ -113,7 +113,7 @@ class SymExpr : public llvm::FoldingSetNode {
         return llvm::make_range(SymIterator(this), SymIterator());
     }
 
-    virtual std::optional< const MemRegion* > get_as_region() const {
+    virtual std::optional< RegionRef > get_as_region() const {
         return std::nullopt;
     }
 
@@ -133,6 +133,12 @@ class SymExpr : public llvm::FoldingSetNode {
 
     virtual void dump(llvm::raw_ostream& os) const {}
 }; // class SymExpr
+
+inline llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
+                                     const SymExpr& sym) {
+    sym.dump(os);
+    return os;
+}
 
 class Scalar : public SymExpr {
   protected:
@@ -249,7 +255,7 @@ class Sym : public SymExpr {
 class RegionSymVal : public Sym {
   private:
     /// \brief The region that the symbol represents.
-    const TypedRegion* m_region;
+    RegionRef m_region;
 
     /// \brief The location context where the region is defined.
     const LocationContext* m_loc_ctx;
@@ -260,17 +266,17 @@ class RegionSymVal : public Sym {
 
   public:
     RegionSymVal(SymID id,
-                 const TypedRegion* region,
+                 RegionRef region,
                  const LocationContext* loc_ctx,
                  bool is_external);
     ~RegionSymVal() override = default;
 
-    [[gnu::returns_nonnull]] const TypedRegion* get_region() const;
+    [[gnu::returns_nonnull]] RegionRef get_region() const;
     [[nodiscard]] bool is_external() const { return m_is_external; }
 
     static void profile(llvm::FoldingSetNodeID& id,
                         [[maybe_unused]] SymID sid,
-                        const TypedRegion* region,
+                        RegionRef region,
                         [[maybe_unused]] const LocationContext* loc_ctx,
                         bool is_external) {
         id.AddInteger(static_cast< unsigned >(SymExprKind::RegionSymbolVal));
@@ -291,8 +297,7 @@ class RegionSymVal : public Sym {
     }
 
     void dump(llvm::raw_ostream& os) const override;
-    [[nodiscard]] std::optional< const MemRegion* > get_as_region()
-        const override;
+    [[nodiscard]] std::optional< RegionRef > get_as_region() const override;
     [[gnu::returns_nonnull, nodiscard]] const LocationContext* get_loc_ctx()
         const {
         return m_loc_ctx;
@@ -312,15 +317,15 @@ class RegionSymVal : public Sym {
 
 class RegionSymExtent : public Sym {
   private:
-    const MemRegion* m_region;
+    const TypedRegion* m_region;
 
   public:
-    RegionSymExtent(SymID id, const MemRegion* region);
+    RegionSymExtent(SymID id, const TypedRegion* region);
     ~RegionSymExtent() override = default;
 
-    [[gnu::returns_nonnull]] const MemRegion* get_region() const;
+    [[gnu::returns_nonnull]] const TypedRegion* get_region() const;
 
-    static void profile(llvm::FoldingSetNodeID& id, const MemRegion* region) {
+    static void profile(llvm::FoldingSetNodeID& id, const TypedRegion* region) {
         id.AddInteger(static_cast< unsigned >(SymExprKind::RegionSymbolExtent));
         id.AddPointer(region);
     }

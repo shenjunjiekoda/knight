@@ -7,7 +7,7 @@
 //
 //===------------------------------------------------------------------===//
 //
-//  This header defines the metadata of memory regions.
+//  This header defines the metadata of typed memory regions.
 //
 //===------------------------------------------------------------------===//
 
@@ -20,16 +20,17 @@
 #define REGION_DEF(KIND, DESC, PARENT)
 #endif
 
-REGION_DEF(SymRegion, "A symbolic memory region.", None)
 
 REGION_DEF(TypedRegion, "A typed memory region.", None)
-  REGION_DEF(ThisObjRegion, "The current object region.", TypedRegion)
-  REGION_DEF(BaseObjRegion, "The base object region of a derived object.", TypedRegion)
-  REGION_DEF(TempObjRegion, "A temporary object region.", TypedRegion)
-  REGION_DEF(StringLitRegion, "A string literal region.", TypedRegion)
-  REGION_DEF(ElemRegion, "An element region.", TypedRegion)
-  REGION_DEF(DeclRegion, "A declaration region.", TypedRegion)
-    REGION_DEF(VarRegion, "A non-argument variable region.", DeclRegion)
-    REGION_DEF(ArgRegion, "An argument region.", DeclRegion)
-    REGION_DEF(FieldRegion, "A field region.", DeclRegion)
+
+REGION_DEF(SymRegion, "A symbolic memory region.", TypedRegion)
+REGION_DEF(ThisObjRegion, "The current object region.", TypedRegion)
+REGION_DEF(BaseObjRegion, "The base object region of a derived object.", TypedRegion)
+REGION_DEF(TempObjRegion, "A temporary object region.", TypedRegion)
+REGION_DEF(StringLitRegion, "A string literal region.", TypedRegion)
+REGION_DEF(ElemRegion, "An element region.", TypedRegion)
+REGION_DEF(DeclRegion, "A declaration region.", TypedRegion)
+  REGION_DEF(VarRegion, "A non-argument variable region.", DeclRegion)
+  REGION_DEF(ArgRegion, "An argument region.", DeclRegion)
+  REGION_DEF(FieldRegion, "A field region.", DeclRegion)
 

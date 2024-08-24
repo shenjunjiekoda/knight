@@ -13,7 +13,9 @@
 
 #pragma once
 
+#include "dfa/location_manager.hpp"
 #include "dfa/program_state.hpp"
+#include "dfa/stack_frame.hpp"
 #include "support/graph.hpp"
 
 namespace knight::dfa {
@@ -36,7 +38,9 @@ class FixPointIterator {
     virtual ~FixPointIterator() = default;
 
   public:
-    virtual void run(ProgramStateRef init_state) = 0;
+    virtual void run(ProgramStateRef init_state,
+                     LocationManager& loc_mgr,
+                     const StackFrame* frame) = 0;
 
     [[nodiscard]] virtual GraphRef get_cfg() const = 0;
 

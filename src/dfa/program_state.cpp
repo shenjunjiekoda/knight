@@ -31,6 +31,8 @@
 #include <memory>
 #include <optional>
 
+#define DEBUG_TYPE "program-state"
+
 namespace knight::dfa {
 
 void retain_state(const ProgramState* state) {
@@ -75,14 +77,15 @@ ProgramStateManager& ProgramState::get_state_manager() const {
     return *m_state_mgr;
 }
 
-std::optional< MemRegionRef > ProgramState::get_region(
+std::optional< RegionRef > ProgramState::get_region(
     ProcCFG::DeclRef decl, const StackFrame* frame) const {
     if (llvm::isa< clang::VarDecl >(decl)) {
         return get_region_manager().get_region(llvm::cast< clang::VarDecl >(
                                                    decl),
                                                frame);
     }
-    llvm::errs() << "unhandled decl type: " << decl->getDeclKindName() << "\n";
+    LLVM_DEBUG(llvm::errs()
+               << "unhandled decl type: " << decl->getDeclKindName() << "\n");
     return std::nullopt;
 }
 
@@ -134,7 +137,7 @@ std::optional< QVariable > ProgramState::try_get_qvariable(
     return QVariable(sym);
 }
 
-std::optional< MemRegionRef > ProgramState::get_region(
+std::optional< RegionRef > ProgramState::get_region(
     ProcCFG::StmtRef stmt, const StackFrame* frame) const {
     if (const auto* decl_ref_expr =
             llvm::dyn_cast< clang::DeclRefExpr >(stmt)) {
@@ -148,7 +151,7 @@ std::optional< MemRegionRef > ProgramState::get_region(
     return std::nullopt;
 }
 
-ProgramStateRef ProgramState::set_region_sexpr(MemRegionRef region,
+ProgramStateRef ProgramState::set_region_sexpr(RegionRef region,
                                                SExprRef sexpr) const {
     auto region_sexpr = m_region_sexpr;
     region_sexpr[region] = sexpr;
@@ -173,7 +176,7 @@ ProgramStateRef ProgramState::set_constraint_system(
 }
 
 std::optional< SExprRef > ProgramState::get_region_sexpr(
-    MemRegionRef region) const {
+    RegionRef region) const {
     auto it = m_region_sexpr.find(region);
     if (it != m_region_sexpr.end()) {
         return it->second;
@@ -258,21 +261,45 @@ ProgramStateRef ProgramState::set_to_top() const {
 }
 
 // NOLINTNEXTLINE
-#define UNION_MAP(OP)                                            \
-    DomValMap new_map;                                           \
-    for (const auto& [other_id, other_val] : other->m_dom_val) { \
-        auto it = m_dom_val.find(other_id);                      \
-        if (it == m_dom_val.end()) {                             \
-            new_map[other_id] = other_val->clone_shared();       \
-        } else {                                                 \
-            auto new_val = it->second->clone();                  \
-            new_val->OP(*other_val);                             \
-            new_map[other_id] = SharedVal(new_val);              \
-        }                                                        \
-    }                                                            \
-    return get_state_manager()                                   \
-        .get_persistent_state_with_copy_and_dom_val_map(*this,   \
-                                                        std ::move(new_map));
+// NOLINTNEXTLINE
+#define UNION_MAP(OP)                                                          \
+    DomValMap new_map;                                                         \
+    for (const auto& [other_id, other_val] : other->m_dom_val) {               \
+        auto it = m_dom_val.find(other_id);                                    \
+        if (it == m_dom_val.end()) {                                           \
+            new_map[other_id] = other_val->clone_shared();                     \
+        } else {                                                               \
+            auto* new_val = it->second->clone();                               \
+            new_val->OP(*other_val);                                           \
+            new_map[other_id] = SharedVal(new_val);                            \
+        }                                                                      \
+    }                                                                          \
+                                                                               \
+    StmtSExprMap stmt_sexpr = m_stmt_sexpr;                                    \
+    stmt_sexpr.insert(other->m_stmt_sexpr.begin(), other->m_stmt_sexpr.end()); \
+                                                                               \
+    RegionSExprMap region_sexpr = m_region_sexpr;                              \
+    for (const auto [region, sexpr] : other->m_region_sexpr) {                 \
+        auto it = region_sexpr.find(region);                                   \
+        if (it == region_sexpr.end() || it->second == sexpr) {                 \
+            region_sexpr[region] = sexpr;                                      \
+        } else {                                                               \
+            region_sexpr[region] =                                             \
+                get_state_manager().m_symbol_mgr.get_region_sym_val(region,    \
+                                                                    loc_ctx);  \
+        }                                                                      \
+    }                                                                          \
+                                                                               \
+    ConstraintSystem cst_system = m_constraint_system;                         \
+    cst_system.retain(other->m_constraint_system);                             \
+    return get_state_manager()                                                 \
+        .get_persistent_state_with_copy_and_stateful_member_map(               \
+            *this,                                                             \
+            std ::move(new_map),                                               \
+            std ::move(region_sexpr),                                          \
+            std ::move(stmt_sexpr),                                            \
+            std ::move(cst_system));
+
 // NOLINTNEXTLINE
 #define INTERSECT_MAP(OP)                                      \
     DomValMap map;                                             \
@@ -288,7 +315,8 @@ ProgramStateRef ProgramState::set_to_top() const {
         .get_persistent_state_with_copy_and_dom_val_map(*this, \
                                                         std ::move(map));
 
-ProgramStateRef ProgramState::join(const ProgramStateRef& other) const {
+ProgramStateRef ProgramState::join(const ProgramStateRef& other,
+                                   const LocationContext* loc_ctx) const {
     // UNION_MAP(join_with);
     DomValMap new_map;
     for (const auto& [other_id, other_val] : other->m_dom_val) {
@@ -311,7 +339,9 @@ ProgramStateRef ProgramState::join(const ProgramStateRef& other) const {
         if (it == region_sexpr.end() || it->second == sexpr) {
             region_sexpr[region] = sexpr;
         } else {
-            // Do nothing here, we will not propagate the joined region
+            region_sexpr[region] =
+                get_state_manager().m_symbol_mgr.get_region_sym_val(region,
+                                                                    loc_ctx);
         }
     }
 
@@ -329,16 +359,17 @@ ProgramStateRef ProgramState::join(const ProgramStateRef& other) const {
 }
 
 ProgramStateRef ProgramState::join_at_loop_head(
-    const ProgramStateRef& other) const {
+    const ProgramStateRef& other, const LocationContext* loc_ctx) const {
     UNION_MAP(join_with_at_loop_head);
 }
 
 ProgramStateRef ProgramState::join_consecutive_iter(
-    const ProgramStateRef& other) const {
+    const ProgramStateRef& other, const LocationContext* loc_ctx) const {
     UNION_MAP(join_consecutive_iter_with);
 }
 
-ProgramStateRef ProgramState::widen(const ProgramStateRef& other) const {
+ProgramStateRef ProgramState::widen(const ProgramStateRef& other,
+                                    const LocationContext* loc_ctx) const {
     UNION_MAP(widen_with);
 }
 

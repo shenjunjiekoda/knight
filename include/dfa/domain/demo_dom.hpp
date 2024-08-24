@@ -144,7 +144,6 @@ class DemoItvDom : public AbsDom< DemoItvDom > {
     }
 }; // class DemoItvDom
 
-using DemoMapDomain =
-    MapDom< MemRegionRef, DemoItvDom, DomainKind::DemoMapDom >;
+using DemoMapDomain = MapDom< RegionRef, DemoItvDom, DomainKind::DemoMapDom >;
 
 } // namespace knight::dfa
