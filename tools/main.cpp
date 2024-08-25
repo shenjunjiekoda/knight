@@ -204,6 +204,11 @@ int main(int argc, const char** argv) {
         return InputNotExists;
     }
 
+    if (enabled_analyses.empty() && enabled_checkers.empty()) {
+        llvm::errs() << "No analyses or checkers are enabled.\n";
+        return NormalExit;
+    }
+
     KnightContext ctx(std::move(opts_provider));
     KnightDriver driver(ctx,
                         opts_parser->getCompilations(),

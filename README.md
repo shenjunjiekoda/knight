@@ -43,6 +43,10 @@ path-to-build/bin/knight --help # for usages
 
 Note: Knight only support _C++20_, so you need to use a cpp compiler support C++20.
 
+# Test
+
+Use `scripts/unittest` to run all unit tests.
+
 # Troubleshooting
 
 See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for more details.

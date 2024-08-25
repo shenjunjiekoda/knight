@@ -1,0 +1,526 @@
+#!/usr/bin/python3
+
+# ===- unittest -------------------------------------------------------===#
+#
+# Copyright (c) 2024 Junjie Shen
+#
+# see https://github.com/shenjunjiekoda/knight/blob/main/LICENSE for
+# license information.
+#
+# ===------------------------------------------------------------------===#
+#
+#  This script is used to run unit tests for Knight.
+#
+# ===------------------------------------------------------------------===#
+
+import argparse
+import subprocess
+import os
+import multiprocessing
+import re
+
+
+def warning(msg):
+    print(f"\033[1;35mwarning:\033[0m {msg}")
+
+
+def error(msg):
+    raise Exception(f"\033[1;31merror:\033[0m {msg}")
+
+
+def get_os_from_triple():
+    """
+    Determines the operating system based on the output of compiler machine triple.
+
+    Returns values: "linux", "windows", "mac", or "*" (unknown).
+    """
+
+    def get_triple():
+        """
+        Attempts to retrieve the machine triple by invoking 'clang' or 'gcc' compilers.
+
+        Returns the machine triple if successful, otherwise returns None.
+        """
+        try:
+            compilers = ["cc", "c++", "clang", "gcc"]
+            for compiler in compilers:
+                result = subprocess.run(
+                    [compiler, "-dumpmachine"],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    check=False,
+                )
+                if result.returncode == 0:
+                    return result.stdout.strip()
+            return None
+        except FileNotFoundError:
+            return None
+
+    triple = get_triple()
+    if triple:
+        if "linux" in triple:
+            return "linux"
+        elif "mingw" in triple or "cygwin" in triple or "windows" in triple:
+            return "windows"
+        elif "darwin" in triple or "macos" in triple or "apple" in triple:
+            return "mac"
+        else:
+            return "*"
+    else:
+        return "*"
+
+
+c_extensions = [".c"]
+cpp_extensions = [".cpp", ".cxx", ".cc", ".C"]
+
+
+def is_c_or_cpp_src_file(file):
+    """
+    Determines if the given file is a C or C++ source file based on its extension.
+    """
+    file_extension = "." + file.split(".")[-1]
+    return file_extension in c_extensions or file_extension in cpp_extensions
+
+
+class DiagnosticInfo:
+    """
+    A class to store and manage resolved diagnostic information
+    """
+
+    # Constructor for DiagnosticInfo class. Initializes diagnostic information attributes.
+    def __init__(self, diag_level, start_line, start_col, end_line, end_col, msg, name):
+        self.diag_level = diag_level
+        self.start_line = start_line
+        self.start_col = start_col
+        self.end_line = end_line
+        self.end_col = end_col
+        self.msg = msg
+        self.name = name
+
+    # Returns a string representation of the DiagnosticInfo object.
+    def __repr__(self):
+        return (
+            f"diag:(level={self.diag_level}, range={self.start_line}:"
+            f"{self.start_col}~{self.end_line}:{self.end_col}, "
+            f"msg={self.msg}, [{self.name}])"
+        )
+
+    # Compares two DiagnosticInfo objects for equality.
+    def __eq__(self, other):
+        if isinstance(other, DiagnosticInfo):
+            return (
+                self.diag_level == other.diag_level
+                and self.start_line == other.start_line
+                and self.start_col == other.start_col
+                and self.end_line == other.end_line
+                and self.end_col == other.end_col
+                and self.msg == other.msg
+                and self.name == other.name
+            )
+        return False
+
+
+# Unit test driver
+class Driver:
+
+    def __init__(self, args):
+        self.jobs = args.jobs
+        self.timeout = args.timeout
+        self.verbose = args.verbose
+        self.paths = args.paths
+
+        # file_path: str -> knight_cmd: str
+        self.knight_commands = {}
+        self.passed_count = 0
+        self.failed_count = 0
+
+    def log(self, msg):
+        """
+        Prints a message if verbose mode is enabled.
+        """
+        if self.verbose:
+            print(msg)
+
+    def execute(self, cmd):
+        """
+        Executes a command based on the input string
+        """
+        if cmd == "test":
+            self.test()
+        elif cmd == "print_cmd":
+            self.print_cmd()
+        else:
+            error(f"Unknown command: {cmd}")
+
+    def parse_knight_argument_in_line_comment(
+        self, line, checkers, analyses, extra_args
+    ):
+        """
+        Parses a line of code to extract specific arguments from a comment if  "//" is found.
+
+        Use 'skip-platform=' to specify a platform to skip, '*' to skip all platforms.
+
+        Parameters:
+        - line (str): The line of code to parse.
+        - checkers (list): A list to store extracted 'checker' arguments from 'checker='.
+        - analyses (list): A list to store extracted 'analysis' arguments from 'analysis='.
+        - extra_args (list): A list to store extracted 'arg' arguments from 'arg='.
+
+        Returns:
+        - bool: True if current line specifies a platform to skip and current platform matches the specified platform, False otherwise.
+        """
+
+        if line.strip().startswith("//"):
+            comment = line.strip()[2:].strip()
+            if comment.startswith("checker="):
+                checker = comment[len("checker=") :].strip()
+                checkers.append(checker)
+            elif comment.startswith("analysis="):
+                analysis = comment[len("analysis=") :].strip()
+                analyses.append(analysis)
+            elif comment.startswith("arg="):
+                extra_arg = comment[len("arg=") :].strip()
+                extra_args.append(extra_arg)
+            elif comment.startswith("skip-platform="):
+                skip_platform = comment[len("skip-platform=") :].strip()
+                cur_os = get_os_from_triple()
+                if skip_platform == cur_os or skip_platform == "*":
+                    return True
+        return False
+
+    def get_knight_cmd(self, file_path):
+        """
+        Constructs and returns the command to run the 'knight' tool on a specified file.
+
+        Args:
+            file_path (str): The path to the configuration file that specifies the arguments for 'knight'.
+
+        Returns:
+            str: A command string that can be executed to run the 'knight' tool with the specified arguments.
+            bool: True if current platform should be skipped, False otherwise.
+        """
+        checkers = ["-*"]
+        analyses = ["-*"]
+        extra_args = []
+        with open(file_path, "r", encoding="utf-8") as f:
+            for line in f.readlines():
+                skip = self.parse_knight_argument_in_line_comment(
+                    line, checkers, analyses, extra_args
+                )
+                if skip:
+                    return "", True
+        cmd = ["knight", file_path]
+        cmd.append("--checkers='" + ",".join(checkers) + "'")
+        cmd.append("--analyses='" + ",".join(analyses) + "'")
+        cmd.extend(extra_args)
+        return " ".join(cmd), False
+
+    def construct_knight_commands_for_dir(self, dir_path):
+        """
+        Constructs knight commands for all C/C++ source files in a directory.
+
+        If a 'compile_commands.json' file is present in the directory, it is passed to 'knight' as an extra argument.
+        """
+        cdb_path = os.path.join(dir_path, "compile_commands.json")
+        extra_args = []
+        if os.path.isfile(cdb_path):
+            extra_args.append("-p")
+            extra_args.append(cdb_path)
+
+        for root, _, files in os.walk(dir_path):
+            for file in files:
+                if not is_c_or_cpp_src_file(file):
+                    continue
+                file_path = os.path.join(root, file)
+                cmd, skip = self.get_knight_cmd(file_path)
+                if skip:
+                    self.log(f"Skipping {file_path} on current platform")
+                    continue
+                self.knight_commands[file_path] = cmd + " ".join(extra_args)
+
+    def construct_knight_commands(self):
+        """
+        Constructs knight commands for each path
+        """
+        if not self.paths:
+            self.paths = [os.getcwd()]
+
+        for cur_path in self.paths:
+            if os.path.isfile(cur_path) and is_c_or_cpp_src_file(cur_path):
+                cmd, skip = self.get_knight_cmd(cur_path)
+                if skip:
+                    self.log(f"Skipping {cur_path} on current platform")
+                    continue
+                self.knight_commands[cur_path] = cmd
+            elif os.path.isdir(cur_path):
+                self.construct_knight_commands_for_dir(cur_path)
+            elif self.verbose:
+                warning(f"{cur_path}: skiped")
+
+    def test(self):
+        """
+        Use multiprocessing to run all tests specified by the input paths and arguments.
+        """
+        self.construct_knight_commands()
+
+        with multiprocessing.Pool(self.jobs) as pool:
+            try:
+                results = pool.map(self.run_test, self.knight_commands.items())
+                for file_path, error_msg in results:
+                    if error_msg:
+                        self.failed_count += 1
+                        if self.verbose:
+                            print(f"\033[1;31merror[{file_path}]:\033[0m {error_msg}")
+                    else:
+                        self.passed_count += 1
+
+            except KeyboardInterrupt:
+                warning("KeyboardInterrupt received, terminating workers...")
+                pool.terminate()
+                pool.join()
+            except Exception as e:
+                error(f"Exception occurred: {e}")
+                pool.terminate()
+                pool.join()
+        self.print_statistic()
+
+    def run_test(self, cmd_pair):
+        file_path, cmd = cmd_pair
+        self.log(f"Running test for {file_path}: {cmd}")
+        try:
+            result = subprocess.run(
+                cmd,
+                shell=True,
+                check=True,
+                timeout=self.timeout,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+
+            stdout_text = result.stdout.decode("utf-8")
+            stderr_text = result.stderr.decode("utf-8")
+
+            self.log(f"Standard Output:")
+            self.log("-" * 80)
+            self.log(f"{stdout_text}\n")
+            self.log(f"Standard Error:")
+            self.log("-" * 80)
+            self.log(f"{stderr_text}\n")
+            self.log("-" * 80)
+
+            diags_in_stdout = self.parse_stdout_text(stdout_text)
+            diags_in_impl_file = self.parse_diags_in_impl_file(file_path)
+            passed = diags_in_stdout == diags_in_impl_file
+
+            # pass use green color, fail use red color
+            color = "\033[1;32m" if passed else "\033[1;31m"
+            print(f"{file_path}: {color}{"✔️" if passed else "❌"}\033[0m")
+
+            if self.verbose and not passed:
+                error_msg = f"Test failed for {file_path}.\n"
+                error_msg += f"Expected diagnostics: {diags_in_impl_file}\n"
+                error_msg += f"Actual diagnostics: {diags_in_stdout}\n"
+                return (file_path, error_msg)
+
+            return (file_path, None)
+        except subprocess.CalledProcessError as e:
+            return (
+                file_path,
+                f"Test failed for {file_path}: {e.stderr.decode('utf-8')}",
+            )
+        except subprocess.TimeoutExpired as e:
+            return (file_path, f"Test timed out for {file_path}: {e}")
+
+    def parse_line_in_impl_file(self, line, line_no):
+        """
+        Parse a line of output from 'knight' and return a DiagnosticInfo object.
+
+        For example, the following line in a.c srccode line 10:
+        '// warning:-1:22:+1:30: xxxx [debug-inspection]'
+        will be parsed to:
+        - diag_level: 'warning'
+        - start_line: 9
+        - start_col: 22
+        - end_line: 11
+        - end_col: 30
+        - msg: 'xxxx'
+        - name: 'debug-inspection'
+
+        Args:
+            line (str): A line of output from impl file.
+            line_no (int): The line number of the output in the source code.
+
+        Returns:
+            - DiagnosticInfo: A DiagnosticInfo object representing the parsed output.
+            - None: If the line is not a valid output from 'knight'.
+        """
+
+        pattern = r".*//\s*(?P<diag_level>\w+):(?P<start_line>-?\d+):(?P<start_col>\d+):(?P<end_line>[+-]?\d+):(?P<end_col>\d+): (?P<msg>.*?) \[(?P<name>[\w-]+)\]"
+        match = re.match(pattern, line)
+        if match:
+            diag_level = match.group("diag_level")
+            start_line = int(match.group("start_line")) + line_no
+            start_col = int(match.group("start_col"))
+            end_line = int(match.group("end_line")) + line_no
+            end_col = int(match.group("end_col"))
+            msg = match.group("msg")
+            name = match.group("name")
+
+            return DiagnosticInfo(
+                diag_level, start_line, start_col, end_line, end_col, msg, name
+            )
+        return None
+
+    def parse_diags_in_impl_file(self, file_path):
+        """
+        Parse all lines in a c/c++ impl file and return a sorted list of DiagnosticInfo objects.
+
+        Args:
+            file_path (str): The path to the file to be parsed.
+
+        Returns:
+            list: A sorted list of DiagnosticInfo objects.
+        """
+        diags = []
+        with open(file_path, "r", encoding="utf-8") as file:
+            for line_no, line in enumerate(file, start=1):
+                diagnostic_info = self.parse_line_in_impl_file(line, line_no)
+                if diagnostic_info:
+                    diags.append(diagnostic_info)
+
+        # Sort the diagnostics list by start_line, start_col, end_line, end_col, diag_level, msg, name
+        diags.sort(
+            key=lambda diag: (
+                diag.start_line,
+                diag.start_col,
+                diag.end_line,
+                diag.end_col,
+                diag.diag_level,
+                diag.msg,
+                diag.name,
+            )
+        )
+        return diags
+
+    def parse_line_in_stdout(self, line):
+        """
+        Parse a line of output and return a DiagnosticInfo object.
+
+        For example, the following line:
+        '/home/koda/gits/knight/test/testcase/x.cpp:13:22: warning: 范围为[-1, 1] [debug-inspection]'
+        will be parsed to:
+        - diag_level: 'warning'
+        - start_line: 13
+        - start_col: 22
+        - end_line: 13
+        - end_col: 22
+        - msg: '范围为[-1, 1]'
+        - name: 'debug-inspection'
+
+        Args:
+            line (str): A line of output.
+
+        Returns:
+            DiagnosticInfo: A DiagnosticInfo object representing the parsed output.
+        """
+        pattern = r"^(.*?):(?P<start_line>\d+):(?P<start_col>\d+)(?::(?P<end_line>\d+):(?P<end_col>\d+))?: (?P<diag_level>\w+): (?P<msg>.*?) \[(?P<name>[\w-]+)\]"
+        match = re.match(pattern, line)
+        if match:
+            start_line = int(match.group("start_line"))
+            start_col = int(match.group("start_col"))
+            end_line = (
+                int(match.group("end_line")) if match.group("end_line") else start_line
+            )
+            end_col = (
+                int(match.group("end_col")) if match.group("end_col") else start_col
+            )
+            diag_level = match.group("diag_level")
+            msg = match.group("msg")
+            name = match.group("name")
+
+            return DiagnosticInfo(
+                diag_level, start_line, start_col, end_line, end_col, msg, name
+            )
+        return None
+
+    def parse_stdout_text(self, stdout_text):
+        """
+        Parse all lines in a stdout string and return a sorted list of DiagnosticInfo objects.
+
+        Args:
+            stdout_text (str): The stdout text to be parsed.
+
+        Returns:
+            list: A sorted list of DiagnosticInfo objects.
+        """
+        diags = []
+        lines = stdout_text.splitlines()
+        for line in lines:
+            diagnostic_info = self.parse_line_in_stdout(line)
+            if diagnostic_info:
+                diags.append(diagnostic_info)
+
+        diags.sort(
+            key=lambda diag: (
+                diag.start_line,
+                diag.start_col,
+                diag.end_line,
+                diag.end_col,
+                diag.diag_level,
+                diag.msg,
+                diag.name,
+            )
+        )
+        return diags
+
+    def print_statistic(self):
+        """
+        Prints the number of passed and failed tests.
+        """
+        green = "\033[1;32m"
+        red = "\033[1;31m"
+        print(f"\n{green}Passed\033[0m: {self.passed_count}")
+        print(f"{red}Failed\033[0m: {self.failed_count}")
+
+    def print_cmd(self):
+        """
+        Prints the constructed knight commands in a formatted manner.
+        """
+        self.construct_knight_commands()
+        for file, cmd in self.knight_commands.items():
+            print(f"file path: \033[1;33m{file}\033[0m:")
+            print(f"command: \033[1;32m{cmd}\033[0m")
+            print("-" * 80)
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Run unit tests for Knight.")
+    parser.add_argument(
+        "subcommand",
+        choices=["test", "print_cmd"],
+        nargs="?",
+        help="The subcommand to run. Default is 'test'.",
+    )
+    parser.add_argument("paths", nargs="*", help="Paths to test.")
+    parser.add_argument(
+        "-j", "--jobs", type=int, default=1, help="Number of parallel jobs to run."
+    )
+    parser.add_argument(
+        "-t", "--timeout", type=int, default=10, help="Timeout for each test."
+    )
+    parser.add_argument(
+        "-v", "--verbose", action="store_true", help="Print verbose output."
+    )
+
+    args = parser.parse_args()
+    # If subcommand is not provided, set it to 'test'
+    if args.subcommand is None:
+        args.subcommand = "test"
+
+    driver = Driver(args)
+    driver.execute(args.subcommand)
+
+
+if __name__ == "__main__":
+    main()
