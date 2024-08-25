@@ -33,7 +33,7 @@
 #include <clang/Frontend/CompilerInstance.h>
 #include <clang/Tooling/CompilationDatabase.h>
 #include <llvm/Support/Casting.h>
-#include <llvm/Support/raw_ostream.h>
+#include "util/log.hpp"
 
 #include <memory>
 #include <utility>

@@ -21,7 +21,7 @@
 
 #include <llvm/ADT/FoldingSet.h>
 #include <llvm/ADT/PointerIntPair.h>
-#include <llvm/Support/raw_ostream.h>
+#include "util/log.hpp"
 
 #include "dfa/constraint/linear.hpp"
 #include "dfa/region/regions.hpp"

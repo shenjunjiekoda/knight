@@ -16,7 +16,7 @@
 #include <llvm/ADT/APFloat.h>
 #include <llvm/ADT/APSInt.h>
 
-#include <llvm/Support/raw_ostream.h>
+#include "util/log.hpp"
 
 #include "dfa/domain/num/qnum.hpp"
 #include "dfa/domain/num/znum.hpp"

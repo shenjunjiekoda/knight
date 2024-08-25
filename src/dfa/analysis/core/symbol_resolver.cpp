@@ -16,7 +16,7 @@
 #include "dfa/analysis/core/numerical_event.hpp"
 #include "dfa/constraint/linear.hpp"
 #include "dfa/region/region.hpp"
-#include "llvm/Support/raw_ostream.h"
+#include "util/log.hpp"
 
 #define DEBUG_TYPE "SymbolResolver"
 
@@ -35,15 +35,15 @@ void SymbolResolver::VisitIntegerLiteral(
         symbol_manager.get_scalar_int(ZNum(aps_int.getZExtValue()),
                                       integer_literal->getType());
 
-    LLVM_DEBUG(llvm::outs() << "SymbolResolver::VisitIntegerLiteral: "
-                            << "set integer literal: ";
-               integer_literal
-                   ->printPretty(llvm::outs(),
-                                 nullptr,
-                                 m_ctx->get_ast_context().getPrintingPolicy());
-               llvm::outs() << " to scalar: ";
-               scalar->dump(llvm::outs());
-               llvm::outs() << "\n";);
+    knight_log_nl(llvm::outs() << "SymbolResolver::VisitIntegerLiteral: "
+                               << "set integer literal: ";
+                  integer_literal->printPretty(llvm::outs(),
+                                               nullptr,
+                                               m_ctx->get_ast_context()
+                                                   .getPrintingPolicy());
+                  llvm::outs() << " to scalar: ";
+                  scalar->dump(llvm::outs());
+                  llvm::outs() << "\n";);
 
     m_ctx->set_state(state->set_stmt_sexpr(integer_literal, scalar));
 }
@@ -59,15 +59,15 @@ void SymbolResolver::VisitFloatingLiteral(
         symbol_manager.get_scalar_float(QNum(aps_float.convertToDouble()),
                                         floating_literal->getType());
 
-    LLVM_DEBUG(llvm::outs() << "SymbolResolver::VisitFloatLiteral: "
-                            << "set floating literal: ";
-               floating_literal
-                   ->printPretty(llvm::outs(),
-                                 nullptr,
-                                 m_ctx->get_ast_context().getPrintingPolicy());
-               llvm::outs() << " to scalar: ";
-               scalar->dump(llvm::outs());
-               llvm::outs() << "\n";);
+    knight_log_nl(llvm::outs() << "SymbolResolver::VisitFloatLiteral: "
+                               << "set floating literal: ";
+                  floating_literal->printPretty(llvm::outs(),
+                                                nullptr,
+                                                m_ctx->get_ast_context()
+                                                    .getPrintingPolicy());
+                  llvm::outs() << " to scalar: ";
+                  scalar->dump(llvm::outs());
+                  llvm::outs() << "\n";);
 
     m_ctx->set_state(state->set_stmt_sexpr(floating_literal, scalar));
 }
@@ -98,15 +98,15 @@ void SymbolResolver::VisitUnaryOperator(
                                    unary_operator->getOpcode(),
                                    unary_operator->getType());
 
-    LLVM_DEBUG(llvm::outs() << "SymbolResolver::VisitUnaryOperator: "
-                            << "set unary operator: ";
-               unary_operator
-                   ->printPretty(llvm::outs(),
-                                 nullptr,
-                                 m_ctx->get_ast_context().getPrintingPolicy());
-               llvm::outs() << " to sexpr: ";
-               unary_sexpr->dump(llvm::outs());
-               llvm::outs() << "\n";);
+    knight_log_nl(llvm::outs() << "SymbolResolver::VisitUnaryOperator: "
+                               << "set unary operator: ";
+                  unary_operator->printPretty(llvm::outs(),
+                                              nullptr,
+                                              m_ctx->get_ast_context()
+                                                  .getPrintingPolicy());
+                  llvm::outs() << " to sexpr: ";
+                  unary_sexpr->dump(llvm::outs());
+                  llvm::outs() << "\n";);
 
     state = state->set_stmt_sexpr(unary_operator, unary_sexpr);
     m_ctx->set_state(state);
@@ -134,7 +134,7 @@ std::pair< SExprRef, ZLinearExpr > SymbolResolver::handle_assign_sexpr_and_cstr(
     ZLinearExpr cstr;
 
     if (!assign_ctx.treg) {
-        LLVM_DEBUG(llvm::outs() << "no typed region for lhs!\n");
+        knight_log(llvm::outs() << "no typed region for lhs!\n");
         return {binary_sexpr, cstr};
     }
 
@@ -144,8 +144,8 @@ std::pair< SExprRef, ZLinearExpr > SymbolResolver::handle_assign_sexpr_and_cstr(
                                        m_ctx->get_current_location_context()));
         cstr += x;
 
-        LLVM_DEBUG(llvm::outs() << "zvar x: "; x.dump(llvm::outs());
-                   llvm::outs() << "\n";);
+        knight_log_nl(llvm::outs() << "zvar x: "; x.dump(llvm::outs());
+                      llvm::outs() << "\n";);
         auto lhs_var = assign_ctx.lhs_sexpr != nullptr
                            ? assign_ctx.lhs_sexpr->get_as_zvariable()
                            : std::nullopt;
@@ -206,7 +206,7 @@ void SymbolResolver::VisitBinaryOperator(
     const clang::BinaryOperator* binary_operator) const {
     using enum clang::BinaryOperator::Opcode;
 
-    LLVM_DEBUG(llvm::dbgs() << "SymbolResolver::VisitBinaryOperator: "
+    knight_log(llvm::dbgs() << "SymbolResolver::VisitBinaryOperator: "
                             << binary_operator->getOpcodeStr() << "\n");
 
     auto state = m_ctx->get_state();
@@ -218,7 +218,7 @@ void SymbolResolver::VisitBinaryOperator(
     bool is_int = binary_operator->getType()->isIntegralOrEnumerationType();
     bool is_float = binary_operator->getType()->isFloatingType();
     if (!is_int && !is_float) {
-        LLVM_DEBUG(llvm::outs() << "not int or float!\n");
+        knight_log(llvm::outs() << "not int or float!\n");
         return;
     }
     bool is_assign =
@@ -235,10 +235,10 @@ void SymbolResolver::VisitBinaryOperator(
         state
             ->get_stmt_sexpr_or_conjured(rhs_expr,
                                          m_ctx->get_current_location_context());
-    LLVM_DEBUG(llvm::outs() << "lhs_sexpr: "; lhs_sexpr->dump(llvm::outs());
-               llvm::outs() << "\nrhs_sexpr: ";
-               rhs_sexpr->dump(llvm::outs());
-               llvm::outs() << "\n";);
+    knight_log_nl(llvm::outs() << "lhs_sexpr: "; lhs_sexpr->dump(llvm::outs());
+                  llvm::outs() << "\nrhs_sexpr: ";
+                  rhs_sexpr->dump(llvm::outs());
+                  llvm::outs() << "\n";);
 
     SExprRef binary_sexpr = nullptr;
     if (is_assign) {
@@ -266,8 +266,8 @@ void SymbolResolver::VisitBinaryOperator(
             ZVariable x(
                 sym_mgr.get_symbol_conjured(binary_operator,
                                             m_ctx->get_current_stack_frame()));
-            LLVM_DEBUG(llvm::outs() << "zvar x: "; x.dump(llvm::outs());
-                       llvm::outs() << "\n";);
+            knight_log_nl(llvm::outs() << "zvar x: "; x.dump(llvm::outs());
+                          llvm::outs() << "\n";);
 
             if (auto zexpr = binary_sexpr->get_as_zexpr()) {
                 ZLinearExpr cstr(x);
@@ -335,11 +335,11 @@ void SymbolResolver::VisitBinaryOperator(
     if (is_assign) {
         if (auto lhs_region_opt =
                 state->get_region(lhs_expr, m_ctx->get_current_stack_frame())) {
-            LLVM_DEBUG(llvm::outs() << "\n set lhs region: ";
-                       lhs_region_opt.value()->dump(llvm::outs());
-                       llvm::outs() << " to binary_sexpr: ";
-                       binary_sexpr->dump(llvm::outs());
-                       llvm::outs() << "\n");
+            knight_log_nl(llvm::outs() << "\n set lhs region: ";
+                          lhs_region_opt.value()->dump(llvm::outs());
+                          llvm::outs() << " to binary_sexpr: ";
+                          binary_sexpr->dump(llvm::outs());
+                          llvm::outs() << "\n");
 
             state = state->set_region_sexpr(*lhs_region_opt, binary_sexpr);
         }
@@ -347,9 +347,9 @@ void SymbolResolver::VisitBinaryOperator(
 
     state = state->set_stmt_sexpr(binary_operator, binary_sexpr);
 
-    LLVM_DEBUG(llvm::outs() << "set binary_sexpr: ";
-               binary_sexpr->dump(llvm::outs());
-               llvm::outs() << "\n";);
+    knight_log_nl(llvm::outs() << "set binary_sexpr: ";
+                  binary_sexpr->dump(llvm::outs());
+                  llvm::outs() << "\n";);
 
     m_ctx->set_state(state);
 }
@@ -392,11 +392,11 @@ void SymbolResolver::VisitDeclStmt(const clang::DeclStmt* decl_stmt) const {
                 init_sexpr_opt = sexpr;
                 state = state->set_region_sexpr(*treg, *init_sexpr_opt);
 
-                LLVM_DEBUG(llvm::outs() << "set typed region sexpr: ";
-                           treg.value()->dump(llvm::outs());
-                           llvm::outs() << " to: ";
-                           init_sexpr_opt.value()->dump(llvm::outs());
-                           llvm::outs() << "\n";);
+                knight_log_nl(llvm::outs() << "set typed region sexpr: ";
+                              treg.value()->dump(llvm::outs());
+                              llvm::outs() << " to: ";
+                              init_sexpr_opt.value()->dump(llvm::outs());
+                              llvm::outs() << "\n";);
             } else {
                 llvm::errs() << "no typed region for decl!\n";
             }
@@ -407,10 +407,10 @@ void SymbolResolver::VisitDeclStmt(const clang::DeclStmt* decl_stmt) const {
     if (stmt_sexpr != nullptr) {
         state = state->set_stmt_sexpr(decl_stmt, stmt_sexpr);
 
-        LLVM_DEBUG(llvm::outs() << "set decl_stmt sexpr ";
-                   llvm::outs() << " to: ";
-                   stmt_sexpr->dump(llvm::outs());
-                   llvm::outs() << "\n";);
+        knight_log_nl(llvm::outs() << "set decl_stmt sexpr ";
+                      llvm::outs() << " to: ";
+                      stmt_sexpr->dump(llvm::outs());
+                      llvm::outs() << "\n";);
     }
 
     m_ctx->set_state(state);
@@ -424,9 +424,9 @@ void SymbolResolver::VisitDeclRefExpr(
             ->get_stmt_sexpr_or_conjured(decl_ref_expr,
                                          m_ctx->get_current_location_context());
 
-    LLVM_DEBUG(llvm::outs() << "set declref sexpr: ";
-               region_sexpr->dump(llvm::outs());
-               llvm::outs() << "\n";);
+    knight_log_nl(llvm::outs() << "set declref sexpr: ";
+                  region_sexpr->dump(llvm::outs());
+                  llvm::outs() << "\n";);
 
     m_ctx->set_state(state->set_stmt_sexpr(decl_ref_expr, region_sexpr));
 }
@@ -435,13 +435,14 @@ void SymbolResolver::analyze_stmt(const clang::Stmt* stmt,
                                   AnalysisContext& ctx) const {
     m_ctx = &ctx;
 
-    LLVM_DEBUG(llvm::outs() << "SymbolResolver::pre_analyze Stmt:";
-               stmt->printPretty(llvm::outs(),
-                                 nullptr,
-                                 m_ctx->get_ast_context().getPrintingPolicy());
-               llvm::outs() << " \n";
-               stmt->dumpColor();
-               llvm::outs() << "\n";);
+    knight_log_nl(
+        llvm::outs() << "SymbolResolver::pre_analyze Stmt:";
+        stmt->printPretty(llvm::outs(),
+                          nullptr,
+                          m_ctx->get_ast_context().getPrintingPolicy());
+        llvm::outs() << " \n";
+        stmt->dumpColor();
+        llvm::outs() << "\n";);
     if (const auto* cast_expr = llvm::dyn_cast< clang::CastExpr >(stmt)) {
         VisitCastExpr(cast_expr);
         return;
@@ -450,7 +451,7 @@ void SymbolResolver::analyze_stmt(const clang::Stmt* stmt,
 }
 
 void SymbolResolver::VisitCastExpr(const clang::CastExpr* cast_expr) const {
-    LLVM_DEBUG(
+    knight_log_nl(
         llvm::outs() << "SymbolResolver::VisitCastExpr: ";
         cast_expr->printPretty(llvm::outs(),
                                nullptr,
@@ -467,7 +468,7 @@ void SymbolResolver::VisitCastExpr(const clang::CastExpr* cast_expr) const {
     bool float_cast = src_type->isFloatingType() && dst_type->isFloatingType();
 
     if (!int_cast && !float_cast) {
-        LLVM_DEBUG(llvm::outs() << "not int or float cast!\n";);
+        knight_log(llvm::outs() << "not int or float cast!\n";);
         return;
     }
     auto& ast_ctx = m_ctx->get_ast_context();
@@ -504,9 +505,9 @@ void SymbolResolver::VisitCastExpr(const clang::CastExpr* cast_expr) const {
     }
     dst_sexpr = src_sexpr;
 
-    LLVM_DEBUG(llvm::outs() << "set cast sexpr: ";
-               dst_sexpr->dump(llvm::outs());
-               llvm::outs() << "\n";);
+    knight_log_nl(llvm::outs() << "set cast sexpr: ";
+                  dst_sexpr->dump(llvm::outs());
+                  llvm::outs() << "\n";);
 
     m_ctx->set_state(state->set_stmt_sexpr(cast_expr, dst_sexpr));
 }

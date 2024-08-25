@@ -19,7 +19,7 @@
 #include "dfa/checker_manager.hpp"
 #include "tooling/context.hpp"
 
-#include <llvm/Support/raw_ostream.h>
+#include "util/log.hpp"
 
 namespace knight::dfa {
 

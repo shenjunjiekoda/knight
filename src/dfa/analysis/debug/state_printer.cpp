@@ -12,7 +12,7 @@
 //===------------------------------------------------------------------===//
 
 #include "dfa/analysis/debug/state_printer.hpp"
-#include "llvm/Support/raw_ostream.h"
+#include "util/log.hpp"
 
 namespace knight::dfa {
 

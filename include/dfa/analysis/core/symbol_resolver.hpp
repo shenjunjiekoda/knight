@@ -28,7 +28,7 @@
 #include <clang/AST/Stmt.h>
 #include <clang/AST/StmtVisitor.h>
 #include <llvm/ADT/APSInt.h>
-#include <llvm/Support/raw_ostream.h>
+#include "util/log.hpp"
 
 namespace knight::dfa {
 

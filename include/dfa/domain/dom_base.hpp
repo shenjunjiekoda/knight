@@ -14,7 +14,7 @@
 #pragma once
 
 #include <llvm/ADT/StringRef.h>
-#include <llvm/Support/raw_ostream.h>
+#include "util/log.hpp"
 
 #include "dfa/domain/domains.hpp"
 #include "support/dom.hpp"

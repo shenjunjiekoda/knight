@@ -15,7 +15,7 @@
 #pragma once
 
 #include <llvm/ADT/FoldingSet.h>
-#include <llvm/Support/raw_ostream.h>
+#include "util/log.hpp"
 
 #include <functional>
 #include <string>

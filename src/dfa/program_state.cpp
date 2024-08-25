@@ -84,7 +84,7 @@ std::optional< RegionRef > ProgramState::get_region(
                                                    decl),
                                                frame);
     }
-    LLVM_DEBUG(llvm::errs()
+    knight_log(llvm::errs()
                << "unhandled decl type: " << decl->getDeclKindName() << "\n");
     return std::nullopt;
 }

@@ -17,7 +17,7 @@
 #include "support/graph.hpp"
 #include "util/assert.hpp"
 
-#include <llvm/Support/raw_ostream.h>
+#include "util/log.hpp"
 
 #include <climits>
 #include <list>

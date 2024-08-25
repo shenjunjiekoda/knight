@@ -13,8 +13,7 @@
 
 #include "dfa/checker/debug/inspection.hpp"
 #include <string>
-#include "llvm/Support/Debug.h"
-#include "llvm/Support/raw_ostream.h"
+#include "util/log.hpp"
 
 #define DEBUG_TYPE "inspection-checker"
 
@@ -40,11 +39,11 @@ void InspectionChecker::post_check_stmt(const clang::CallExpr* call_expr,
 
 void InspectionChecker::dump_zval(const clang::Expr* expr,
                                   CheckerContext& ctx) const {
-    LLVM_DEBUG(llvm::outs() << "dump zval: "; expr->dumpColor();
-               llvm::outs() << "\n";);
+    knight_log_nl(llvm::outs() << "dump zval: "; expr->dumpColor();
+                  llvm::outs() << "\n";);
 
     auto state = ctx.get_state();
-    LLVM_DEBUG(llvm::outs() << "state: "; state->dump(llvm::outs()));
+    knight_log_nl(llvm::outs() << "state: "; state->dump(llvm::outs()));
 
     if (expr == nullptr || !expr->getType()->isIntegralOrEnumerationType()) {
         return;
@@ -58,11 +57,11 @@ void InspectionChecker::dump_zval(const clang::Expr* expr,
         }
     }
 
-    LLVM_DEBUG(llvm::outs() << "sexpr: "; sexpr.value()->dump(llvm::outs());
-               llvm::outs() << "\n";);
+    knight_log_nl(llvm::outs() << "sexpr: "; sexpr.value()->dump(llvm::outs());
+                  llvm::outs() << "\n";);
 
     if (auto znum = sexpr.value()->get_as_znum()) {
-        LLVM_DEBUG(llvm::outs() << "return znum: " << *znum << "\n";);
+        knight_log(llvm::outs() << "return znum: " << *znum << "\n";);
         return;
     }
 
@@ -71,15 +70,15 @@ void InspectionChecker::dump_zval(const clang::Expr* expr,
         return;
     }
 
-    LLVM_DEBUG(llvm::outs() << "zvar: " << *zvar << "\n";);
+    knight_log_nl(llvm::outs() << "zvar: " << *zvar << "\n";);
     if (auto zitv_dom_opt = state->get_ref< ZIntervalDom >()) {
         const ZIntervalDom* zitv_dom = zitv_dom_opt.value();
-        LLVM_DEBUG(llvm::outs() << "zinterval dom: ";
-                   zitv_dom->dump(llvm::outs());
-                   llvm::outs() << "\n";
-                   llvm::outs() << "zitv: ";
-                   zitv_dom->get_value(*zvar).dump(llvm::outs());
-                   llvm::outs() << "\n";);
+        knight_log_nl(llvm::outs() << "zinterval dom: ";
+                      zitv_dom->dump(llvm::outs());
+                      llvm::outs() << "\n";
+                      llvm::outs() << "zitv: ";
+                      zitv_dom->get_value(*zvar).dump(llvm::outs());
+                      llvm::outs() << "\n";);
         llvm::SmallString< ZValStrMaxLen > zval_str;
         llvm::raw_svector_ostream os(zval_str);
         zitv_dom->get_value(*zvar).dump(os);

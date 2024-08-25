@@ -19,7 +19,7 @@
 #include "dfa/analysis/events.hpp"
 #include "dfa/constraint/linear.hpp"
 #include "dfa/program_state.hpp"
-#include "llvm/Support/raw_ostream.h"
+#include "util/log.hpp"
 
 namespace knight::dfa {
 

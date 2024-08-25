@@ -13,7 +13,7 @@
 
 #pragma once
 
-#include <llvm/Support/raw_ostream.h>
+#include "util/log.hpp"
 
 #include "dfa/analysis/analyses.hpp"
 #include "dfa/analysis_context.hpp"

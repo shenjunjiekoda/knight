@@ -18,7 +18,7 @@
 #include <llvm/ADT/DenseMap.h>
 #include <llvm/ADT/DenseSet.h>
 #include <llvm/ADT/FoldingSet.h>
-#include <llvm/Support/raw_ostream.h>
+#include "util/log.hpp"
 
 #include "dfa/domain/num/qnum.hpp"
 #include "dfa/domain/num/znum.hpp"

@@ -17,7 +17,7 @@
 #include <clang/AST/DeclBase.h>
 #include <llvm/ADT/FoldingSet.h>
 #include <llvm/Support/Allocator.h>
-#include <llvm/Support/raw_ostream.h>
+#include "util/log.hpp"
 
 #include "dfa/proc_cfg.hpp"
 #include "util/assert.hpp"

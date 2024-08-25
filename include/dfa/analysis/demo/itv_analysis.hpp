@@ -26,7 +26,7 @@
 #include <clang/AST/Decl.h>
 #include <clang/AST/Expr.h>
 #include <clang/AST/Stmt.h>
-#include <llvm/Support/raw_ostream.h>
+#include "util/log.hpp"
 
 namespace knight::dfa {
 

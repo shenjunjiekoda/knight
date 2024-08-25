@@ -30,7 +30,7 @@
 #include <clang/Basic/SourceLocation.h>
 #include <llvm/ADT/APSInt.h>
 #include <llvm/ADT/StringRef.h>
-#include <llvm/Support/raw_ostream.h>
+#include "util/log.hpp"
 
 namespace knight::dfa {
 

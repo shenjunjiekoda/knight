@@ -25,7 +25,7 @@
 #include <clang/Tooling/Core/Replacement.h>
 #include <llvm/ADT/IntrusiveRefCntPtr.h>
 #include <llvm/Support/Process.h>
-#include <llvm/Support/raw_ostream.h>
+#include "util/log.hpp"
 
 namespace knight {
 

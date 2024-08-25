@@ -14,7 +14,7 @@
 #include "dfa/analysis/demo/itv_analysis.hpp"
 #include "dfa/constraint/linear.hpp"
 #include "dfa/domain/interval_dom.hpp"
-#include "llvm/Support/raw_ostream.h"
+#include "util/log.hpp"
 
 #define DEBUG_TYPE "ItvAnalysis"
 
@@ -22,16 +22,17 @@ namespace knight::dfa {
 
 void ItvAnalysis::analyze_begin_function(
     [[maybe_unused]] AnalysisContext& ctx) const {
-    LLVM_DEBUG(llvm::outs() << "ItvAnalysis::analyze_begin_function()\nstate:";
-               ctx.get_state()->dump(llvm::outs());
-               llvm::outs() << "\n";);
+    knight_log_nl(llvm::outs()
+                      << "ItvAnalysis::analyze_begin_function()\nstate:";
+                  ctx.get_state()->dump(llvm::outs());
+                  llvm::outs() << "\n";);
 }
 
 void ItvAnalysis::post_analyze_stmt(const clang::ReturnStmt* return_stmt,
                                     AnalysisContext& ctx) const {
-    LLVM_DEBUG(llvm::outs() << "ItvAnalysis::post analyze ReturnStmt: \n";
-               return_stmt->dumpColor();
-               llvm::outs() << "\n";);
+    knight_log_nl(llvm::outs() << "ItvAnalysis::post analyze ReturnStmt: \n";
+                  return_stmt->dumpColor();
+                  llvm::outs() << "\n";);
 
     auto state = ctx.get_state();
 
@@ -44,12 +45,12 @@ void ItvAnalysis::post_analyze_stmt(const clang::ReturnStmt* return_stmt,
     if (!ret_val_sexpr) {
         return;
     }
-    LLVM_DEBUG(llvm::outs() << "returning sexpr: ";
-               ret_val_sexpr.value()->dump(llvm::outs());
-               llvm::outs() << "\n";);
+    knight_log_nl(llvm::outs() << "returning sexpr: ";
+                  ret_val_sexpr.value()->dump(llvm::outs());
+                  llvm::outs() << "\n";);
 
     if (auto znum = ret_val_sexpr.value()->get_as_znum()) {
-        LLVM_DEBUG(llvm::outs() << "return znum: " << *znum << "\n";);
+        knight_log_nl(llvm::outs() << "return znum: " << *znum << "\n";);
         return;
     }
     auto zvar = ret_val_sexpr.value()->get_as_zvariable();
@@ -57,29 +58,29 @@ void ItvAnalysis::post_analyze_stmt(const clang::ReturnStmt* return_stmt,
         return;
     }
 
-    LLVM_DEBUG(llvm::outs() << "return zvar: " << *zvar << "\n";
-               if (auto zitv_dom_opt = state->get_ref< ZIntervalDom >()) {
-                   const ZIntervalDom* zitv_dom = zitv_dom_opt.value();
-                   llvm::outs() << "zinterval dom: ";
-                   zitv_dom->dump(llvm::outs());
-                   llvm::outs() << "\n";
-                   llvm::outs() << "return zitv: ";
-                   zitv_dom->get_value(*zvar).dump(llvm::outs());
-                   llvm::outs() << "\n";
-               });
+    knight_log_nl(llvm::outs() << "return zvar: " << *zvar << "\n";
+                  if (auto zitv_dom_opt = state->get_ref< ZIntervalDom >()) {
+                      const ZIntervalDom* zitv_dom = zitv_dom_opt.value();
+                      llvm::outs() << "zinterval dom: ";
+                      zitv_dom->dump(llvm::outs());
+                      llvm::outs() << "\n";
+                      llvm::outs() << "return zitv: ";
+                      zitv_dom->get_value(*zvar).dump(llvm::outs());
+                      llvm::outs() << "\n";
+                  });
 }
 
 void ItvAnalysis::EventHandler::handle(const ZVarAssignZVar& assign) const {
-    LLVM_DEBUG(llvm::outs() << "ZVarAssignZVar: "; assign.dump(llvm::outs());
-               llvm::outs() << "\n";);
+    knight_log_nl(llvm::outs() << "ZVarAssignZVar: "; assign.dump(llvm::outs());
+                  llvm::outs() << "\n";);
 
     auto zitv = state->get_clone< ZIntervalDom >();
     zitv->assign_var(assign.x, assign.y);
     ctx->set_state(state->set< ZIntervalDom >(zitv));
 }
 void ItvAnalysis::EventHandler::handle(const ZVarAssignZNum& assign) const {
-    LLVM_DEBUG(llvm::outs() << "ZVarAssignZNum: "; assign.dump(llvm::outs());
-               llvm::outs() << "\n";);
+    knight_log_nl(llvm::outs() << "ZVarAssignZNum: "; assign.dump(llvm::outs());
+                  llvm::outs() << "\n";);
 
     auto zitv = state->get_clone< ZIntervalDom >();
     zitv->assign_num(assign.x, assign.y);
@@ -87,9 +88,9 @@ void ItvAnalysis::EventHandler::handle(const ZVarAssignZNum& assign) const {
 }
 void ItvAnalysis::EventHandler::handle(
     const ZVarAssignZLinearExpr& assign) const {
-    LLVM_DEBUG(llvm::outs() << "ZVarAssignZLinearExpr: ";
-               assign.dump(llvm::outs());
-               llvm::outs() << "\n";);
+    knight_log_nl(llvm::outs() << "ZVarAssignZLinearExpr: ";
+                  assign.dump(llvm::outs());
+                  llvm::outs() << "\n";);
 
     auto zitv = state->get_clone< ZIntervalDom >();
     zitv->assign_linear_expr(assign.x, assign.y);
@@ -97,7 +98,8 @@ void ItvAnalysis::EventHandler::handle(
 }
 
 void ItvAnalysis::EventHandler::handle(const ZVarAssignZCast& assign) const {
-    LLVM_DEBUG(llvm::outs() << "ZVarAssignZCast: "; assign.dump(llvm::outs()););
+    knight_log_nl(llvm::outs() << "ZVarAssignZCast: ";
+                  assign.dump(llvm::outs()););
 
     auto zitv = state->get_clone< ZIntervalDom >();
     zitv->assign_cast(assign.dst_type,
@@ -109,9 +111,9 @@ void ItvAnalysis::EventHandler::handle(const ZVarAssignZCast& assign) const {
 
 void ItvAnalysis::EventHandler::handle(
     const ZVarAssignBinaryVarVar& assign) const {
-    LLVM_DEBUG(llvm::outs() << "ZVarAssignBinaryVarVar: ";
-               assign.dump(llvm::outs());
-               llvm::outs() << "\n";);
+    knight_log_nl(llvm::outs() << "ZVarAssignBinaryVarVar: ";
+                  assign.dump(llvm::outs());
+                  llvm::outs() << "\n";);
 
     auto zitv = state->get_clone< ZIntervalDom >();
     zitv->assign_binary_var_var_impl(assign.op, assign.x, assign.y, assign.z);
@@ -119,9 +121,9 @@ void ItvAnalysis::EventHandler::handle(
 }
 void ItvAnalysis::EventHandler::handle(
     const ZVarAssignBinaryVarNum& assign) const {
-    LLVM_DEBUG(llvm::outs() << "ZVarAssignBinaryVarNum: ";
-               assign.dump(llvm::outs());
-               llvm::outs() << "\n";);
+    knight_log_nl(llvm::outs() << "ZVarAssignBinaryVarNum: ";
+                  assign.dump(llvm::outs());
+                  llvm::outs() << "\n";);
 
     auto zitv = state->get_clone< ZIntervalDom >();
     zitv->assign_binary_var_num_impl(assign.op, assign.x, assign.y, assign.z);

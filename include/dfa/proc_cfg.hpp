@@ -17,7 +17,7 @@
 #include <clang/Analysis/CFG.h>
 
 #include <llvm/ADT/BitVector.h>
-#include <llvm/Support/raw_ostream.h>
+#include "util/log.hpp"
 
 #include "support/dumpable.hpp"
 #include "support/graph.hpp"

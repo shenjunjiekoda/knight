@@ -1,6 +1,7 @@
 #pragma once
 
 #include "dfa/location_context.hpp"
+#include "util/log.hpp"
 #include "wto_iterator.hpp"
 
 #ifdef DEBUG_TYPE
@@ -16,8 +17,8 @@ template < graph G, typename GraphTrait >
 void WtoIterator< G, GraphTrait >::visit(const WtoVertex& vertex) {
     auto node = vertex.get_node();
     ProgramStateRef state_pre = this->m_fp_iterator.get_pre(node);
-    LLVM_DEBUG(llvm::outs()
-                   << "wto visit node: " << node->getBlockID() << "\n";);
+    knight_log(llvm::outs()
+               << "wto visit node: " << node->getBlockID() << "\n");
 
     for (auto it = GraphTrait::pred_begin(node),
               end = GraphTrait::pred_end(node);
@@ -25,7 +26,7 @@ void WtoIterator< G, GraphTrait >::visit(const WtoVertex& vertex) {
          ++it) {
         auto pred = *it;
 
-        LLVM_DEBUG(
+        knight_log_nl(
             llvm::outs() << "join pred `" << node->getBlockID() << "` with"
                          << " node `" << pred->getBlockID() << "`\n";
             llvm::outs() << "state_pre before join: ";
@@ -43,8 +44,8 @@ void WtoIterator< G, GraphTrait >::visit(const WtoVertex& vertex) {
                                                    pred)),
                             get_location_context(node));
 
-        LLVM_DEBUG(llvm::outs() << "state_pre after join: ";
-                   state_pre->dump(llvm::outs()););
+        knight_log_nl(llvm::outs() << "state_pre after join: ";
+                      state_pre->dump(llvm::outs()););
     }
     this->m_fp_iterator.set_pre(node, state_pre);
     this->m_fp_iterator

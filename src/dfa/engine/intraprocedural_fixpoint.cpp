@@ -19,7 +19,7 @@
 #include "dfa/engine/block_engine.hpp"
 #include "dfa/proc_cfg.hpp"
 #include "dfa/program_state.hpp"
-#include "llvm/Support/raw_ostream.h"
+#include "util/log.hpp"
 
 #define DEBUG_TYPE "intra-fixpoint"
 
@@ -79,11 +79,11 @@ ProgramStateRef IntraProceduralFixpointIterator::transfer_node(
                                 m_frame);
     engine.exec();
 
-    LLVM_DEBUG(llvm::outs()
-                   << "after transfer node: " << node->getBlockID() << " "
-                   << "state: ";
-               engine.get_state()->dump(llvm::outs());
-               llvm::outs() << "\n";);
+    knight_log_nl(llvm::outs()
+                      << "after transfer node: " << node->getBlockID() << " "
+                      << "state: ";
+                  engine.get_state()->dump(llvm::outs());
+                  llvm::outs() << "\n";);
 
     return engine.get_state();
 }
@@ -130,12 +130,12 @@ void IntraProceduralFixpointIterator::check_pre(
         auto pre_state = it == m_stmt_pre.end() ? m_state_mgr.get_bottom_state()
                                                 : it->second;
 
-        LLVM_DEBUG(llvm::outs() << "pre state for stmt: "; stmt->dumpColor();
-                   llvm::outs() << " : ";
-                   pre_state->dump(llvm::outs());
-                   llvm::outs() << "\n";
-                   llvm::outs()
-                   << "state in cache: " << (it != m_stmt_pre.end()) << "\n";);
+        knight_log_nl(llvm::outs() << "pre state for stmt: "; stmt->dumpColor();
+                      llvm::outs() << " : ";
+                      pre_state->dump(llvm::outs());
+                      llvm::outs() << "\n";
+                      llvm::outs() << "state in cache: "
+                                   << (it != m_stmt_pre.end()) << "\n";);
 
         checker_ctx.set_current_state(pre_state);
         set_loc();

@@ -30,7 +30,7 @@
 
 #include <llvm/ADT/ImmutableMap.h>
 #include <llvm/ADT/IntrusiveRefCntPtr.h>
-#include <llvm/Support/raw_ostream.h>
+#include "util/log.hpp"
 
 namespace knight::dfa {
 

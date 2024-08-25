@@ -16,8 +16,8 @@
 #include <llvm/Support/Process.h>
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/Support/WithColor.h>
-#include <llvm/Support/raw_ostream.h>
 #include <cstdint>
+#include "util/log.hpp"
 
 #include <clang/Tooling/CommonOptionsParser.h>
 #include <string>
