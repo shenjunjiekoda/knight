@@ -14,10 +14,11 @@
 #pragma once
 
 #include <llvm/ADT/StringRef.h>
-#include "util/log.hpp"
+#include <llvm/Support/Registry.h>
 
 #include "dfa/domain/domains.hpp"
 #include "support/dom.hpp"
+#include "util/log.hpp"
 
 #include <memory>
 #include <unordered_set>
@@ -117,6 +118,38 @@ struct AbsDomBase {
     virtual void dump(llvm::raw_ostream& os) const {}
 
 } __attribute__((aligned(4))) __attribute__((packed)); // class AbsDomBase
+
+using DomainDefaultValFn = std::function< SharedVal() >;
+using DomainBottomValFn = std::function< SharedVal() >;
+
+extern std::unordered_map< DomainKind, DomainDefaultValFn > DefaultValFns;
+extern std::unordered_map< DomainKind, DomainBottomValFn > BottomValFns;
+
+template < typename Dom >
+struct DomainRegistry {
+    DomainRegistry() {
+        DefaultValFns[Dom::get_kind()] = Dom::default_val;
+        BottomValFns[Dom::get_kind()] = Dom::bottom_val;
+    }
+};
+
+[[nodiscard]] inline std::optional< DomainDefaultValFn >
+get_domain_default_val_fn(DomID id) {
+    auto it = DefaultValFns.find(get_domain_kind(id));
+    if (it == DefaultValFns.end()) {
+        return std::nullopt;
+    }
+    return it->second;
+}
+
+[[nodiscard]] inline std::optional< DomainBottomValFn >
+get_domain_bottom_val_fn(DomID id) {
+    auto it = BottomValFns.find(get_domain_kind(id));
+    if (it == BottomValFns.end()) {
+        return std::nullopt;
+    }
+    return it->second;
+}
 
 /// \brief Base wrapper class for all domains
 ///

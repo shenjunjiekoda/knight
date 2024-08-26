@@ -66,7 +66,7 @@ class SymbolResolver
 
     void VisitDeclStmt(const clang::DeclStmt* decl_stmt) const;
 
-    void VisitDeclRefExpr(const clang::DeclRefExpr* decl_ref_expr) const;
+    void handle_load(const clang::Expr* load_expr) const;
 
     void VisitCastExpr(const clang::CastExpr* cast_expr) const;
 

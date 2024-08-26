@@ -18,6 +18,7 @@
 #include "dfa/constraint/linear.hpp"
 #include "dfa/domain/dom_base.hpp"
 #include "dfa/domain/domains.hpp"
+#include "dfa/domain/numerical/numerical_base.hpp"
 #include "dfa/location_context.hpp"
 #include "dfa/proc_cfg.hpp"
 #include "dfa/region/region.hpp"
@@ -61,7 +62,7 @@ namespace knight::dfa {
 
 using ProgramStateRef = llvm::IntrusiveRefCntPtr< const ProgramState >;
 using DomValMap = llvm::DenseMap< DomID, SharedVal >;
-using RegionSExprMap = llvm::DenseMap< RegionRef, SExprRef >;
+using RegionDefMap = llvm::DenseMap< RegionRef, const RegionSymVal* >;
 using StmtSExprMap = llvm::DenseMap< ProcCFG::StmtRef, SExprRef >;
 
 namespace internal {
@@ -85,8 +86,14 @@ class ProgramState : public llvm::FoldingSetNode {
     /// \brief domain value map. (domain id -> abstract value)
     DomValMap m_dom_val;
 
-    /// \brief region sexpr map. (memory region -> sexpr)
-    RegionSExprMap m_region_sexpr;
+    /// \brief znumerical domain.
+    DomainKind m_zdom_kind;
+
+    /// \brief qnumerical domain.
+    DomainKind m_qdom_kind;
+
+    /// \brief region def map. (memory region -> def)
+    RegionDefMap m_region_defs;
 
     /// \brief stmt sexpr map. (clang stmt -> sexpr)
     StmtSExprMap m_stmt_sexpr;
@@ -104,7 +111,7 @@ class ProgramState : public llvm::FoldingSetNode {
     ProgramState(ProgramStateManager* state_mgr,
                  RegionManager* region_mgr,
                  DomValMap dom_val,
-                 RegionSExprMap region_sexpr,
+                 RegionDefMap region_defs,
                  StmtSExprMap stmt_sexpr,
                  ConstraintSystem cst_system);
 
@@ -130,6 +137,14 @@ class ProgramState : public llvm::FoldingSetNode {
         return *m_region_mgr;
     }
 
+    [[nodiscard]] DomID get_zdom_id() const {
+        return get_domain_id(m_zdom_kind);
+    }
+
+    [[nodiscard]] DomID get_qdom_id() const {
+        return get_domain_id(m_qdom_kind);
+    }
+
   public:
     [[nodiscard]] std::optional< RegionRef > get_region(
         ProcCFG::DeclRef decl, const StackFrame*) const;
@@ -141,14 +156,14 @@ class ProgramState : public llvm::FoldingSetNode {
     [[nodiscard]] std::optional< QVariable > try_get_qvariable(
         ProcCFG::DeclRef decl, const StackFrame* frame) const;
 
-    [[nodiscard]] ProgramStateRef set_region_sexpr(RegionRef region,
-                                                   SExprRef sexpr) const;
+    [[nodiscard]] ProgramStateRef set_region_def(RegionRef region,
+                                                 const RegionSymVal* def) const;
     [[nodiscard]] ProgramStateRef set_stmt_sexpr(ProcCFG::StmtRef stmt,
                                                  SExprRef sexpr) const;
     [[nodiscard]] ProgramStateRef set_constraint_system(
         const ConstraintSystem& cst_system) const;
 
-    [[nodiscard]] std::optional< SExprRef > get_region_sexpr(
+    [[nodiscard]] std::optional< const RegionSymVal* > get_region_def(
         RegionRef region) const;
     [[nodiscard]] std::optional< SExprRef > get_stmt_sexpr(
         ProcCFG::StmtRef stmt) const;
@@ -215,7 +230,7 @@ class ProgramState : public llvm::FoldingSetNode {
         return get_ref(Domain::get_kind()).has_value();
     }
 
-    /// \brief Get the abstract cal with the given domain.
+    /// \brief Get the abstract value reference with the given domain.
     template < typename Domain >
     [[nodiscard]] std::optional< const Domain* > get_ref() const {
         auto it = m_dom_val.find(get_domain_id(Domain::get_kind()));
@@ -224,6 +239,17 @@ class ProgramState : public llvm::FoldingSetNode {
         }
         return std::make_optional(
             static_cast< const Domain* >(it->second.get()));
+    }
+
+    /// \brief Get the znumerical value reference.
+    [[nodiscard]] std::optional< const ZNumericalDomBase* > get_zdom_ref()
+        const {
+        auto it = m_dom_val.find(get_domain_id(m_zdom_kind));
+        if (it == m_dom_val.end()) {
+            return std::nullopt;
+        }
+        return std::make_optional(
+            dynamic_cast< const ZNumericalDomBase* >(it->second.get()));
     }
 
     /// \brief Get the cloned abstract value with the given domain.
@@ -239,6 +265,18 @@ class ProgramState : public llvm::FoldingSetNode {
         }
         std::shared_ptr< AbsDomBase > base_ptr(it->second->clone());
         return std::static_pointer_cast< Domain >(base_ptr);
+    }
+
+    /// \brief Get the cloned znumerical value.
+    [[nodiscard]] SharedZNumericalVal get_zdom_clone() const {
+        auto it = m_dom_val.find(get_zdom_id());
+        if (it == m_dom_val.end()) {
+            auto default_fn = get_domain_default_val_fn(get_zdom_id());
+            return std::static_pointer_cast< ZNumericalDomBase >(
+                (*default_fn)());
+        }
+        std::shared_ptr< AbsDomBase > base_ptr(it->second->clone());
+        return std::static_pointer_cast< ZNumericalDomBase >(base_ptr);
     }
 
     /// \brief Remove the given domain from the program state.
@@ -258,6 +296,15 @@ class ProgramState : public llvm::FoldingSetNode {
     [[nodiscard]] ProgramStateRef set(SharedVal val) const {
         auto dom_val = m_dom_val;
         dom_val[get_domain_id(Domain::get_kind())] = std::move(val);
+        return internal::
+            get_persistent_state_with_copy_and_dom_val_map(get_state_manager(),
+                                                           *this,
+                                                           std::move(dom_val));
+    }
+
+    [[nodiscard]] ProgramStateRef set_zdom(SharedZNumericalVal val) const {
+        auto dom_val = m_dom_val;
+        dom_val[get_zdom_id()] = std::move(val);
         return internal::
             get_persistent_state_with_copy_and_dom_val_map(get_state_manager(),
                                                            *this,
@@ -313,9 +360,9 @@ class ProgramState : public llvm::FoldingSetNode {
             id.AddInteger(dom_id);
             id.AddPointer(val.get());
         }
-        for (const auto& [region, sexpr] : s->m_region_sexpr) {
+        for (const auto& [region, def] : s->m_region_defs) {
             id.AddPointer(region);
-            id.AddPointer(sexpr);
+            id.AddPointer(def);
         }
         for (const auto& [stmt, sexpr] : s->m_stmt_sexpr) {
             id.AddPointer(stmt);
@@ -376,6 +423,14 @@ class ProgramStateManager {
     [[nodiscard]] llvm::BumpPtrAllocator& get_allocator() { return m_alloc; }
 
   public:
+    [[nodiscard]] DomainKind get_zdom_kind() const {
+        return m_analysis_mgr.get_context().get_current_options().zdom;
+    }
+
+    [[nodiscard]] DomainKind get_qdom_kind() const {
+        return m_analysis_mgr.get_context().get_current_options().qdom;
+    }
+
     [[nodiscard]] ProgramStateRef get_default_state();
     [[nodiscard]] ProgramStateRef get_bottom_state();
 
@@ -387,8 +442,8 @@ class ProgramStateManager {
     get_persistent_state_with_copy_and_dom_val_map(const ProgramState& state,
                                                    DomValMap dom_val);
     [[nodiscard]] ProgramStateRef
-    get_persistent_state_with_copy_and_region_sexpr_map(
-        const ProgramState& state, RegionSExprMap region_sexpr);
+    get_persistent_state_with_copy_and_region_defs_map(
+        const ProgramState& state, RegionDefMap region_defs);
     [[nodiscard]] ProgramStateRef
     get_persistent_state_with_copy_and_stmt_sexpr_map(const ProgramState& state,
                                                       StmtSExprMap stmt_sexpr);
@@ -399,7 +454,7 @@ class ProgramStateManager {
     get_persistent_state_with_copy_and_stateful_member_map(
         const ProgramState& state,
         DomValMap dom_val,
-        RegionSExprMap region_sexpr,
+        RegionDefMap region_defs,
         StmtSExprMap stmt_sexpr,
         ConstraintSystem system);
 

@@ -12,6 +12,7 @@
 //===------------------------------------------------------------------===//
 
 #include "dfa/analysis/analyses.hpp"
+#include "dfa/analysis/core/numerical_analysis.hpp"
 #include "dfa/analysis/core/symbol_resolver.hpp"
 #include "tooling/factory.hpp"
 #include "tooling/module.hpp"
@@ -24,6 +25,7 @@ class CoreModule : public KnightModule {
     void add_to_factory(KnightFactory& factory) override {
         // Register analyses.
         factory.register_analysis< dfa::SymbolResolver >();
+        factory.register_analysis< dfa::NumericalAnalysis >();
 
         // Register checkers.
     }

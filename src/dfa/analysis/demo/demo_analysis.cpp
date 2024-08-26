@@ -19,16 +19,13 @@ namespace knight::dfa {
 
 void DemoAnalysis::analyze_begin_function(
     [[maybe_unused]] AnalysisContext& ctx) const {
-    knight_log_nl(llvm::outs()
-                      << "DemoAnalysis::analyze_begin_function()\nstate:";
-                  ctx.get_state()->dump(llvm::outs());
+    knight_log_nl(llvm::outs() << "state:"; ctx.get_state()->dump(llvm::outs());
                   llvm::outs() << "\n";);
 }
 
 void DemoAnalysis::pre_analyze_stmt(const clang::DeclStmt* decl_stmt,
                                     AnalysisContext& ctx) const {
-    knight_log_nl(llvm::outs() << "DemoAnalysis::pre_analyze DeclStmt: \n";
-                  decl_stmt->dumpColor();
+    knight_log_nl(llvm::outs() << "DeclStmt: \n"; decl_stmt->dumpColor();
                   llvm::outs() << "\n";);
 
     auto state = ctx.get_state();
@@ -75,8 +72,7 @@ void DemoAnalysis::pre_analyze_stmt(const clang::DeclStmt* decl_stmt,
 
 void DemoAnalysis::pre_analyze_stmt(const clang::ReturnStmt* return_stmt,
                                     AnalysisContext& ctx) const {
-    knight_log_nl(llvm::outs() << "DemoAnalysis::pre_analyze ReturnStmt: \n";
-                  return_stmt->dumpColor();
+    knight_log_nl(llvm::outs() << "ReturnStmt: \n"; return_stmt->dumpColor();
                   llvm::outs() << "\n";);
 
     auto map_dom_opt = ctx.get_state()->get_ref< DemoMapDomain >();

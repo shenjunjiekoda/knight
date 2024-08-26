@@ -750,7 +750,7 @@ class ArgumentRegion : public DeclRegion {
 
             os << " -> ";
         } else {
-            os << "top-level stack argument: ";
+            os << "tl-arg: ";
         }
 
         if (m_param_decl != nullptr) {

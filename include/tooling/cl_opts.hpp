@@ -19,6 +19,7 @@
 
 #include <clang/Driver/Options.h>
 #include <clang/Tooling/CommonOptionsParser.h>
+#include "dfa/domain/domains.hpp"
 
 namespace knight::cl_opts {
 
@@ -49,6 +50,28 @@ checker names.
 )"),
                                        cl::init("-*"),
                                        cl::cat(knight_category));
+
+inline cl::opt< dfa::DomainKind, false, llvm::cl::parser< dfa::DomainKind > >
+    zdomain("zdom",
+            desc(R"(
+Choose the znumerical domain.
+)"),
+            cl::values(clEnumValN(
+                dfa::DomainKind::ZIntervalDomain,
+                "itv",
+                dfa::get_domain_desc(dfa::DomainKind::ZIntervalDomain))),
+            cl::init(dfa::DomainKind::ZIntervalDomain));
+
+inline cl::opt< dfa::DomainKind, false, llvm::cl::parser< dfa::DomainKind > >
+    qdomain("qdom",
+            desc(R"(
+Choose the qnumerical domain.
+)"),
+            cl::values(clEnumValN(
+                dfa::DomainKind::QIntervalDomain,
+                "itv",
+                dfa::get_domain_desc(dfa::DomainKind::QIntervalDomain))),
+            cl::init(dfa::DomainKind::QIntervalDomain));
 
 inline cl::opt< std::string > checkers("checkers",
                                        desc(R"(

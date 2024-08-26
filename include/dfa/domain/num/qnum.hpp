@@ -333,6 +333,90 @@ template < typename T, class = std::enable_if_t< ZNumOrIntegral< T >::value > >
                 QNum::NormalizedTag{});
 }
 
+inline QNum operator%(const QNum& lhs, const QNum& rhs) {
+    knight_unreachable("unimplemented");
+}
+
+template < typename T, class = std::enable_if_t< ZNumOrIntegral< T >::value > >
+inline QNum operator%(const QNum& lhs, T rhs) {
+    knight_unreachable("unimplemented");
+}
+
+template < typename T, class = std::enable_if_t< ZNumOrIntegral< T >::value > >
+inline QNum operator%(T lhs, const QNum& rhs) {
+    knight_unreachable("unimplemented");
+}
+
+inline QNum operator&(const QNum& lhs, const QNum& rhs) {
+    knight_unreachable("unimplemented");
+}
+
+template < typename T, class = std::enable_if_t< ZNumOrIntegral< T >::value > >
+inline QNum operator&(const QNum& lhs, T rhs) {
+    knight_unreachable("unimplemented");
+}
+
+template < typename T, class = std::enable_if_t< ZNumOrIntegral< T >::value > >
+inline QNum operator&(T lhs, const QNum& rhs) {
+    knight_unreachable("unimplemented");
+}
+
+inline QNum operator|(const QNum& lhs, const QNum& rhs) {
+    knight_unreachable("unimplemented");
+}
+
+template < typename T, class = std::enable_if_t< ZNumOrIntegral< T >::value > >
+inline QNum operator|(const QNum& lhs, T rhs) {
+    knight_unreachable("unimplemented");
+}
+
+template < typename T, class = std::enable_if_t< ZNumOrIntegral< T >::value > >
+inline QNum operator|(T lhs, const QNum& rhs) {
+    knight_unreachable("unimplemented");
+}
+
+inline QNum operator^(const QNum& lhs, const QNum& rhs) {
+    knight_unreachable("unimplemented");
+}
+
+template < typename T, class = std::enable_if_t< ZNumOrIntegral< T >::value > >
+inline QNum operator^(const QNum& lhs, T rhs) {
+    knight_unreachable("unimplemented");
+}
+
+template < typename T, class = std::enable_if_t< ZNumOrIntegral< T >::value > >
+inline QNum operator^(T lhs, const QNum& rhs) {
+    knight_unreachable("unimplemented");
+}
+
+inline QNum operator<<(const QNum& lhs, const QNum& rhs) {
+    knight_unreachable("unimplemented");
+}
+
+template < typename T, class = std::enable_if_t< ZNumOrIntegral< T >::value > >
+inline QNum operator<<(const QNum& lhs, T rhs) {
+    knight_unreachable("unimplemented");
+}
+
+template < typename T, class = std::enable_if_t< ZNumOrIntegral< T >::value > >
+inline QNum operator<<(T lhs, const QNum& rhs) {
+    knight_unreachable("unimplemented");
+}
+
+inline QNum operator>>(const QNum& lhs, const QNum& rhs) {
+    knight_unreachable("unimplemented");
+}
+
+template < typename T, class = std::enable_if_t< ZNumOrIntegral< T >::value > >
+inline QNum operator>>(const QNum& lhs, T rhs) {
+    knight_unreachable("unimplemented");
+}
+
+template < typename T, class = std::enable_if_t< ZNumOrIntegral< T >::value > >
+inline QNum operator>>(T lhs, const QNum& rhs) {
+    knight_unreachable("unimplemented");
+}
+
 [[nodiscard]] inline bool operator==(const QNum& lhs, const QNum& rhs) {
     return lhs.get_mpq() == rhs.get_mpq();
 }

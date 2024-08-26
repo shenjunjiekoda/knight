@@ -480,8 +480,10 @@ class Driver:
         """
         green = "\033[1;32m"
         red = "\033[1;31m"
-        print(f"\n{green}Passed\033[0m: {self.passed_count}")
-        print(f"{red}Failed\033[0m: {self.failed_count}")
+        if self.passed_count > 0:
+            print(f"\n{green}Passed\033[0m: {self.passed_count}")
+        if self.failed_count > 0:
+            print(f"{red}Failed\033[0m: {self.failed_count}")
 
     def print_cmd(self):
         """

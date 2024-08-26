@@ -350,7 +350,7 @@ class SeparateNumericalDom
 
     void dump(llvm::raw_ostream& os) const override {
         if (is_bottom()) {
-            os << "_|_";
+            os << "⊥";
         } else if (is_top()) {
             os << "T";
         } else {

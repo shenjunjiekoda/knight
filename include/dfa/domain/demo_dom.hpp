@@ -133,7 +133,7 @@ class DemoItvDom : public AbsDom< DemoItvDom > {
 
     void dump(llvm::raw_ostream& os) const override {
         if (is_bottom()) {
-            os << "_|_";
+            os << "⊥";
         } else {
             if (m_lb == m_ub) {
                 os << m_lb;

@@ -216,14 +216,14 @@ class Bound {
                                  const Bound< T >& c,
                                  const Bound< T >& d);
 
+    // template < typename T >
+    // inline Bound< T > abs(const Bound< T >& b);
+
     template < typename T >
-    inline Bound< T > abs(const Bound< T >& b);
+    friend Bound< T > operator<<(const Bound< T >& lhs, const Bound< T >& rhs);
 
-    friend Bound< ZNum > operator<<(const Bound< ZNum >& lhs,
-                                    const Bound< ZNum >& rhs);
-
-    friend Bound< ZNum > operator>>(const Bound< ZNum >& lhs,
-                                    const Bound< ZNum >& rhs);
+    template < typename T >
+    friend Bound< T > operator>>(const Bound< T >& lhs, const Bound< T >& rhs);
 
 }; // class Bound<Num>
 
@@ -342,11 +342,11 @@ inline Bound< Num > abs(const Bound< Num >& b) {
     return -b;
 }
 
-/// \brief Left binary shift of bounds
-inline Bound< ZNum > operator<<(const Bound< ZNum >& lhs,
-                                const Bound< ZNum >& rhs) {
-    using BoundT = Bound< ZNum >;
-    knight_assert_msg(rhs >= (BoundT(ZNum(0))), "right hand side is negative");
+template < typename Num >
+inline Bound< Num > operator<<(const Bound< Num >& lhs,
+                               const Bound< Num >& rhs) {
+    using BoundT = Bound< Num >;
+    knight_assert_msg(rhs >= (BoundT(Num(0))), "right hand side is negative");
 
     if (lhs.is_zero()) {
         return lhs;
@@ -360,10 +360,11 @@ inline Bound< ZNum > operator<<(const Bound< ZNum >& lhs,
     return BoundT(lhs.m_val << rhs.m_val);
 }
 
-inline Bound< ZNum > operator>>(const Bound< ZNum >& lhs,
-                                const Bound< ZNum >& rhs) {
-    using BoundT = Bound< ZNum >;
-    knight_assert_msg(rhs >= (BoundT(ZNum(0))), "right hand side is negative");
+template < typename Num >
+inline Bound< Num > operator>>(const Bound< Num >& lhs,
+                               const Bound< Num >& rhs) {
+    using BoundT = Bound< Num >;
+    knight_assert_msg(rhs >= (BoundT(Num(0))), "right hand side is negative");
 
     if (lhs.is_zero()) {
         return lhs;
@@ -372,7 +373,7 @@ inline Bound< ZNum > operator>>(const Bound< ZNum >& lhs,
         return lhs;
     }
     if (rhs.is_inf()) {
-        return BoundT(ZNum((lhs.m_val >= 0) ? 0 : -1));
+        return BoundT(Num((lhs.m_val >= 0) ? 0 : -1));
     }
     return BoundT(lhs.m_val >> rhs.m_val);
 }

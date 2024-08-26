@@ -15,6 +15,7 @@
 #include "dfa/analysis/analyses.hpp"
 #include "dfa/analysis/analysis_base.hpp"
 #include "dfa/analysis_context.hpp"
+#include "dfa/domain/dom_base.hpp"
 #include "dfa/domain/domains.hpp"
 #include "dfa/program_state.hpp"
 #include "dfa/symbol_manager.hpp"
@@ -202,23 +203,6 @@ std::unordered_set< DomID > AnalysisManager::get_registered_domains_in(
     auto it = m_analysis_domains.find(id);
     if (it == m_analysis_domains.end()) {
         return {};
-    }
-    return it->second;
-}
-
-std::optional< AnalysisManager::DomainDefaultValFn > AnalysisManager::
-    get_domain_default_val_fn(DomID id) const {
-    auto it = m_domain_default_fn.find(id);
-    if (it == m_domain_default_fn.end()) {
-        return std::nullopt;
-    }
-    return it->second;
-}
-std::optional< AnalysisManager::DomainBottomValFn > AnalysisManager::
-    get_domain_bottom_val_fn(DomID id) const {
-    auto it = m_domain_bottom_fn.find(id);
-    if (it == m_domain_bottom_fn.end()) {
-        return std::nullopt;
     }
     return it->second;
 }

@@ -26,12 +26,13 @@ void WtoIterator< G, GraphTrait >::visit(const WtoVertex& vertex) {
          ++it) {
         auto pred = *it;
 
+        knight_log(llvm::outs()
+                       << "join pred `" << node->getBlockID() << "` with"
+                       << " node `" << pred->getBlockID() << "`\n";);
+        knight_log_nl(llvm::outs() << "state_pre before join: ";
+                      state_pre->dump(llvm::outs()););
         knight_log_nl(
-            llvm::outs() << "join pred `" << node->getBlockID() << "` with"
-                         << " node `" << pred->getBlockID() << "`\n";
-            llvm::outs() << "state_pre before join: ";
-            state_pre->dump(llvm::outs());
-            llvm::outs() << "\n pre transfer edge state: ";
+            llvm::outs() << "\npre transfer edge state: ";
             this->m_fp_iterator
                 .transfer_edge(pred, node, this->m_fp_iterator.get_post(pred))
                 ->dump(llvm::outs()););

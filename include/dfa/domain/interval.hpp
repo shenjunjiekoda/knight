@@ -252,7 +252,7 @@ class Interval : public AbsDom< Interval< Num > > {
 
     void dump(llvm::raw_ostream& os) const override {
         if (is_bottom()) {
-            os << "_|_";
+            os << "⊥";
         } else {
             if (m_lb == m_ub) {
                 m_lb.dump(os);
@@ -452,10 +452,10 @@ inline Interval< Num > operator>>(const Interval< Num >& lhs,
         res.join_with(IntervalT(Num(0)));
         return res;
     }
-    BoundT ll = lhs.get_lb() >> shift.get_lb();
-    BoundT lu = lhs.get_lb() >> shift.get_ub();
-    BoundT ul = lhs.get_ub() >> shift.get_lb();
-    BoundT uu = lhs.get_ub() >> shift.get_ub();
+    BoundT ll = (lhs.get_lb() >> shift.get_lb());
+    BoundT lu = (lhs.get_lb() >> shift.get_ub());
+    BoundT ul = (lhs.get_ub() >> shift.get_lb());
+    BoundT uu = (lhs.get_ub() >> shift.get_ub());
     return IntervalT(min(ll, lu, ul, uu), max(ll, lu, ul, uu));
 }
 

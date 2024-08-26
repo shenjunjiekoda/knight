@@ -300,7 +300,7 @@ class MapDom : public AbsDom< MapDom< Key, SeparateValue, domain_kind > > {
 
     void dump(llvm::raw_ostream& os) const override {
         if (is_bottom()) {
-            os << "_|_";
+            os << "⊥";
         } else {
             os << "{";
             bool first = true;

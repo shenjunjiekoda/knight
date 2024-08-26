@@ -281,6 +281,7 @@ class RegionSymVal : public Sym {
                         bool is_external) {
         id.AddInteger(static_cast< unsigned >(SymExprKind::RegionSymbolVal));
         id.AddPointer(region);
+        id.AddPointer(loc_ctx);
         id.AddBoolean(is_external);
     }
 

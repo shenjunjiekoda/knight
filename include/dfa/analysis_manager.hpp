@@ -127,10 +127,6 @@ class AnalysisManager {
 
     /// \brief registered domains
     std::unordered_map< DomID, AnalysisID > m_domains;
-    using DomainDefaultValFn = std::function< SharedVal() >;
-    using DomainBottomValFn = std::function< SharedVal() >;
-    std::unordered_map< DomID, DomainDefaultValFn > m_domain_default_fn;
-    std::unordered_map< DomID, DomainBottomValFn > m_domain_bottom_fn;
     std::unordered_map< AnalysisID, std::unordered_set< DomID > >
         m_analysis_domains;
 
@@ -201,17 +197,16 @@ class AnalysisManager {
     void add_domain_dependency() {
         auto analysis_id = get_analysis_id(Analysis::get_kind());
         auto dom_id = get_domain_id(Dom::get_kind());
+        add_domain_dependency(analysis_id, dom_id);
+    }
+
+    void add_domain_dependency(AnalysisID analysis_id, DomID dom_id) {
         m_domains[dom_id] = analysis_id;
-        m_domain_default_fn[dom_id] = Dom::default_val;
-        m_domain_bottom_fn[dom_id] = Dom::bottom_val;
         m_analysis_domains[analysis_id].insert(dom_id);
     }
+
     [[nodiscard]] std::unordered_set< DomID > get_registered_domains_in(
         AnalysisID id) const;
-    [[nodiscard]] std::optional< DomainDefaultValFn > get_domain_default_val_fn(
-        DomID id) const;
-    [[nodiscard]] std::optional< DomainBottomValFn > get_domain_bottom_val_fn(
-        DomID id) const;
     /// @}
 
     /// \brief callback registrations

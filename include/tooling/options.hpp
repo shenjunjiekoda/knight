@@ -19,12 +19,14 @@
 #include <set>
 #include <string>
 #include <variant>
+#include "dfa/domain/domains.hpp"
+#include "dfa/domain/interval_dom.hpp"
 
 namespace knight {
 
 enum class OptionSource { Default, CommandLine, ConfigFile };
 
-const char* optionSourceToString(OptionSource source);
+const char* option_src_to_string(OptionSource source);
 
 using CheckerOptVal = std::variant< bool, std::string, int >;
 using Extensions = std::set< std::string >;
@@ -32,10 +34,16 @@ using Extensions = std::set< std::string >;
 /// \brief Knight options.
 struct KnightOptions {
     /// \brief Checkers filter.
-    std::string checkers = "";
+    std::string checkers;
 
     /// \brief Analyses filter.
-    std::string analyses = "";
+    std::string analyses;
+
+    /// \brief ZNumerical domain.
+    dfa::DomainKind zdom = dfa::DomainKind::ZIntervalDomain;
+
+    /// \brief QNumerical domain.
+    dfa::DomainKind qdom = dfa::DomainKind::QIntervalDomain;
 
     /// \brief Header file extensions.
     Extensions header_extensions = {"h", "hh", "hpp", "hxx"};
@@ -62,10 +70,11 @@ struct KnightOptions {
 struct KnightOptionsProvider {
     virtual ~KnightOptionsProvider() = default;
 
-    virtual OptionSource get_checker_option_source(
+    [[nodiscard]] virtual OptionSource get_checker_option_source(
         const std::string& option) const = 0;
 
-    virtual KnightOptions get_options_for(const std::string& file) const = 0;
+    [[nodiscard]] virtual KnightOptions get_options_for(
+        const std::string& file) const = 0;
 
     virtual void set_checker_option(const std::string& option,
                                     CheckerOptVal value) = 0;
@@ -78,10 +87,11 @@ struct KnightOptionsDefaultProvider : KnightOptionsProvider {
   public:
     KnightOptionsDefaultProvider();
 
-    OptionSource get_checker_option_source(
+    [[nodiscard]] OptionSource get_checker_option_source(
         const std::string& option) const override;
 
-    KnightOptions get_options_for(const std::string& file) const override;
+    [[nodiscard]] KnightOptions get_options_for(
+        const std::string& file) const override;
 
     void set_checker_option(const std::string& option,
                             CheckerOptVal value) override;
@@ -98,7 +108,7 @@ struct KnightOptionsCommandLineProvider : KnightOptionsDefaultProvider {
   public:
     KnightOptionsCommandLineProvider() = default;
 
-    OptionSource get_checker_option_source(
+    [[nodiscard]] OptionSource get_checker_option_source(
         const std::string& option) const override;
 
     void set_checker_option(const std::string& option,
@@ -110,7 +120,7 @@ struct KnightOptionsCommandLineProvider : KnightOptionsDefaultProvider {
 class KnightOptionsConfigFileProvider
     : public KnightOptionsCommandLineProvider {
   public:
-    KnightOptionsConfigFileProvider(std::string config_file);
+    explicit KnightOptionsConfigFileProvider(std::string config_file);
 };
 
 } // namespace knight

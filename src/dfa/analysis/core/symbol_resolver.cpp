@@ -13,14 +13,28 @@
 
 #include "dfa/analysis/core/symbol_resolver.hpp"
 #include <optional>
+#include "clang/AST/Expr.h"
 #include "dfa/analysis/core/numerical_event.hpp"
 #include "dfa/constraint/linear.hpp"
 #include "dfa/region/region.hpp"
+#include "llvm/Support/Casting.h"
+#include "llvm/Support/raw_ostream.h"
 #include "util/log.hpp"
 
 #define DEBUG_TYPE "SymbolResolver"
 
 namespace knight::dfa {
+
+namespace {
+
+bool is_loading_lvalue(const clang::Expr* expr) {
+    const auto* implicit_cast_expr =
+        llvm::dyn_cast_or_null< clang::ImplicitCastExpr >(expr);
+    return implicit_cast_expr != nullptr &&
+           implicit_cast_expr->getCastKind() == clang::CK_LValueToRValue;
+}
+
+} // anonymous namespace
 
 void SymbolResolver::VisitIntegerLiteral(
     const clang::IntegerLiteral* integer_literal) const {
@@ -35,8 +49,7 @@ void SymbolResolver::VisitIntegerLiteral(
         symbol_manager.get_scalar_int(ZNum(aps_int.getZExtValue()),
                                       integer_literal->getType());
 
-    knight_log_nl(llvm::outs() << "SymbolResolver::VisitIntegerLiteral: "
-                               << "set integer literal: ";
+    knight_log_nl(llvm::outs() << "set integer literal: ";
                   integer_literal->printPretty(llvm::outs(),
                                                nullptr,
                                                m_ctx->get_ast_context()
@@ -98,8 +111,7 @@ void SymbolResolver::VisitUnaryOperator(
                                    unary_operator->getOpcode(),
                                    unary_operator->getType());
 
-    knight_log_nl(llvm::outs() << "SymbolResolver::VisitUnaryOperator: "
-                               << "set unary operator: ";
+    knight_log_nl(llvm::outs() << "set unary operator: ";
                   unary_operator->printPretty(llvm::outs(),
                                               nullptr,
                                               m_ctx->get_ast_context()
@@ -138,10 +150,12 @@ std::pair< SExprRef, ZLinearExpr > SymbolResolver::handle_assign_sexpr_and_cstr(
         return {binary_sexpr, cstr};
     }
 
+    const auto* new_reg_def_val =
+        sym_mgr.get_region_sym_val(*assign_ctx.treg,
+                                   m_ctx->get_current_location_context());
+
     if (assign_ctx.is_int) {
-        ZVariable x(
-            sym_mgr.get_region_sym_val(*assign_ctx.treg,
-                                       m_ctx->get_current_location_context()));
+        ZVariable x(new_reg_def_val);
         cstr += x;
 
         knight_log_nl(llvm::outs() << "zvar x: "; x.dump(llvm::outs());
@@ -161,18 +175,22 @@ std::pair< SExprRef, ZLinearExpr > SymbolResolver::handle_assign_sexpr_and_cstr(
                                                                     *rhs_var},
                                              state,
                                              m_ctx));
+            if (m_ctx->is_state_changed()) {
+                state = m_ctx->get_state();
+            }
             cstr -= (*lhs_var + *rhs_var);
         } else if (!is_direct_assign &&
                    ((lhs_var && rhs_num) || (lhs_num && rhs_var))) {
+            auto y = lhs_var ? *lhs_var : *rhs_var;
+            auto z = lhs_var ? *rhs_num : *lhs_num;
             dispatch_event(
-                LinearAssignEvent(ZVarAssignBinaryVarNum{op,
-                                                         x,
-                                                         lhs_var ? *lhs_var
-                                                                 : *rhs_var,
-                                                         lhs_var ? *rhs_num
-                                                                 : *lhs_num},
+                LinearAssignEvent(ZVarAssignBinaryVarNum{op, x, y, z},
                                   state,
                                   m_ctx));
+            if (m_ctx->is_state_changed()) {
+                state = m_ctx->get_state();
+            }
+            cstr -= (y + z);
         } else if (auto zexpr = binary_sexpr->get_as_zexpr()) {
             if (auto znum = binary_sexpr->get_as_znum()) {
                 dispatch_event(
@@ -193,21 +211,28 @@ std::pair< SExprRef, ZLinearExpr > SymbolResolver::handle_assign_sexpr_and_cstr(
             if (m_ctx->is_state_changed()) {
                 state = m_ctx->get_state();
             }
-            state = state->add_zlinear_constraint(
-                ZLinearConstraint(cstr, LinearConstraintKind::LCK_Equality));
         }
     } else {
         llvm::errs() << "floating point not implemented for now!\n";
     }
-    return {binary_sexpr, cstr};
+
+    if (assign_ctx.treg) {
+        knight_log_nl(llvm::outs() << "\nset new region: ";
+                      assign_ctx.treg.value()->dump(llvm::outs());
+                      llvm::outs() << " to new_def: ";
+                      new_reg_def_val->dump(llvm::outs());
+                      llvm::outs() << "\n");
+
+        state = state->set_region_def(*assign_ctx.treg, new_reg_def_val);
+    }
+    m_ctx->set_state(state);
+
+    return {new_reg_def_val, cstr};
 }
 
 void SymbolResolver::VisitBinaryOperator(
     const clang::BinaryOperator* binary_operator) const {
     using enum clang::BinaryOperator::Opcode;
-
-    knight_log(llvm::dbgs() << "SymbolResolver::VisitBinaryOperator: "
-                            << binary_operator->getOpcodeStr() << "\n");
 
     auto state = m_ctx->get_state();
     auto& sym_mgr = m_ctx->get_symbol_manager();
@@ -299,50 +324,7 @@ void SymbolResolver::VisitBinaryOperator(
                                       LinearConstraintKind::LCK_Equality));
             }
         }
-        // else if (auto qexpr = binary_sexpr->get_as_qexpr()) {
-        //     QVariable x(
-        //         sym_mgr.get_symbol_conjured(binary_operator,
-        //                                     m_ctx->get_current_stack_frame()));
-        //     QLinearExpr cstr(x);
-        //     if (auto qnum = binary_sexpr->get_as_qnum()) {
-        //         dispatch_event(
-        //             LinearAssignEvent(QVarAssignQNum{x, *qnum}, state,
-        //             m_ctx));
-        //         binary_sexpr =
-        //             sym_mgr.get_scalar_float(*qnum,
-        //             binary_operator->getType());
-        //         cstr -= *qnum;
-        //     } else if (auto qvar = binary_sexpr->get_as_qvariable()) {
-        //         dispatch_event(
-        //             LinearAssignEvent(QVarAssignQVar{x, *qvar}, state,
-        //             m_ctx));
-        //         cstr -= *qvar;
-        //     } else {
-        //         dispatch_event(LinearAssignEvent(QVarAssignQLinearExpr{x,
-        //         *qexpr},
-        //                                          state,
-        //                                          m_ctx));
-        //         cstr -= *qexpr;
-        //     }
-        //     if (m_ctx->is_state_changed()) {
-        //         state = m_ctx->get_state();
-        //     }
-        //     state = state->add_qlinear_constraint(
-        //         QLinearConstraint(cstr, LinearConstraintKind::LCK_Equality));
-        // }
-    }
-
-    if (is_assign) {
-        if (auto lhs_region_opt =
-                state->get_region(lhs_expr, m_ctx->get_current_stack_frame())) {
-            knight_log_nl(llvm::outs() << "\n set lhs region: ";
-                          lhs_region_opt.value()->dump(llvm::outs());
-                          llvm::outs() << " to binary_sexpr: ";
-                          binary_sexpr->dump(llvm::outs());
-                          llvm::outs() << "\n");
-
-            state = state->set_region_sexpr(*lhs_region_opt, binary_sexpr);
-        }
+        // TODO(floating-bo): support fp
     }
 
     state = state->set_stmt_sexpr(binary_operator, binary_sexpr);
@@ -390,13 +372,7 @@ void SymbolResolver::VisitDeclStmt(const clang::DeclStmt* decl_stmt) const {
                                       LinearConstraintKind::LCK_Equality));
 
                 init_sexpr_opt = sexpr;
-                state = state->set_region_sexpr(*treg, *init_sexpr_opt);
 
-                knight_log_nl(llvm::outs() << "set typed region sexpr: ";
-                              treg.value()->dump(llvm::outs());
-                              llvm::outs() << " to: ";
-                              init_sexpr_opt.value()->dump(llvm::outs());
-                              llvm::outs() << "\n";);
             } else {
                 llvm::errs() << "no typed region for decl!\n";
             }
@@ -407,8 +383,7 @@ void SymbolResolver::VisitDeclStmt(const clang::DeclStmt* decl_stmt) const {
     if (stmt_sexpr != nullptr) {
         state = state->set_stmt_sexpr(decl_stmt, stmt_sexpr);
 
-        knight_log_nl(llvm::outs() << "set decl_stmt sexpr ";
-                      llvm::outs() << " to: ";
+        knight_log_nl(llvm::outs() << "set decl_stmt sexpr to: ";
                       stmt_sexpr->dump(llvm::outs());
                       llvm::outs() << "\n";);
     }
@@ -416,33 +391,37 @@ void SymbolResolver::VisitDeclStmt(const clang::DeclStmt* decl_stmt) const {
     m_ctx->set_state(state);
 }
 
-void SymbolResolver::VisitDeclRefExpr(
-    const clang::DeclRefExpr* decl_ref_expr) const {
+void SymbolResolver::handle_load(const clang::Expr* load_expr) const {
+    const auto* imp_cast_expr = dyn_cast< clang::ImplicitCastExpr >(load_expr);
+    const auto* src = imp_cast_expr->getSubExpr();
+    const auto* decl_ref_expr = dyn_cast< clang::DeclRefExpr >(src);
+    if (decl_ref_expr == nullptr) {
+        return;
+    }
+
     auto state = m_ctx->get_state();
     SExprRef region_sexpr =
         state
             ->get_stmt_sexpr_or_conjured(decl_ref_expr,
                                          m_ctx->get_current_location_context());
 
-    knight_log_nl(llvm::outs() << "set declref sexpr: ";
+    knight_log_nl(load_expr->dumpColor(); llvm::outs() << "set load sexpr: ";
                   region_sexpr->dump(llvm::outs());
                   llvm::outs() << "\n";);
 
-    m_ctx->set_state(state->set_stmt_sexpr(decl_ref_expr, region_sexpr));
+    m_ctx->set_state(state->set_stmt_sexpr(load_expr, region_sexpr));
 }
 
 void SymbolResolver::analyze_stmt(const clang::Stmt* stmt,
                                   AnalysisContext& ctx) const {
     m_ctx = &ctx;
 
-    knight_log_nl(
-        llvm::outs() << "SymbolResolver::pre_analyze Stmt:";
-        stmt->printPretty(llvm::outs(),
-                          nullptr,
-                          m_ctx->get_ast_context().getPrintingPolicy());
-        llvm::outs() << " \n";
-        stmt->dumpColor();
-        llvm::outs() << "\n";);
+    knight_log(stmt->printPretty(llvm::outs(),
+                                 nullptr,
+                                 m_ctx->get_ast_context().getPrintingPolicy());
+               llvm::outs() << " \n";
+               stmt->dumpColor();
+               llvm::outs() << "\n";);
     if (const auto* cast_expr = llvm::dyn_cast< clang::CastExpr >(stmt)) {
         VisitCastExpr(cast_expr);
         return;
@@ -451,13 +430,6 @@ void SymbolResolver::analyze_stmt(const clang::Stmt* stmt,
 }
 
 void SymbolResolver::VisitCastExpr(const clang::CastExpr* cast_expr) const {
-    knight_log_nl(
-        llvm::outs() << "SymbolResolver::VisitCastExpr: ";
-        cast_expr->printPretty(llvm::outs(),
-                               nullptr,
-                               m_ctx->get_ast_context().getPrintingPolicy());
-        llvm::outs() << "\n";);
-
     auto state = m_ctx->get_state();
     const auto* src = cast_expr->getSubExpr();
     auto src_type = src->getType();
@@ -471,6 +443,12 @@ void SymbolResolver::VisitCastExpr(const clang::CastExpr* cast_expr) const {
         knight_log(llvm::outs() << "not int or float cast!\n";);
         return;
     }
+
+    if (is_loading_lvalue(src)) {
+        handle_load(src);
+        return;
+    }
+
     auto& ast_ctx = m_ctx->get_ast_context();
     auto src_type_size = ast_ctx.getTypeSize(src_type);
     auto dst_type_size = ast_ctx.getTypeSize(dst_type);

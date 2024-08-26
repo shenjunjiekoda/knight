@@ -14,7 +14,7 @@
 #pragma once
 
 #include "clang/AST/Expr.h"
-#include "dfa/analysis/demo/itv_analysis.hpp"
+#include "dfa/analysis/core/numerical_analysis.hpp"
 #include "dfa/checker/checker_base.hpp"
 #include "dfa/checker_context.hpp"
 #include "dfa/checker_manager.hpp"
@@ -46,7 +46,7 @@ class InspectionChecker
 
     static void add_dependencies(CheckerManager& mgr) {
         // add dependencies here
-        mgr.add_checker_dependency< InspectionChecker, ItvAnalysis >();
+        mgr.add_checker_dependency< InspectionChecker, NumericalAnalysis >();
     }
 
     static UniqueCheckerRef register_checker(CheckerManager& mgr,

@@ -5,7 +5,7 @@
 
 namespace knight {
 
-const char* optionSourceToString(OptionSource source) {
+const char* option_src_to_string(OptionSource source) {
     switch (source) {
         case OptionSource::Default:
             return "Default";

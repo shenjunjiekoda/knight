@@ -107,4 +107,35 @@ struct does_derived_dom_can_equals // NOLINT
     : std::bool_constant< derived_dom_has_equals_method< DerivedDom > > {
 }; // struct does_derived_dom_can_equals
 
+template < typename DerivedNumericalDom, typename Num >
+concept derived_numerical_dom_has_widen_with_threshold_method =
+    requires(DerivedNumericalDom& d1,
+             const DerivedNumericalDom& d2,
+             const Num& thr) {
+        { d1.widen_with_threshold(d2, thr) } -> std::same_as< void >;
+    };
+
+template < typename DerivedNumericalDom, typename Num >
+struct does_derived_numerical_dom_can_widen_with_threshold // NOLINT
+    : std::bool_constant< derived_numerical_dom_has_widen_with_threshold_method<
+          DerivedNumericalDom,
+          Num > > {
+}; // struct does_derived_numerical_dom_can_widen_with_threshold
+
+template < typename DerivedNumericalDom, typename Num >
+concept derived_numerical_dom_has_narrow_with_threshold_method =
+    requires(DerivedNumericalDom& d1,
+             const DerivedNumericalDom& d2,
+             const Num& thr) {
+        { d1.narrow_with_threshold(d2, thr) } -> std::same_as< void >;
+    };
+
+template < typename DerivedNumericalDom, typename Num >
+struct does_derived_numerical_dom_can_narrow_with_threshold // NOLINT
+    : std::bool_constant<
+          derived_numerical_dom_has_narrow_with_threshold_method<
+              DerivedNumericalDom,
+              Num > > {
+}; // struct does_derived_numerical_dom_can_narrow_with_threshold
+
 } // namespace knight::dfa

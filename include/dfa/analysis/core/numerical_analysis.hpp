@@ -1,4 +1,4 @@
-//===- itv_analysis.hpp -----------------------------------------------===//
+//===- numerical_analysis.hpp -----------------------------------------===//
 //
 // Copyright (c) 2024 Junjie Shen
 //
@@ -7,17 +7,19 @@
 //
 //===------------------------------------------------------------------===//
 //
-//  This header defines an interval analysis
+//  This header defines an numerical analysis
 //
 //===------------------------------------------------------------------===//
 
 #pragma once
 
+#include "dfa/analysis/analyses.hpp"
 #include "dfa/analysis/analysis_base.hpp"
 #include "dfa/analysis/core/numerical_event.hpp"
 #include "dfa/analysis_context.hpp"
 #include "dfa/constraint/linear.hpp"
 #include "dfa/domain/demo_dom.hpp"
+#include "dfa/domain/domains.hpp"
 #include "dfa/domain/interval_dom.hpp"
 #include "dfa/program_state.hpp"
 #include "dfa/region/region.hpp"
@@ -31,22 +33,19 @@
 namespace knight::dfa {
 
 constexpr unsigned EventHandlerAlignment = 32U;
-class ItvAnalysis
-    : public Analysis< ItvAnalysis,
-                       analyze::BeginFunction,
+class NumericalAnalysis
+    : public Analysis< NumericalAnalysis,
                        analyze::EventListener< LinearAssignEvent >,
                        analyze::PostStmt< clang::ReturnStmt > > {
   public:
-    explicit ItvAnalysis(KnightContext& ctx) : Analysis(ctx) {}
+    explicit NumericalAnalysis(KnightContext& ctx) : Analysis(ctx) {}
 
     [[nodiscard]] static AnalysisKind get_kind() {
-        return AnalysisKind::ItvAnalysis;
+        return AnalysisKind::NumericalAnalysis;
     }
 
-    void analyze_begin_function([[maybe_unused]] AnalysisContext& ctx) const;
-
     struct EventHandler {
-        const ItvAnalysis& analysis;
+        const NumericalAnalysis& analysis;
         ProgramStateRef state;
         AnalysisContext* ctx;
 
@@ -76,15 +75,17 @@ class ItvAnalysis
                            AnalysisContext& ctx) const;
 
     static void add_dependencies(AnalysisManager& mgr) {
-        // add dependencies here
-        mgr.add_domain_dependency< ItvAnalysis, ZIntervalDom >();
+        auto zdom_id =
+            get_domain_id(mgr.get_context().get_current_options().zdom);
+        mgr.add_domain_dependency(get_analysis_id(get_kind()), zdom_id);
+        mgr.add_domain_dependency< NumericalAnalysis, ZIntervalDom >();
     }
 
     static UniqueAnalysisRef register_analysis(AnalysisManager& mgr,
                                                KnightContext& ctx) {
-        return mgr.register_analysis< ItvAnalysis >(ctx);
+        return mgr.register_analysis< NumericalAnalysis >(ctx);
     }
 
-}; // class ItvAnalysis
+}; // class NumericalAnalysis
 
 } // namespace knight::dfa

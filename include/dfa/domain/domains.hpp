@@ -31,7 +31,7 @@ enum class DomainKind {
 #include "dfa/def/domains.def"
 }; // enum class DomainKind
 
-inline llvm::StringRef get_domain_name(DomainKind kind) {
+inline constexpr llvm::StringRef get_domain_name(DomainKind kind) {
     switch (kind) {
 #undef DOMAIN_DEF
 #define DOMAIN_DEF(KIND, NAME, ID, DESC) \
@@ -43,7 +43,7 @@ inline llvm::StringRef get_domain_name(DomainKind kind) {
     }
 }
 
-inline llvm::StringRef get_domain_desc(DomainKind kind) {
+inline constexpr llvm::StringRef get_domain_desc(DomainKind kind) {
     switch (kind) {
 #undef DOMAIN_DEF
 #define DOMAIN_DEF(KIND, NAME, ID, DESC) \
@@ -55,7 +55,7 @@ inline llvm::StringRef get_domain_desc(DomainKind kind) {
     }
 }
 
-inline uint8_t get_domain_id(DomainKind kind) {
+inline constexpr uint8_t get_domain_id(DomainKind kind) {
     switch (kind) {
 #undef DOMAIN_DEF
 #define DOMAIN_DEF(KIND, NAME, ID, DESC) \
@@ -67,7 +67,7 @@ inline uint8_t get_domain_id(DomainKind kind) {
     }
 }
 
-inline DomainKind get_domain_kind(DomID id) {
+inline constexpr DomainKind get_domain_kind(DomID id) {
     switch (id) {
 #undef DOMAIN_DEF
 #define DOMAIN_DEF(KIND, NAME, ID, DESC) \
@@ -79,7 +79,7 @@ inline DomainKind get_domain_kind(DomID id) {
     }
 }
 
-inline llvm::StringRef get_domain_name_by_id(DomID id) {
+inline constexpr llvm::StringRef get_domain_name_by_id(DomID id) {
     return get_domain_name(get_domain_kind(id));
 }
 

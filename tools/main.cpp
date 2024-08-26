@@ -17,6 +17,8 @@
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/Support/WithColor.h>
 #include <cstdint>
+#include "dfa/domain/domains.hpp"
+#include "llvm/Support/raw_ostream.h"
 #include "util/log.hpp"
 
 #include <clang/Tooling/CommonOptionsParser.h>
@@ -85,6 +87,12 @@ std::unique_ptr< KnightOptionsProvider > get_opts_provider() {
     }
     if (dump_cfg.getNumOccurrences() > 0) {
         opts_provider->options.dump_cfg = dump_cfg;
+    }
+    if (zdomain.getNumOccurrences() > 0) {
+        opts_provider->options.zdom = zdomain;
+    }
+    if (qdomain.getNumOccurrences() > 0) {
+        opts_provider->options.qdom = qdomain;
     }
     return std::move(opts_provider);
 }
