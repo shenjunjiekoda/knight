@@ -146,9 +146,9 @@ class Driver:
         """
         Executes a command based on the input string
         """
-        if cmd == "test":
-            self.test()
-        elif cmd == "print_cmd":
+        if cmd == "run":
+            self.run_test()
+        elif cmd == "print_cmd" or cmd == "p":
             self.print_cmd()
         else:
             error(f"Unknown command: {cmd}")
@@ -258,7 +258,7 @@ class Driver:
             elif self.verbose:
                 warning(f"{cur_path}: skiped")
 
-    def test(self):
+    def run_test(self):
         """
         Use multiprocessing to run all tests specified by the input paths and arguments.
         """
@@ -266,7 +266,7 @@ class Driver:
 
         with multiprocessing.Pool(self.jobs) as pool:
             try:
-                results = pool.map(self.run_test, self.knight_commands.items())
+                results = pool.map(self.run_test_for_cmd, self.knight_commands.items())
                 for file_path, error_msg in results:
                     if error_msg:
                         self.failed_count += 1
@@ -285,7 +285,7 @@ class Driver:
                 pool.join()
         self.print_statistic()
 
-    def run_test(self, cmd_pair):
+    def run_test_for_cmd(self, cmd_pair):
         file_path, cmd = cmd_pair
         self.log(f"Running test for {file_path}: {cmd}")
         try:
@@ -504,19 +504,19 @@ class Driver:
         Prints the constructed knight commands in a formatted manner.
         """
         self.construct_knight_commands()
-        for file, cmd in self.knight_commands.items():
-            print(f"file path: \033[1;33m{file}\033[0m:")
+        for counter, (file, cmd) in enumerate(self.knight_commands.items(), start=1):
+            print(f"file {counter} path: \033[1;33m{file}\033[0m:")
             print(f"command: \033[1;32m{cmd}\033[0m")
             print("-" * 80)
+
 
 
 def main():
     parser = argparse.ArgumentParser(description="Run unit tests for Knight.")
     parser.add_argument(
         "subcommand",
-        choices=["test", "print_cmd"],
-        nargs="?",
-        help="The subcommand to run. Default is 'test'.",
+        choices=["run", "print_cmd", "p"],
+        help="The subcommand to select.",
     )
     parser.add_argument("paths", nargs="*", help="Paths to test.")
     parser.add_argument(
@@ -530,9 +530,9 @@ def main():
     )
 
     args = parser.parse_args()
-    # If subcommand is not provided, set it to 'test'
+    
     if args.subcommand is None:
-        args.subcommand = "test"
+        args.subcommand = "run"
 
     driver = Driver(args)
     driver.execute(args.subcommand)
