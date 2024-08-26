@@ -209,16 +209,13 @@ SExprRef ProgramState::get_stmt_sexpr_or_conjured(
 
     auto region_opt = get_region(stmt, frame);
     if (region_opt.has_value()) {
-        if (const auto* typed_region =
-                llvm::dyn_cast< TypedRegion >(region_opt.value())) {
-            // Use region sval as sexpr if we did not bind this region
-            // before.
-            return m_state_mgr->m_symbol_mgr.get_region_sym_val(typed_region,
-                                                                loc_ctx);
-        }
-
         if (auto region_def = get_region_def(region_opt.value())) {
             return *region_def;
+        }
+        if (const auto* typed_region =
+                llvm::dyn_cast< TypedRegion >(region_opt.value())) {
+            return m_state_mgr->m_symbol_mgr.get_region_sym_val(typed_region,
+                                                                loc_ctx);
         }
     }
 
@@ -352,14 +349,20 @@ ProgramStateRef ProgramState::join(const ProgramStateRef& other,
     }
 
     StmtSExprMap stmt_sexpr;
-    for (const auto& [stmt, sexpr] : m_stmt_sexpr) {
+    llvm::for_each(m_stmt_sexpr, [&](const auto& pair) {
+        const auto& [stmt, sexpr] = pair;
         auto it = other->m_stmt_sexpr.find(stmt);
         if (it == other->m_stmt_sexpr.end() || it->second == sexpr) {
-            stmt_sexpr[stmt] = sexpr;
-        } else {
-            // remain unknown
+            stmt_sexpr.insert_or_assign(stmt, sexpr);
         }
-    }
+    });
+
+    llvm::for_each(other->m_stmt_sexpr, [&](const auto& pair) {
+        const auto& [stmt, sexpr] = pair;
+        if (!stmt_sexpr.contains(stmt)) {
+            stmt_sexpr.insert_or_assign(stmt, sexpr);
+        }
+    });
 
     RegionDefMap region_defs = m_region_defs;
     std::map< const RegionSymVal*,
@@ -517,7 +520,9 @@ void ProgramState::dump(llvm::raw_ostream& os) const {
 
     os << "Stmts: {";
     for (const auto& [stmt, sexpr] : m_stmt_sexpr) {
-        os << "\n(" << stmt->getStmtClassName() << ") ";
+        os << "\n(" << stmt->getStmtClassName() << "#"
+           << stmt->getID(get_state_manager().m_region_mgr.get_ast_ctx())
+           << ") ";
         stmt->printPretty(os,
                           nullptr,
                           get_region_manager()

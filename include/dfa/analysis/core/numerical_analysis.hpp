@@ -28,15 +28,16 @@
 #include <clang/AST/Decl.h>
 #include <clang/AST/Expr.h>
 #include <clang/AST/Stmt.h>
+
+#include <utility>
 #include "util/log.hpp"
 
 namespace knight::dfa {
 
-constexpr unsigned EventHandlerAlignment = 32U;
+constexpr unsigned EventHandlerAlignment = 16U;
 class NumericalAnalysis
     : public Analysis< NumericalAnalysis,
-                       analyze::EventListener< LinearAssignEvent >,
-                       analyze::PostStmt< clang::ReturnStmt > > {
+                       analyze::EventListener< LinearAssignEvent > > {
   public:
     explicit NumericalAnalysis(KnightContext& ctx) : Analysis(ctx) {}
 
@@ -46,8 +47,15 @@ class NumericalAnalysis
 
     struct EventHandler {
         const NumericalAnalysis& analysis;
-        ProgramStateRef state;
-        AnalysisContext* ctx;
+        ProgramStateRef input_state;
+        ProgramStateRef& output_state;
+
+        EventHandler(const NumericalAnalysis& analysis,
+                     ProgramStateRef input_state,
+                     ProgramStateRef& output_state)
+            : analysis(analysis),
+              input_state(std::move(input_state)),
+              output_state(output_state) {}
 
         template < typename T >
         void operator()(const T& event) const {
@@ -66,13 +74,10 @@ class NumericalAnalysis
 
     } __attribute__((aligned(EventHandlerAlignment))); // struct EventHandler
 
-    void handle_event(const LinearAssignEvent* event) const {
-        std::visit(EventHandler{*this, event->state, event->ctx},
+    void handle_event(LinearAssignEvent* event) const {
+        std::visit(EventHandler{*this, event->input_state, event->output_state},
                    event->assign);
     }
-
-    void post_analyze_stmt(const clang::ReturnStmt* return_stmt,
-                           AnalysisContext& ctx) const;
 
     static void add_dependencies(AnalysisManager& mgr) {
         auto zdom_id =

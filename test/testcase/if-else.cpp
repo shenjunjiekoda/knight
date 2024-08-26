@@ -20,3 +20,12 @@ int foo(int x) {
     // warning:-1:22:-1:22: [-1, 1] [debug-inspection]
     return a;
 }
+
+int bar(int x) {
+    int a = 1;
+    int b = 2;
+    int c = x ? (a + b) : (a - b);
+    knight_dump_zval(c);
+    // warning:-1:22:-1:22: [-1, 3] [debug-inspection]
+    return c;
+}

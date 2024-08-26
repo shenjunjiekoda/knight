@@ -105,13 +105,11 @@ struct LinearAssignEvent {
                                  QVarAssignQLinearExpr >;
 
     AsignT assign;
-    ProgramStateRef state;
-    AnalysisContext* ctx;
+    ProgramStateRef input_state;
+    ProgramStateRef output_state;
 
-    LinearAssignEvent(AsignT assign,
-                      ProgramStateRef state,
-                      AnalysisContext* ctx)
-        : assign(std::move(assign)), state(std::move(state)), ctx(ctx) {}
+    LinearAssignEvent(AsignT assign, ProgramStateRef input_state)
+        : assign(std::move(assign)), input_state(std::move(input_state)) {}
 
 } __attribute__((packed))
 __attribute__((aligned(AssignEventAlignBigSize))); // struct LinearAssignEvent

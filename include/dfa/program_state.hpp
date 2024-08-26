@@ -175,7 +175,9 @@ class ProgramState : public llvm::FoldingSetNode {
         const LocationContext* loc_ctx) const;
     [[nodiscard]] SExprRef get_stmt_sexpr_or_conjured(
         const clang::Expr* expr, const LocationContext* loc_ctx) const {
-        return get_stmt_sexpr_or_conjured(expr, expr->getType(), loc_ctx);
+        return get_stmt_sexpr_or_conjured(expr->IgnoreParens(),
+                                          expr->getType(),
+                                          loc_ctx);
     }
 
   public:

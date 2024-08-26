@@ -259,7 +259,7 @@ class EventDispatcher {
             ->m_analysis_mgr_from_event = &mgr;
     }
 
-    void dispatch_event(const EVENT& event) const {
+    void dispatch_event(EVENT& event) const {
         m_analysis_mgr_from_event->dispatch_event(event);
     }
 };
@@ -267,9 +267,9 @@ class EventDispatcher {
 template < event EVENT >
 class EventListener {
     template < typename ANALYSIS >
-    static void handle_event(void* analysis, const void* event) {
+    static void handle_event(void* analysis, void* event) {
         (static_cast< const ANALYSIS* >(analysis))
-            ->handle_event(static_cast< const EVENT* >(event));
+            ->handle_event(static_cast< EVENT* >(event));
     }
 
   public:

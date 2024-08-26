@@ -79,7 +79,7 @@ using AnalyzeStmtCallBack = AnalysisCallBack< void(StmtRef, AnalysisContext&) >;
 using MatchStmtCallBack = bool (*)(StmtRef S);
 enum class VisitStmtKind { Pre, Eval, Post };
 
-using EventListenerCallback = AnalysisCallBack< void(const void* event) >;
+using EventListenerCallback = AnalysisCallBack< void(void* event) >;
 
 constexpr unsigned SmallAlignedSize = 32U;
 constexpr unsigned BigAlignedSize = 64U;
@@ -234,7 +234,7 @@ class AnalysisManager {
 
     /// \brief event dispatching
     template < event EVENT >
-    void dispatch_event(const EVENT& event) const {
+    void dispatch_event(EVENT& event) const {
         auto kind = EVENT::get_kind();
         auto it = m_events.find(get_event_id(kind));
         if (it == m_events.end()) {

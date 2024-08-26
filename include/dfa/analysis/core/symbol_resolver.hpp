@@ -64,9 +64,10 @@ class SymbolResolver
     void VisitBinaryOperator(
         const clang::BinaryOperator* binary_operator) const;
 
-    void VisitDeclStmt(const clang::DeclStmt* decl_stmt) const;
+    void VisitConditionalOperator(
+        const clang::ConditionalOperator* conditional_operator) const;
 
-    void handle_load(const clang::Expr* load_expr) const;
+    void VisitDeclStmt(const clang::DeclStmt* decl_stmt) const;
 
     void VisitCastExpr(const clang::CastExpr* cast_expr) const;
 
@@ -82,6 +83,7 @@ class SymbolResolver
     struct AssignmentContext {
         bool is_int = true;
         std::optional< const TypedRegion* > treg = std::nullopt;
+        std::optional< const clang::Stmt* > stmt = std::nullopt;
         clang::QualType type;
         SExprRef lhs_sexpr{};
         SExprRef rhs_sexpr{};
@@ -90,8 +92,8 @@ class SymbolResolver
     } __attribute__((aligned(internal::AssignmentContextAlignment)))
     __attribute__((packed));
 
-    std::pair< SExprRef, ZLinearExpr > handle_assign_sexpr_and_cstr(
-        AssignmentContext assign_ctx) const;
+    ProgramStateRef handle_assign(AssignmentContext assign_ctx) const;
+    void handle_load(const clang::Expr* load_expr) const;
 };
 
 } // namespace knight::dfa
