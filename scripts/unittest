@@ -311,13 +311,27 @@ class Driver:
 
             diags_in_stdout = self.parse_stdout_text(stdout_text)
             diags_in_impl_file = self.parse_diags_in_impl_file(file_path)
-            passed = diags_in_stdout == diags_in_impl_file
+            
+            # the diag in stdout but not in impl file
+            false_negatives = [
+                d for d in diags_in_stdout if d not in diags_in_impl_file
+            ]
+            # the diag in impl file but not in stdout
+            false_positives = [
+                d for d in diags_in_impl_file if d not in diags_in_stdout
+            ]
+            
+            passed = not (false_negatives or false_positives)
 
             # pass use green color, fail use red color
             color = "\033[1;32m" if passed else "\033[1;31m"
-            print(f"{file_path}: {color}{"✔️" if passed else "❌"}\033[0m")
+            print(f"{file_path}: {color}{"√" if passed else "×"}\033[0m")
+            if false_negatives:
+                print(f"False negatives: {false_negatives}")
+            if false_positives:
+                print(f"False positives: {false_positives}")
 
-            if self.verbose and not passed:
+            if not passed:
                 error_msg = f"Test failed for {file_path}.\n"
                 error_msg += f"Expected diagnostics: {diags_in_impl_file}\n"
                 error_msg += f"Actual diagnostics: {diags_in_stdout}\n"
