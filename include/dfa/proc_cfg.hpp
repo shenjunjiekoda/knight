@@ -33,6 +33,7 @@ class ProcCFG {
     using FunctionRef = const clang::Decl*;
     using NodeRef = const clang::CFGBlock*;
     using StmtRef = const clang::Stmt*;
+    using ExprRef = const clang::Expr*;
     using DeclRef = const clang::Decl*;
     using VarDeclRef = const clang::VarDecl*;
     using PredNodeIterator = clang::CFGBlock::const_pred_iterator;
@@ -71,6 +72,12 @@ class ProcCFG {
         return node->pred_begin();
     }
     static PredNodeIterator pred_end(NodeRef node) { return node->pred_end(); }
+    static NodeRef get_unique_pred(NodeRef node) {
+        if (std::distance(pred_begin(node), pred_end(node)) != 1) {
+            return nullptr;
+        }
+        return *node->pred_begin();
+    }
     static SuccNodeIterator succ_begin(NodeRef node) {
         return node->succ_begin();
     }

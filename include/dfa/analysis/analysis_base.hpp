@@ -13,6 +13,7 @@
 
 #pragma once
 
+#include "clang/AST/Stmt.h"
 #include "util/log.hpp"
 
 #include "dfa/analysis/analyses.hpp"
@@ -169,14 +170,14 @@ template < clang_stmt STMT >
 class PreStmt {
     template < typename ANALYSIS >
     static void run_pre_stmt(void* analysis,
-                             internal::StmtRef S,
-                             AnalysisContext& C) {
+                             internal::StmtRef stmt,
+                             AnalysisContext& ctx) {
         (static_cast< const ANALYSIS* >(analysis))
-            ->pre_analyze_stmt(dyn_cast< STMT >(S), C);
+            ->pre_analyze_stmt(dyn_cast< STMT >(stmt), ctx);
     }
 
-    static bool is_interesting_stmt(internal::StmtRef S) {
-        return isa< STMT >(S);
+    static bool is_interesting_stmt(internal::StmtRef stmt) {
+        return isa< STMT >(stmt);
     }
 
   public:
@@ -196,14 +197,14 @@ template < clang_stmt STMT >
 class EvalStmt {
     template < typename ANALYSIS >
     static void run_eval_stmt(void* analysis,
-                              internal::StmtRef S,
-                              AnalysisContext& C) {
+                              internal::StmtRef stmt,
+                              AnalysisContext& ctx) {
         (static_cast< const ANALYSIS* >(analysis))
-            ->analyze_stmt(dyn_cast< STMT >(S), C);
+            ->analyze_stmt(dyn_cast< STMT >(stmt), ctx);
     }
 
-    static bool is_interesting_stmt(internal::StmtRef S) {
-        return isa< STMT >(S);
+    static bool is_interesting_stmt(internal::StmtRef stmt) {
+        return isa< STMT >(stmt);
     }
 
   public:
@@ -223,14 +224,14 @@ template < clang_stmt STMT >
 class PostStmt {
     template < typename ANALYSIS >
     static void run_post_stmt(void* analysis,
-                              internal::StmtRef S,
-                              AnalysisContext& C) {
+                              internal::StmtRef stmt,
+                              AnalysisContext& ctx) {
         (static_cast< const ANALYSIS* >(analysis))
-            ->post_analyze_stmt(dyn_cast< STMT >(S), C);
+            ->post_analyze_stmt(dyn_cast< STMT >(stmt), ctx);
     }
 
-    static bool is_interesting_stmt(internal::StmtRef S) {
-        return isa< STMT >(S);
+    static bool is_interesting_stmt(internal::StmtRef stmt) {
+        return isa< STMT >(stmt);
     }
 
   public:
@@ -245,6 +246,25 @@ class PostStmt {
                               internal::VisitStmtKind::Post);
     }
 }; // class PostStmt
+
+class ConditionFilter {
+    template < typename ANALYSIS >
+    static void filter_condition(void* analysis,
+                                 internal::ExprRef expr,
+                                 bool assertion_result,
+                                 AnalysisContext& ctx) {
+        (static_cast< const ANALYSIS* >(analysis))
+            ->filter_condition(expr, assertion_result, ctx);
+    }
+
+  public:
+    template < typename ANALYSIS >
+    static void register_callback(ANALYSIS* analysis, AnalysisManager& mgr) {
+        mgr.register_for_condition_filter(
+            internal::ConditionFilterCallback(ANALYSIS::get_kind(), analysis));
+    }
+
+}; // class ConditionFilter
 
 template < event EVENT >
 class EventDispatcher {

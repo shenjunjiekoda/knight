@@ -69,6 +69,7 @@ namespace internal {
 
 using ExitNodeRef = ProcCFG::NodeRef;
 using StmtRef = ProcCFG::StmtRef;
+using ExprRef = ProcCFG::ExprRef;
 
 using AnalyzeBeginFunctionCallBack = AnalysisCallBack< void(AnalysisContext&) >;
 
@@ -78,6 +79,9 @@ using AnalyzeEndFunctionCallBack =
 using AnalyzeStmtCallBack = AnalysisCallBack< void(StmtRef, AnalysisContext&) >;
 using MatchStmtCallBack = bool (*)(StmtRef S);
 enum class VisitStmtKind { Pre, Eval, Post };
+
+using ConditionFilterCallback =
+    AnalysisCallBack< void(ExprRef, bool, AnalysisContext&) >;
 
 using EventListenerCallback = AnalysisCallBack< void(void* event) >;
 
@@ -137,6 +141,8 @@ class AnalysisManager {
     std::vector< internal::AnalyzeEndFunctionCallBack > m_end_function_analyses;
     /// \brief visit statement callbacks
     std::vector< internal::StmtAnalysisInfo > m_stmt_analyses;
+    /// \brief condition filter callbacks
+    std::vector< internal::ConditionFilterCallback > m_condition_filters;
 
     using EventsTy = llvm::DenseMap< unsigned, internal::EventInfo >;
     EventsTy m_events;
@@ -216,7 +222,7 @@ class AnalysisManager {
     void register_for_stmt(internal::AnalyzeStmtCallBack cb,
                            internal::MatchStmtCallBack match_cb,
                            internal::VisitStmtKind kind);
-
+    void register_for_condition_filter(internal::ConditionFilterCallback cb);
     template < event EVENT >
     void register_for_event_listener(internal::EventListenerCallback cb) {
         auto kind = EVENT::get_kind();
@@ -288,6 +294,9 @@ class AnalysisManager {
     void run_analyses_for_begin_function(AnalysisContext& analysis_ctx);
     void run_analyses_for_end_function(AnalysisContext& analysis_ctx,
                                        ProcCFG::NodeRef node);
+    void run_analyses_for_condition_filter(AnalysisContext& analysis_ctx,
+                                           internal::ExprRef expr,
+                                           bool assertion_result);
 
 }; // class AnalysisManager
 

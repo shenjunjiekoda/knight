@@ -14,6 +14,7 @@
 #pragma once
 
 #include "clang/AST/Expr.h"
+#include "clang/AST/OperationKinds.h"
 #include "dfa/constraint/linear.hpp"
 #include "dfa/domain/dom_base.hpp"
 #include "dfa/domain/domains.hpp"

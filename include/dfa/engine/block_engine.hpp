@@ -32,6 +32,7 @@ class BlockExecutionEngine {
     using NodeRef = typename ProcCFG::NodeRef;
     using FunctionRef = typename ProcCFG::FunctionRef;
     using StmtRef = ProcCFG::StmtRef;
+    using ExprRef = ProcCFG::ExprRef;
     using DeclRef = ProcCFG::DeclRef;
     using VarDeclRef = ProcCFG::VarDeclRef;
     using StmtResultCache = std::unordered_map< StmtRef, ProgramStateRef >;
@@ -78,6 +79,8 @@ class BlockExecutionEngine {
 
   private:
     [[nodiscard]] const LocationContext* get_location_context() const;
+
+    ProgramStateRef exec_branch_condition(ProgramStateRef state);
 
     /// \brief Transfer C++ base or member initializer from constructor's
     /// initialization list.

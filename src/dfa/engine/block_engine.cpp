@@ -14,6 +14,7 @@
 #include "dfa/engine/block_engine.hpp"
 #include "dfa/analysis/analysis_base.hpp"
 #include "dfa/proc_cfg.hpp"
+#include "dfa/program_state.hpp"
 #include "util/assert.hpp"
 
 #include <clang/Analysis/CFG.h>
@@ -22,6 +23,8 @@ namespace knight::dfa {
 
 void BlockExecutionEngine::exec() {
     ProgramStateRef state = m_state;
+
+    state = exec_branch_condition(state);
     for (const auto& elem : m_node->Elements) {
         m_current_elem_idx++;
         switch (elem.getKind()) {
@@ -85,6 +88,31 @@ void BlockExecutionEngine::exec() {
     return m_location_manager.create_location_context(m_frame,
                                                       m_current_elem_idx,
                                                       m_node);
+}
+
+// TODO(condition): only support successor size 2 for now
+ProgramStateRef BlockExecutionEngine::exec_branch_condition(
+    ProgramStateRef state) {
+    if (NodeRef pred = ProcCFG::get_unique_pred(m_node);
+        pred != nullptr && pred->succ_size() == 2U) {
+        if (ExprRef cond = pred->getLastCondition()) {
+            bool is_true_branch = *(pred->succ_begin()) == m_node;
+            AnalysisContext analysis_ctx(m_analysis_manager.get_context(),
+                                         m_analysis_manager
+                                             .get_region_manager(),
+                                         m_frame,
+                                         m_sym_manager,
+                                         get_location_context());
+            analysis_ctx.set_state(state);
+            m_analysis_manager
+                .run_analyses_for_condition_filter(analysis_ctx,
+                                                   cond,
+                                                   is_true_branch);
+
+            return analysis_ctx.get_state();
+        }
+    }
+    return state;
 }
 
 /// \brief Transfer C++ base or member initializer from constructor's

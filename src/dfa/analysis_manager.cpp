@@ -207,6 +207,11 @@ std::unordered_set< DomID > AnalysisManager::get_registered_domains_in(
     return it->second;
 }
 
+void AnalysisManager::register_for_condition_filter(
+    internal::ConditionFilterCallback cb) {
+    m_condition_filters.push_back(cb);
+}
+
 void AnalysisManager::register_for_stmt(internal::AnalyzeStmtCallBack cb,
                                         internal::MatchStmtCallBack match_cb,
                                         internal::VisitStmtKind kind) {
@@ -289,6 +294,18 @@ void AnalysisManager::run_analyses_for_end_function(
     }
     for (auto id : get_subset_order(m_analysis_full_order, tgt_ids)) {
         (*callbacks[id])(node, analysis_ctx);
+    }
+}
+
+void AnalysisManager::run_analyses_for_condition_filter(
+    AnalysisContext& analysis_ctx,
+    internal::ExprRef expr,
+    bool assertion_result) {
+    for (auto& cb : m_condition_filters) {
+        auto id = cb.get_id();
+        if (is_analysis_required(id)) {
+            cb(expr, assertion_result, analysis_ctx);
+        }
     }
 }
 
