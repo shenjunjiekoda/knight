@@ -52,7 +52,10 @@ struct ZVarAssignBinaryVarVar {
     ZVariable x;
     ZVariable y;
     ZVariable z;
-    void dump(llvm::raw_ostream& os) const { os << x << " = " << y << op << z; }
+    void dump(llvm::raw_ostream& os) const {
+        os << x << " = " << y << " " << clang::BinaryOperator::getOpcodeStr(op)
+           << " " << z;
+    }
 } __attribute__((aligned(AssignEventAlignSize)));
 
 struct ZVarAssignBinaryVarNum {
@@ -60,7 +63,10 @@ struct ZVarAssignBinaryVarNum {
     ZVariable x;
     ZVariable y;
     ZNum z;
-    void dump(llvm::raw_ostream& os) const { os << x << " = " << y << op << z; }
+    void dump(llvm::raw_ostream& os) const {
+        os << x << " = " << y << " " << clang::BinaryOperator::getOpcodeStr(op)
+           << " " << z;
+    }
 } __attribute__((aligned(AssignEventAlignSize)));
 
 struct ZVarAssignZCast {

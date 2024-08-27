@@ -34,7 +34,7 @@ namespace knight::dfa {
 
 namespace internal {
 
-constexpr unsigned AssignmentContextAlignment = 64U;
+constexpr unsigned AssignmentContextAlignment = 128U;
 
 } // namespace internal
 

@@ -71,17 +71,17 @@ void InspectionChecker::dump_zval(const clang::Expr* expr,
     }
 
     knight_log_nl(llvm::outs() << "zvar: " << *zvar << "\n";);
-    if (auto zitv_dom_opt = state->get_ref< ZIntervalDom >()) {
-        const ZIntervalDom* zitv_dom = zitv_dom_opt.value();
-        knight_log_nl(llvm::outs() << "zinterval dom: ";
-                      zitv_dom->dump(llvm::outs());
+    if (auto zdom = state->get_zdom_ref()) {
+        auto zitv = zdom.value()->to_interval(*zvar);
+        knight_log_nl(llvm::outs() << "zdom: ";
+                      zdom.value()->dump(llvm::outs());
                       llvm::outs() << "\n";
                       llvm::outs() << "zitv: ";
-                      zitv_dom->get_value(*zvar).dump(llvm::outs());
+                      zitv.dump(llvm::outs());
                       llvm::outs() << "\n";);
         llvm::SmallString< ZValStrMaxLen > zval_str;
         llvm::raw_svector_ostream os(zval_str);
-        zitv_dom->get_value(*zvar).dump(os);
+        zitv.dump(os);
         if (!zval_str.empty()) {
             diagnose(expr->getExprLoc(), zval_str);
         }

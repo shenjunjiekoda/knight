@@ -1,4 +1,3 @@
-// analysis=demo-itv-analysis
 // checker=debug*
 
 void knight_dump_zval(int);
