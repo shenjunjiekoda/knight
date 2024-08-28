@@ -63,16 +63,16 @@ struct NumericalDomBase : AbsDomBase {
     /// @{
 
     /// op is not assignment
-    virtual void assign_binary_var_var_impl(clang::BinaryOperatorKind op,
-                                            const Var& x,
-                                            const Var& y,
-                                            const Var& z) = 0;
+    virtual void assign_binary_var_var(clang::BinaryOperatorKind op,
+                                       const Var& x,
+                                       const Var& y,
+                                       const Var& z) = 0;
 
     /// op is not assignment
-    virtual void assign_binary_var_num_impl(clang::BinaryOperatorKind op,
-                                            const Var& x,
-                                            const Var& y,
-                                            const Num& z) = 0;
+    virtual void assign_binary_var_num(clang::BinaryOperatorKind op,
+                                       const Var& x,
+                                       const Var& y,
+                                       const Num& z) = 0;
 
     /// @}
 
@@ -82,14 +82,14 @@ struct NumericalDomBase : AbsDomBase {
                              const Var& x,
                              const Var& y) = 0;
 
-    /// \brief Add a linear constraint
+    /// \brief Add a linear constraint (semantic)
     virtual void add_linear_constraint(const LinearConstraint& cst) = 0;
 
-    /// \brief Add a linear constraint system
+    /// \brief Add a linear constraint system (semantic)
     virtual void merge_with_linear_constraint_system(
         const LinearConstraintSystem& csts) = 0;
 
-    /// \brief Get the linear constraint system
+    /// \brief Get the linear constraint system (semantic)
     [[nodiscard]] virtual LinearConstraintSystem to_linear_constraint_system()
         const = 0;
 
@@ -109,8 +109,8 @@ struct NumericalDomBase : AbsDomBase {
 /// - `assign_variable(Var, Var)`
 /// - `assign_linear_expr(Var, const LinearExpr&)`
 /// - `assign_unary(clang::UnaryOperatorKind, Var, Var)`
-/// - `assign_binary_var_var_impl(clang::BinaryOperatorKind,Var,Var,Var)`
-/// - `assign_binary_var_num_impl(clang::BinaryOperatorKind,Var,Var,const Num&)`
+/// - `assign_binary_var_var(clang::BinaryOperatorKind,Var,Var,Var)`
+/// - `assign_binary_var_num(clang::BinaryOperatorKind,Var,Var,const Num&)`
 /// - `assign_cast(clang::QualType, unsigned, Var, Var)`
 /// - `add_linear_constraint(const LinearConstraint&)`
 /// - `merge_with_linear_constraint_system(const LinearConstraintSystem&)`

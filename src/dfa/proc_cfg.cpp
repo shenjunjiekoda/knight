@@ -32,7 +32,7 @@ auto get_default_cfg_build_options() {
     cfg_opts.AddTemporaryDtors = true;
     cfg_opts.AddCXXDefaultInitExprInCtors = true;
 
-    cfg_opts.PruneTriviallyFalseEdges = true;
+    // cfg_opts.PruneTriviallyFalseEdges = true;
     cfg_opts.AddLifetime = true;
 
     cfg_opts.setAllAlwaysAdd();

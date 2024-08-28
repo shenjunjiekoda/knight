@@ -452,11 +452,14 @@ class SeparateNumericalDom
     }
 
     /// \brief Assign `x = y op z`
+    ///
+    /// \note `op` shall not be assignment or comparison operator.
     [[nodiscard]] SeparateNumericalValue compute_binary(
         clang::BinaryOperatorKind op,
         SeparateNumericalValue y,
         SeparateNumericalValue z) {
         knight_assert(!clang::BinaryOperator::isAssignmentOp(op));
+        knight_assert(!clang::BinaryOperator::isComparisonOp(op));
 
         switch (op) {
             using enum clang::BinaryOperatorKind;
@@ -486,22 +489,18 @@ class SeparateNumericalDom
         knight_unreachable("Unsupported binary operator");
     }
 
-    /// op is not assignment
-    void assign_binary_var_var_impl(clang::BinaryOperatorKind op,
-                                    Var x,
-                                    Var y,
-                                    Var z) {
+    /// op is not assignment or comparison operator.
+    void assign_binary_var_var_for_non_assign_rel_op(
+        clang::BinaryOperatorKind op, Var x, Var y, Var z) {
         this->set_value(x,
                         compute_binary(op,
                                        this->get_value(y),
                                        this->get_value(z)));
     }
 
-    /// op is not assignment
-    void assign_binary_var_num_impl(clang::BinaryOperatorKind op,
-                                    Var x,
-                                    Var y,
-                                    const Num& z) {
+    /// op is not assignment or comparison operator.
+    void assign_binary_var_num_for_non_assign_rel_op(
+        clang::BinaryOperatorKind op, Var x, Var y, const Num& z) {
         this->set_value(x,
                         compute_binary(op,
                                        this->get_value(y),

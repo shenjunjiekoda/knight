@@ -146,7 +146,7 @@ class IntervalSolver {
             return true;
         }
         if (old_itv != new_itv) {
-            refine_to_numerical(x, new_itv, numerical);
+            numerical.meet_value(x, new_itv);
             this->m_refined_vars.insert(x);
             ++this->m_op_cnt;
         }
@@ -158,7 +158,7 @@ class IntervalSolver {
                                             const NumericalDom& numerical) {
         Interval residual(cst.get_constant_term());
         for (const auto& [var, coeff] : cst.get_variable_terms()) {
-            if (var != pivot) {
+            if (!var.equals(pivot)) {
                 residual -= Interval(coeff) * numerical.to_interval(var);
                 ++this->m_op_cnt;
             }
@@ -197,7 +197,7 @@ class IntervalSolver {
                     return true;
                 }
                 if (old_itv != new_itv) {
-                    this->refine_to_numerical(pivot, new_itv, numerical);
+                    numerical.meet_value(pivot, new_itv);
                     this->m_refined_vars.insert(pivot);
                 }
                 ++this->m_op_cnt;
@@ -327,6 +327,10 @@ class IntervalDom
         m_sep_dom.meet_with(other.m_sep_dom);
     }
 
+    void meet_value(const Var& x, const Interval& itv) {
+        m_sep_dom.meet_value(x, itv);
+    }
+
     void narrow_with(const IntervalDomT& other) {
         m_sep_dom.narrow_with(other.m_sep_dom);
     }
@@ -341,6 +345,10 @@ class IntervalDom
 
     Interval get_value(const Var& key) const {
         return m_sep_dom.get_value(key);
+    }
+
+    void set_value(const Var& key, const Interval& value) {
+        return m_sep_dom.set_value(key, value);
     }
 
     void dump(llvm::raw_ostream& os) const override { m_sep_dom.dump(os); }
@@ -372,18 +380,98 @@ class IntervalDom
         m_sep_dom.assign_unary(op, x, y);
     }
 
-    void assign_binary_var_var_impl(clang::BinaryOperatorKind op,
-                                    const Var& x,
-                                    const Var& y,
-                                    const Var& z) override {
-        m_sep_dom.assign_binary_var_var_impl(op, x, y, z);
+    LinearConstraint construct_constraint(clang::BinaryOperatorKind op,
+                                          const Var& lhs,
+                                          const Num& rhs) {
+        knight_assert(clang::BinaryOperator::isComparisonOp(op));
+        switch (op) {
+            using enum clang::BinaryOperatorKind;
+            case BO_EQ:
+                return lhs == rhs;
+            case BO_NE:
+                return lhs != rhs;
+            case BO_LT:
+                return lhs <= rhs - 1;
+            case BO_GT:
+                return lhs >= rhs + 1;
+            case BO_LE:
+                return lhs <= rhs;
+            case BO_GE:
+                return lhs >= rhs;
+            default:
+                break;
+        }
+        knight_unreachable("Unsupported binary operator");
     }
 
-    void assign_binary_var_num_impl(clang::BinaryOperatorKind op,
-                                    const Var& x,
-                                    const Var& y,
-                                    const Num& z) override {
-        m_sep_dom.assign_binary_var_num_impl(op, x, y, z);
+    LinearConstraint construct_constraint(clang::BinaryOperatorKind op,
+                                          const Var& lhs,
+                                          const Var& rhs) {
+        knight_assert(clang::BinaryOperator::isComparisonOp(op));
+        switch (op) {
+            using enum clang::BinaryOperatorKind;
+            case BO_EQ:
+                return lhs == rhs;
+            case BO_NE:
+                return lhs != rhs;
+            case BO_LT:
+                return lhs <= rhs - Num(1);
+            case BO_GT:
+                return lhs >= rhs + Num(1);
+            case BO_LE:
+                return lhs <= rhs;
+            case BO_GE:
+                return lhs >= rhs;
+            default:
+                break;
+        }
+        knight_unreachable("Unsupported binary operator");
+    }
+
+    void assign_binary_var_var(clang::BinaryOperatorKind op,
+                               const Var& x,
+                               const Var& y,
+                               const Var& z) override {
+        knight_assert(!clang::BinaryOperator::isAssignmentOp(op));
+        if (clang::BinaryOperator::isComparisonOp(op)) {
+            IntervalDom dom_pos = *this;
+            IntervalDom dom_neg = *this;
+            LinearConstraint cstr = construct_constraint(op, y, z);
+            dom_pos.add_linear_constraint(cstr);
+            dom_neg.add_linear_constraint(cstr.negate());
+            if (dom_pos.is_bottom() && !dom_neg.is_bottom()) {
+                this->set_value(x, Interval::true_val());
+            } else if (!dom_pos.is_bottom() && dom_neg.is_bottom()) {
+                this->set_value(x, Interval::false_val());
+            } else {
+                this->set_value(x, Interval::unknown_bool());
+            }
+        } else {
+            m_sep_dom.assign_binary_var_var_for_non_assign_rel_op(op, x, y, z);
+        }
+    }
+
+    void assign_binary_var_num(clang::BinaryOperatorKind op,
+                               const Var& x,
+                               const Var& y,
+                               const Num& z) override {
+        knight_assert(!clang::BinaryOperator::isAssignmentOp(op));
+        if (clang::BinaryOperator::isComparisonOp(op)) {
+            IntervalDom dom_pos = *this;
+            IntervalDom dom_neg = *this;
+            LinearConstraint cstr = construct_constraint(op, y, z);
+            dom_pos.add_linear_constraint(cstr);
+            dom_neg.add_linear_constraint(cstr.negate());
+            if (dom_pos.is_bottom() && !dom_neg.is_bottom()) {
+                this->set_value(x, Interval::true_val());
+            } else if (!dom_pos.is_bottom() && dom_neg.is_bottom()) {
+                this->set_value(x, Interval::false_val());
+            } else {
+                this->set_value(x, Interval::unknown_bool());
+            }
+        } else {
+            m_sep_dom.assign_binary_var_num_for_non_assign_rel_op(op, x, y, z);
+        }
     }
 
     void assign_cast(clang::QualType dst_type,

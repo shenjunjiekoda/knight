@@ -70,7 +70,7 @@ void NumericalAnalysis::EventHandler::handle(
                   llvm::outs() << "\n";);
 
     auto zitv = input_state->get_zdom_clone();
-    zitv->assign_binary_var_var_impl(assign.op, assign.x, assign.y, assign.z);
+    zitv->assign_binary_var_var(assign.op, assign.x, assign.y, assign.z);
     output_state = input_state->set_zdom(zitv);
 }
 void NumericalAnalysis::EventHandler::handle(
@@ -80,7 +80,7 @@ void NumericalAnalysis::EventHandler::handle(
                   llvm::outs() << "\n";);
 
     auto zitv = input_state->get_zdom_clone();
-    zitv->assign_binary_var_num_impl(assign.op, assign.x, assign.y, assign.z);
+    zitv->assign_binary_var_num(assign.op, assign.x, assign.y, assign.z);
     output_state = input_state->set_zdom(zitv);
 }
 

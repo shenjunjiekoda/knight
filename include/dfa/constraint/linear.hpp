@@ -50,12 +50,8 @@ struct Variable : public llvm::FoldingSetNode {
     Variable& operator=(Variable&&) = default;
     ~Variable() = default;
 
-    inline bool operator==(const Variable< Num >& other) const {
+    [[nodiscard]] inline bool equals(const Variable< Num >& other) const {
         return m_symbol == other.m_symbol;
-    }
-
-    inline bool operator!=(const Variable< Num >& other) const {
-        return m_symbol != other.m_symbol;
     }
 
     void dump(llvm::raw_ostream& os) const { os << m_symbol; }
@@ -174,7 +170,7 @@ class LinearExpr : public llvm::FoldingSetNode {
     /// \brief k * var
     LinearExpr(Num k, Var var) {
         if (k != 0) {
-            m_terms.emplace(var, std::move(k));
+            m_terms.try_emplace(var, std::move(k));
         }
     }
 
@@ -460,7 +456,7 @@ template < typename Num >
 template < typename Num >
 [[nodiscard]] inline LinearExpr< Num > operator-(const Num& n,
                                                  Variable< Num > var) {
-    LinearExpr< Num > single_var_expr(-1, var);
+    LinearExpr< Num > single_var_expr(Num(-1), var);
     single_var_expr += n;
     return single_var_expr;
 }
@@ -498,7 +494,7 @@ template < typename Num >
 template < typename Num >
 [[nodiscard]] inline LinearExpr< Num > operator-(
     Variable< Num > x, LinearExpr< Num > linear_expr) {
-    linear_expr *= -1;
+    linear_expr *= Num(-1);
     linear_expr += x;
     return linear_expr;
 }

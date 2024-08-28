@@ -75,6 +75,12 @@ class Interval : public AbsDom< Interval< Num > > {
     [[nodiscard]] static Interval unknown_bool() {
         return Interval(Num(0.), Num(1.));
     }
+    [[nodiscard]] static Interval true_val() {
+        return Interval(Num(1.), Num(1.));
+    }
+    [[nodiscard]] static Interval false_val() {
+        return Interval(Num(0.), Num(0.));
+    }
     [[nodiscard]] const Bound& get_lb() const { return m_lb; }
     [[nodiscard]] const Bound& get_ub() const { return m_ub; }
     [[nodiscard]] std::optional< Num > get_singleton_opt() const {
