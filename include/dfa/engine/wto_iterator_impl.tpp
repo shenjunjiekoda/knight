@@ -14,9 +14,11 @@
 namespace knight::dfa::impl {
 
 template < graph G, typename GraphTrait >
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 void WtoIterator< G, GraphTrait >::visit(const WtoVertex& vertex) {
     auto node = vertex.get_node();
     ProgramStateRef state_pre = this->m_fp_iterator.get_pre(node);
+
     knight_log(llvm::outs()
                << "wto visit node: " << node->getBlockID() << "\n");
 
@@ -26,18 +28,7 @@ void WtoIterator< G, GraphTrait >::visit(const WtoVertex& vertex) {
          ++it) {
         auto pred = *it;
 
-        knight_log(llvm::outs()
-                       << "join pred `" << node->getBlockID() << "` with"
-                       << " node `" << pred->getBlockID() << "`\n";);
-        knight_log_nl(llvm::outs() << "state_pre before join: ";
-                      state_pre->dump(llvm::outs()););
-        knight_log_nl(
-            llvm::outs() << "\npre transfer edge state: ";
-            this->m_fp_iterator
-                .transfer_edge(pred, node, this->m_fp_iterator.get_post(pred))
-                ->dump(llvm::outs()););
-
-        state_pre =
+        auto joined_val =
             state_pre->join(this->m_fp_iterator
                                 .transfer_edge(pred,
                                                node,
@@ -45,9 +36,18 @@ void WtoIterator< G, GraphTrait >::visit(const WtoVertex& vertex) {
                                                    pred)),
                             get_location_context(node));
 
-        knight_log_nl(llvm::outs() << "state_pre after join: ";
-                      state_pre->dump(llvm::outs()););
+        knight_log_nl(llvm::outs()
+                      << "join pred `" << node->getBlockID() << "` with"
+                      << " node `" << pred->getBlockID()
+                      << "`\nstate_pre before join: " << *state_pre
+                      << "\npre transfer edge state: " << *joined_val);
+
+        state_pre = joined_val;
+
+        knight_log_nl(llvm::outs()
+                      << "state_pre after join: " << *state_pre << "\n");
     }
+
     this->m_fp_iterator.set_pre(node, state_pre);
     this->m_fp_iterator
         .set_post(node,

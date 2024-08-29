@@ -90,7 +90,7 @@ class SymbolResolver
         bool is_int = true;
         std::optional< const TypedRegion* > treg = std::nullopt;
         std::optional< const clang::Stmt* > stmt = std::nullopt;
-        clang::QualType type;
+        const clang::Expr* rhs_expr{};
         SExprRef lhs_sexpr{};
         SExprRef rhs_sexpr{};
         clang::BinaryOperator::Opcode op =

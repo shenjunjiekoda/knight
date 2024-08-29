@@ -141,6 +141,8 @@ ProgramStateRef SymbolResolver::handle_assign(
 
     knight_assert_msg(assign_ctx.rhs_sexpr != nullptr,
                       "rhs sexpr shall be nonnull in assignment context");
+    knight_assert_msg(assign_ctx.rhs_expr != nullptr,
+                      "rhs expr shall be nonnull in assignment context");
     knight_assert_msg(assign_ctx.lhs_sexpr != nullptr || is_direct_assign,
                       "lhs sexpr shall be nonnull in indirect assignment "
                       "context");
@@ -151,7 +153,7 @@ ProgramStateRef SymbolResolver::handle_assign(
 
     auto state = m_ctx->get_state();
     auto& sym_mgr = m_ctx->get_symbol_manager();
-
+    auto type = assign_ctx.rhs_expr->getType();
     SExprRef binary_sexpr = nullptr;
     if (is_direct_assign) {
         binary_sexpr = assign_ctx.rhs_sexpr;
@@ -160,7 +162,7 @@ ProgramStateRef SymbolResolver::handle_assign(
         binary_sexpr = sym_mgr.get_binary_sym_expr(assign_ctx.lhs_sexpr,
                                                    assign_ctx.rhs_sexpr,
                                                    op,
-                                                   assign_ctx.type);
+                                                   type);
     }
 
     ZLinearExpr cstr;
@@ -172,9 +174,18 @@ ProgramStateRef SymbolResolver::handle_assign(
                                        m_ctx->get_current_location_context());
     } else {
         res_sym = sym_mgr.get_symbol_conjured(*assign_ctx.stmt,
-                                              assign_ctx.type,
+                                              type,
                                               m_ctx->get_current_stack_frame());
     }
+
+    knight_log_nl(
+        llvm::outs() << "lhs_sexpr: "; if (assign_ctx.lhs_sexpr != nullptr) {
+            assign_ctx.lhs_sexpr->dump(llvm::outs());
+        } else {
+            llvm::outs() << "nullptr";
+        } llvm::outs() << "\nrhs_sexpr: "
+                       << *assign_ctx.rhs_sexpr << "\n";
+        llvm::outs() << "binary_sexpr: " << *binary_sexpr << "\n";);
 
     if (assign_ctx.is_int) {
         ZVariable x(res_sym);
@@ -209,7 +220,7 @@ ProgramStateRef SymbolResolver::handle_assign(
                 LinearAssignEvent event(ZVarAssignZNum{x, *znum}, state);
                 EventDispatcher< LinearAssignEvent >::dispatch_event(event);
 
-                binary_sexpr = sym_mgr.get_scalar_int(*znum, assign_ctx.type);
+                binary_sexpr = sym_mgr.get_scalar_int(*znum, type);
                 cstr -= *znum;
             } else if (auto zvar = binary_sexpr->get_as_zvariable()) {
                 LinearAssignEvent event(ZVarAssignZVar{x, *zvar}, state);
@@ -223,6 +234,13 @@ ProgramStateRef SymbolResolver::handle_assign(
 
                 cstr -= *zexpr;
             }
+        } else {
+            ZVariable y(
+                sym_mgr.get_symbol_conjured(assign_ctx.rhs_expr,
+                                            m_ctx->get_current_stack_frame()));
+            LinearAssignEvent event(ZVarAssignZVar{x, y}, state);
+            EventDispatcher< LinearAssignEvent >::dispatch_event(event);
+            cstr -= y;
         }
         state = state->add_zlinear_constraint(
             ZLinearConstraint(cstr, LinearConstraintKind::LCK_Equality));
@@ -231,7 +249,7 @@ ProgramStateRef SymbolResolver::handle_assign(
     }
 
     if (assign_ctx.treg) {
-        knight_log_nl(llvm::outs() << "\nset new region: ";
+        knight_log_nl(llvm::outs() << "\nset region: ";
                       assign_ctx.treg.value()->dump(llvm::outs());
                       llvm::outs() << " to new_def: ";
                       res_sym->dump(llvm::outs());
@@ -309,7 +327,7 @@ void SymbolResolver::VisitBinaryOperator(
         auto state = handle_assign(AssignmentContext{is_int,
                                                      treg,
                                                      stmt,
-                                                     binary_operator->getType(),
+                                                     rhs_expr,
                                                      lhs_sexpr,
                                                      rhs_sexpr,
                                                      op});
@@ -322,6 +340,7 @@ void SymbolResolver::VisitBinaryOperator(
                                     rhs_sexpr,
                                     binary_operator->getOpcode(),
                                     binary_operator->getType());
+    knight_log(llvm::outs() << "binary_sexpr: " << *binary_sexpr << "\n");
 
     const auto* binary_conjured_sym =
         sym_mgr.get_symbol_conjured(binary_operator,
@@ -427,7 +446,7 @@ void SymbolResolver::VisitConditionalOperator(
         handle_assign(AssignmentContext{true,
                                         std::nullopt,
                                         conditional_operator,
-                                        type,
+                                        true_expr,
                                         nullptr,
                                         true_sexpr});
 
@@ -439,7 +458,7 @@ void SymbolResolver::VisitConditionalOperator(
         handle_assign(AssignmentContext{true,
                                         std::nullopt,
                                         conditional_operator,
-                                        type,
+                                        false_expr,
                                         nullptr,
                                         false_sexpr});
 
@@ -468,7 +487,7 @@ void SymbolResolver::VisitDeclStmt(const clang::DeclStmt* decl_stmt) const {
                 // We don't need to handle uninitialized variables here.
                 continue;
             }
-            const auto* init_expr = var_decl->getInit();
+            const auto* init_expr = var_decl->getInit()->IgnoreParenCasts();
             auto init_sexpr_opt =
                 state->get_stmt_sexpr(init_expr,
                                       m_ctx->get_current_stack_frame());
@@ -484,7 +503,7 @@ void SymbolResolver::VisitDeclStmt(const clang::DeclStmt* decl_stmt) const {
                     AssignmentContext{type->isIntegralOrEnumerationType(),
                                       treg,
                                       std::nullopt,
-                                      type,
+                                      init_expr,
                                       nullptr,
                                       init_sexpr_opt.value()});
 

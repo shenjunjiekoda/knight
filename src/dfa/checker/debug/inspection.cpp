@@ -51,6 +51,14 @@ void InspectionChecker::dump_zval(const clang::Expr* expr,
     if (expr == nullptr || !expr->getType()->isIntegralOrEnumerationType()) {
         return;
     }
+    auto zdom = state->get_zdom_ref();
+    if (!zdom) {
+        return;
+    }
+    if (zdom.value()->is_bottom()) {
+        diagnose(expr->getExprLoc(), "⊥");
+        return;
+    }
 
     auto sexpr = state->get_stmt_sexpr(expr, ctx.get_current_stack_frame());
     if (!sexpr) {
@@ -58,6 +66,7 @@ void InspectionChecker::dump_zval(const clang::Expr* expr,
             sexpr = state->get_region_def(*reg, ctx.get_current_stack_frame());
         }
         if (!sexpr) {
+            diagnose(expr->getExprLoc(), "T");
             return;
         }
     }
@@ -76,20 +85,18 @@ void InspectionChecker::dump_zval(const clang::Expr* expr,
     }
 
     knight_log_nl(llvm::outs() << "zvar: " << *zvar << "\n";);
-    if (auto zdom = state->get_zdom_ref()) {
-        auto zitv = zdom.value()->to_interval(*zvar);
-        knight_log_nl(llvm::outs() << "zdom: ";
-                      zdom.value()->dump(llvm::outs());
-                      llvm::outs() << "\n";
-                      llvm::outs() << "zitv: ";
-                      zitv.dump(llvm::outs());
-                      llvm::outs() << "\n";);
-        llvm::SmallString< ZValStrMaxLen > zval_str;
-        llvm::raw_svector_ostream os(zval_str);
-        zitv.dump(os);
-        if (!zval_str.empty()) {
-            diagnose(expr->getExprLoc(), zval_str);
-        }
+
+    auto zitv = zdom.value()->to_interval(*zvar);
+    knight_log_nl(llvm::outs() << "zdom: "; zdom.value()->dump(llvm::outs());
+                  llvm::outs() << "\n";
+                  llvm::outs() << "zitv: ";
+                  zitv.dump(llvm::outs());
+                  llvm::outs() << "\n";);
+    llvm::SmallString< ZValStrMaxLen > zval_str;
+    llvm::raw_svector_ostream os(zval_str);
+    zitv.dump(os);
+    if (!zval_str.empty()) {
+        diagnose(expr->getExprLoc(), zval_str);
     }
 }
 
