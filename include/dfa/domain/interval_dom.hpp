@@ -141,15 +141,20 @@ class IntervalSolver {
     bool refine_to_numerical(Var x,
                              const Interval& itv,
                              NumericalDom& numerical) {
-        llvm::outs() << "Refining " << x << " to " << itv << "\n";
+        // llvm::outs() << "Refining " << x << " to " << itv << "\n";
         Interval old_itv = numerical.to_interval(x);
         Interval new_itv = old_itv;
         new_itv.meet_with(itv);
+        // llvm::outs() << "old interval: " << old_itv << "\n";
+        // llvm::outs() << "new interval: " << new_itv << "\n";
         if (new_itv.is_bottom()) {
             return true;
         }
         if (old_itv != new_itv) {
             numerical.meet_value(x, new_itv);
+            // llvm::outs() << "numerical now: ";
+            // numerical.dump(llvm::outs());
+            // llvm::outs() << "\n";
             this->m_refined_vars.insert(x);
             ++this->m_op_cnt;
         }
@@ -175,8 +180,7 @@ class IntervalSolver {
             Interval rhs =
                 compute_residual(cst, pivot, numerical) / Interval(coeff);
             if (cst.is_equality()) {
-                this->refine_to_numerical(pivot, rhs, numerical);
-                return false;
+                return this->refine_to_numerical(pivot, rhs, numerical);
             }
 
             if (cst.is_inequality()) {
@@ -418,10 +422,12 @@ class IntervalDom
             LinearConstraint cstr = Base::construct_constraint(op, y, z);
             dom_pos.apply_linear_constraint(cstr);
             dom_neg.apply_linear_constraint(cstr.negate());
+            // llvm::outs() << "dom_pos: " << dom_pos << "\n";
+            // llvm::outs() << "dom_neg: " << dom_neg << "\n";
             if (dom_pos.is_bottom() && !dom_neg.is_bottom()) {
-                this->set_value(x, Interval::true_val());
-            } else if (!dom_pos.is_bottom() && dom_neg.is_bottom()) {
                 this->set_value(x, Interval::false_val());
+            } else if (!dom_pos.is_bottom() && dom_neg.is_bottom()) {
+                this->set_value(x, Interval::true_val());
             } else {
                 this->set_value(x, Interval::unknown_bool());
             }
@@ -499,6 +505,13 @@ class IntervalDom
     }
 
 }; // class IntervalDom
+
+template < typename Num, DomainKind Kind, DomainKind SepKind >
+inline llvm::raw_ostream& operator<<(
+    llvm::raw_ostream& os, const IntervalDom< Num, Kind, SepKind >& dom) {
+    dom.dump(os);
+    return os;
+}
 
 using ZIntervalDom = IntervalDom< ZNum,
                                   DomainKind::ZIntervalDomain,

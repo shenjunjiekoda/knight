@@ -43,6 +43,9 @@ class InspectionChecker
 
     void dump_zval(const clang::Expr* expr, CheckerContext& ctx) const;
 
+    void dump_reachability(const clang::CallExpr* call_expr,
+                           CheckerContext& ctx) const;
+
     void check_begin_function(CheckerContext& C) const {}
 
     static void add_dependencies(CheckerManager& mgr) {

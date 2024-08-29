@@ -93,7 +93,8 @@ class MapDom : public AbsDom< MapDom< Key, SeparateValue, domain_kind > > {
         }
 
         auto it = m_table.find(key);
-        if (it == m_table.end()) {
+        if (it != m_table.end()) {
+            it->second.meet_with(value);
             return;
         }
         it->second.meet_with(value);

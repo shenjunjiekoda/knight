@@ -1,6 +1,16 @@
 // checker=debug*
 
 void knight_dump_zval(int);
+void knight_reachable();
+
+void reachability(int x) {
+    x = 2;
+    if (x == 1) {
+        knight_reachable();
+    } else {
+        knight_reachable();
+    }
+}
 
 void foo(int x) {
     x = 1;

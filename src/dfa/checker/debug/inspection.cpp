@@ -35,6 +35,8 @@ void InspectionChecker::post_check_stmt(const clang::CallExpr* call_expr,
     auto name = callee_fn->getName();
     if (name == ZValDumper) {
         dump_zval(call_expr->getArg(0), ctx);
+    } else if (name == ReachabilityDumper) {
+        dump_reachability(call_expr, ctx);
     }
 }
 
@@ -89,6 +91,19 @@ void InspectionChecker::dump_zval(const clang::Expr* expr,
             diagnose(expr->getExprLoc(), zval_str);
         }
     }
+}
+
+void InspectionChecker::dump_reachability(const clang::CallExpr* call_expr,
+                                          CheckerContext& ctx) const {
+    knight_log_nl(llvm::outs() << "dump reachability: ";
+                  call_expr->getBeginLoc().dump(ctx.get_source_manager());
+                  llvm::outs() << "\n";);
+
+    auto state = ctx.get_state();
+    knight_log_nl(llvm::outs() << "state: "; state->dump(llvm::outs()));
+
+    diagnose(call_expr->getExprLoc(),
+             state->is_bottom() ? "Unreachable" : "Reachable");
 }
 
 } // namespace knight::dfa
