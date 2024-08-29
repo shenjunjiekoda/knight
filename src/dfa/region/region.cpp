@@ -12,13 +12,13 @@
 //===------------------------------------------------------------------===//
 
 #include "dfa/region/region.hpp"
+#include "dfa/constraint/linear.hpp"
 
+#include <clang/AST/Decl.h>
 #include <clang/AST/DeclCXX.h>
+#include <clang/AST/Expr.h>
 #include <clang/AST/Type.h>
 #include <llvm/Support/Casting.h>
-#include "clang/AST/Decl.h"
-#include "clang/AST/Expr.h"
-#include "dfa/constraint/linear.hpp"
 
 namespace knight::dfa {
 

@@ -13,7 +13,6 @@
 
 #pragma once
 
-#include "clang/AST/Type.h"
 #include "dfa/domain/bound.hpp"
 #include "dfa/domain/dom_base.hpp"
 #include "dfa/domain/domains.hpp"
@@ -22,6 +21,7 @@
 #include "util/assert.hpp"
 
 #include <clang/AST/Decl.h>
+#include <clang/AST/Type.h>
 namespace knight::dfa {
 
 template < typename Num >

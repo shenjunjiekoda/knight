@@ -62,8 +62,11 @@ namespace knight::dfa {
 
 using ProgramStateRef = llvm::IntrusiveRefCntPtr< const ProgramState >;
 using DomValMap = llvm::DenseMap< DomID, SharedVal >;
-using RegionDefMap = llvm::DenseMap< RegionRef, const RegionSymVal* >;
-using StmtSExprMap = llvm::DenseMap< ProcCFG::StmtRef, SExprRef >;
+using RegionDefMap = llvm::DenseMap< std::pair< RegionRef, const StackFrame* >,
+                                     const RegionSymVal* >;
+using StmtSExprMap =
+    llvm::DenseMap< std::pair< ProcCFG::StmtRef, const StackFrame* >,
+                    SExprRef >;
 
 namespace internal {
 
@@ -157,16 +160,16 @@ class ProgramState : public llvm::FoldingSetNode {
         ProcCFG::DeclRef decl, const StackFrame* frame) const;
 
     [[nodiscard]] ProgramStateRef set_region_def(RegionRef region,
+                                                 const StackFrame* frame,
                                                  const RegionSymVal* def) const;
     [[nodiscard]] ProgramStateRef set_stmt_sexpr(ProcCFG::StmtRef stmt,
+                                                 const StackFrame* frame,
                                                  SExprRef sexpr) const;
     [[nodiscard]] ProgramStateRef set_constraint_system(
         const ConstraintSystem& cst_system) const;
 
     [[nodiscard]] std::optional< const RegionSymVal* > get_region_def(
         RegionRef region, const StackFrame* frame) const;
-    [[nodiscard]] std::optional< SExprRef > get_stmt_sexpr(
-        ProcCFG::StmtRef stmt) const;
     [[nodiscard]] std::optional< SExprRef > get_stmt_sexpr(
         ProcCFG::StmtRef stmt, const StackFrame* frame) const;
     [[nodiscard]] SExprRef get_stmt_sexpr_or_conjured(
@@ -321,13 +324,6 @@ class ProgramState : public llvm::FoldingSetNode {
     [[nodiscard]] ProgramStateRef set_to_bottom() const;
     [[nodiscard]] ProgramStateRef set_to_top() const;
 
-    /// TODO(symbol): if a region `reg` have different values in `se1`
-    /// and `se2`, join shall assign a symbolic value `sval` to `reg`.
-    /// And `sval` shall join the constraint of `se1` and `se2`.
-    ///
-    /// We can add the constraint `sval = se1` and `sval = se2` to two
-    /// states and join them, and `reg` will be assigned `sval` in the
-    /// joined state.
     [[nodiscard]] ProgramStateRef join(const ProgramStateRef& other,
                                        const LocationContext* loc_ctx) const;
     [[nodiscard]] ProgramStateRef join_at_loop_head(
@@ -362,12 +358,14 @@ class ProgramState : public llvm::FoldingSetNode {
             id.AddInteger(dom_id);
             id.AddPointer(val.get());
         }
-        for (const auto& [region, def] : s->m_region_defs) {
-            id.AddPointer(region);
+        for (const auto& [region_frame_pair, def] : s->m_region_defs) {
+            id.AddPointer(region_frame_pair.first);
+            id.AddPointer(region_frame_pair.second);
             id.AddPointer(def);
         }
-        for (const auto& [stmt, sexpr] : s->m_stmt_sexpr) {
-            id.AddPointer(stmt);
+        for (const auto& [stmt_frame_pair, sexpr] : s->m_stmt_sexpr) {
+            id.AddPointer(stmt_frame_pair.first);
+            id.AddPointer(stmt_frame_pair.second);
             id.AddPointer(sexpr);
         }
         s->m_constraint_system.Profile(id);

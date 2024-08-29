@@ -12,14 +12,14 @@
 //===------------------------------------------------------------------===//
 
 #include "dfa/symbol.hpp"
-#include "clang/AST/OperationKinds.h"
 #include "dfa/constraint/linear.hpp"
 #include "dfa/region/region.hpp"
 #include "dfa/stack_frame.hpp"
-#include "llvm/ADT/APFloat.h"
-#include "llvm/ADT/APSInt.h"
 
 #include <clang/AST/Expr.h>
+#include <clang/AST/OperationKinds.h>
+#include <llvm/ADT/APFloat.h>
+#include <llvm/ADT/APSInt.h>
 
 #include <optional>
 #include <queue>

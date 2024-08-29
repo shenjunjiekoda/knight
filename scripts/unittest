@@ -21,10 +21,16 @@ import re
 
 
 def warning(msg):
+    """
+    Prints a warning message with a specific format using ANSI escape codes for color
+    """
     print(f"\033[1;35mwarning:\033[0m {msg}")
 
 
 def error(msg):
+    """
+    Raise an exception message with a specific format using ANSI escape codes for color
+    """
     raise Exception(f"\033[1;31merror:\033[0m {msg}")
 
 
@@ -89,6 +95,14 @@ class DiagnosticInfo:
     """
 
     # Constructor for DiagnosticInfo class. Initializes diagnostic information attributes.
+    # Initializes a new instance of the class with diagnostic details.
+    # diag_level: The severity level of the diagnostic.
+    # start_line: The starting line number of the diagnostic.
+    # start_col: The starting column number of the diagnostic.
+    # end_line: The ending line number of the diagnostic.
+    # end_col: The ending column number of the diagnostic.
+    # msg: The diagnostic message.
+    # name: The name associated with the diagnostic.
     def __init__(self, diag_level, start_line, start_col, end_line, end_col, msg, name):
         self.diag_level = diag_level
         self.start_line = start_line
@@ -301,10 +315,10 @@ class Driver:
             stdout_text = result.stdout.decode("utf-8")
             stderr_text = result.stderr.decode("utf-8")
 
-            self.log(f"Standard Output:")
+            self.log("Standard Output:")
             self.log("-" * 80)
             self.log(f"{stdout_text}\n")
-            self.log(f"Standard Error:")
+            self.log("Standard Error:")
             self.log("-" * 80)
             self.log(f"{stderr_text}\n")
             self.log("-" * 80)
@@ -320,7 +334,7 @@ class Driver:
             false_positives = [
                 d for d in diags_in_impl_file if d not in diags_in_stdout
             ]
-            
+           
             passed = not (false_negatives or false_positives)
 
             # pass use green color, fail use red color

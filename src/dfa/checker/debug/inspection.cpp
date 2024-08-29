@@ -12,8 +12,9 @@
 //===------------------------------------------------------------------===//
 
 #include "dfa/checker/debug/inspection.hpp"
-#include <string>
 #include "util/log.hpp"
+
+#include <string>
 
 #define DEBUG_TYPE "inspection-checker"
 
@@ -49,7 +50,7 @@ void InspectionChecker::dump_zval(const clang::Expr* expr,
         return;
     }
 
-    auto sexpr = state->get_stmt_sexpr(expr);
+    auto sexpr = state->get_stmt_sexpr(expr, ctx.get_current_stack_frame());
     if (!sexpr) {
         if (auto reg = state->get_region(expr, ctx.get_current_stack_frame())) {
             sexpr = state->get_region_def(*reg, ctx.get_current_stack_frame());

@@ -11,25 +11,25 @@
 //
 //===------------------------------------------------------------------===//
 
-#include <llvm/Support/CommandLine.h>
-#include <llvm/Support/InitLLVM.h>
-#include <llvm/Support/Process.h>
-#include <llvm/Support/TargetSelect.h>
-#include <llvm/Support/WithColor.h>
-#include <cstdint>
 #include "dfa/domain/domains.hpp"
-#include "llvm/Support/raw_ostream.h"
-#include "util/log.hpp"
-
-#include <clang/Tooling/CommonOptionsParser.h>
-#include <string>
-
 #include "tooling/cl_opts.hpp"
 #include "tooling/context.hpp"
 #include "tooling/diagnostic.hpp"
 #include "tooling/knight.hpp"
 #include "tooling/options.hpp"
+#include "util/log.hpp"
 #include "util/vfs.hpp"
+
+#include <clang/Tooling/CommonOptionsParser.h>
+#include <llvm/Support/CommandLine.h>
+#include <llvm/Support/InitLLVM.h>
+#include <llvm/Support/Process.h>
+#include <llvm/Support/TargetSelect.h>
+#include <llvm/Support/WithColor.h>
+#include <llvm/Support/raw_ostream.h>
+
+#include <cstdint>
+#include <string>
 
 #define DEBUG_TYPE "main"
 

@@ -14,7 +14,8 @@
 #pragma once
 
 #include "dfa/constraint/linear.hpp"
-#include "llvm/ADT/FoldingSet.h"
+
+#include <llvm/ADT/FoldingSet.h>
 
 namespace knight::dfa {
 

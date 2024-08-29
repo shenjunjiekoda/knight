@@ -13,13 +13,15 @@
 
 #pragma once
 
-#include <utility>
-#include <variant>
-#include "clang/AST/OperationKinds.h"
 #include "dfa/analysis/events.hpp"
 #include "dfa/constraint/linear.hpp"
 #include "dfa/program_state.hpp"
 #include "util/log.hpp"
+
+#include <clang/AST/OperationKinds.h>
+
+#include <utility>
+#include <variant>
 
 namespace knight::dfa {
 
@@ -111,11 +113,10 @@ struct LinearAssignEvent {
                                   QVarAssignQLinearExpr >;
 
     AssignT assign;
-    ProgramStateRef input_state;
-    ProgramStateRef output_state;
+    ProgramStateRef& state;
 
-    LinearAssignEvent(AssignT assign, ProgramStateRef input_state)
-        : assign(std::move(assign)), input_state(std::move(input_state)) {}
+    LinearAssignEvent(AssignT assign, ProgramStateRef& state)
+        : assign(std::move(assign)), state(state) {}
 
 } __attribute__((packed))
 __attribute__((aligned(AssignEventAlignBigSize))); // struct LinearAssignEvent
@@ -157,11 +158,9 @@ struct LinearAssumptionEvent {
                                   GeneralLinearConstraint >;
 
     AssumpT assumption;
-    ProgramStateRef input_state;
-    ProgramStateRef output_state;
-    LinearAssumptionEvent(AssumpT assumption, ProgramStateRef input_state)
-        : assumption(std::move(assumption)),
-          input_state(std::move(input_state)) {}
+    ProgramStateRef& state;
+    LinearAssumptionEvent(AssumpT assumption, ProgramStateRef& state)
+        : assumption(std::move(assumption)), state(state) {}
 
 } __attribute__((packed)); // struct LinearPredicateEvent
 

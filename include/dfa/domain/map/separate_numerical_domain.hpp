@@ -13,16 +13,16 @@
 
 #pragma once
 
-#include "clang/AST/Expr.h"
-#include "clang/AST/OperationKinds.h"
 #include "dfa/constraint/linear.hpp"
 #include "dfa/domain/dom_base.hpp"
 #include "dfa/domain/domains.hpp"
 #include "dfa/domain/interval.hpp"
 #include "dfa/domain/numerical/numerical_base.hpp"
-
-#include "llvm/ADT/DenseMap.h"
 #include "util/assert.hpp"
+
+#include <clang/AST/Expr.h>
+#include <clang/AST/OperationKinds.h>
+#include <llvm/ADT/DenseMap.h>
 
 namespace knight::dfa {
 

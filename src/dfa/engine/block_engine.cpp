@@ -15,10 +15,10 @@
 #include "dfa/analysis/analysis_base.hpp"
 #include "dfa/proc_cfg.hpp"
 #include "dfa/program_state.hpp"
-#include "llvm/Support/Casting.h"
 #include "util/assert.hpp"
 
 #include <clang/Analysis/CFG.h>
+#include <llvm/Support/Casting.h>
 
 #define DEBUG_TYPE "block_engine"
 
@@ -110,8 +110,8 @@ ProgramStateRef BlockExecutionEngine::exec_branch_condition(
             bool is_true_branch = *(pred->succ_begin()) == m_node;
 
             if (const auto* scalar_int = llvm::dyn_cast_or_null< ScalarInt >(
-                    state->get_stmt_sexpr(cond).value_or(nullptr))) {
-                LLVM_DEBUG(llvm::outs() << "condition as scalar int: "
+                    state->get_stmt_sexpr(cond, m_frame).value_or(nullptr))) {
+                knight_log(llvm::outs() << "condition as scalar int: "
                                         << *scalar_int << "\n");
                 if ((is_true_branch && scalar_int->get_value() == 0) ||
                     (!is_true_branch && scalar_int->get_value() != 1)) {

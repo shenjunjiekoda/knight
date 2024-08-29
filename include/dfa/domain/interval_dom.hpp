@@ -19,7 +19,8 @@
 #include "dfa/domain/interval.hpp"
 #include "dfa/domain/map/separate_numerical_domain.hpp"
 #include "dfa/domain/numerical/numerical_base.hpp"
-#include "llvm/Support/raw_ostream.h"
+
+#include <llvm/Support/raw_ostream.h>
 
 namespace knight::dfa {
 

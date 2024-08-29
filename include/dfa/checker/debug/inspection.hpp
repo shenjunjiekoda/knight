@@ -13,15 +13,15 @@
 
 #pragma once
 
-#include "clang/AST/Expr.h"
 #include "dfa/analysis/core/numerical_analysis.hpp"
 #include "dfa/checker/checker_base.hpp"
 #include "dfa/checker_context.hpp"
 #include "dfa/checker_manager.hpp"
-#include "llvm/ADT/StringRef.h"
 #include "tooling/context.hpp"
-
 #include "util/log.hpp"
+
+#include <clang/AST/Expr.h>
+#include <llvm/ADT/StringRef.h>
 
 namespace knight::dfa {
 
@@ -29,6 +29,7 @@ class InspectionChecker
     : public Checker< InspectionChecker, check::PostStmt< clang::CallExpr > > {
   private:
     static inline llvm::StringRef ZValDumper = "knight_dump_zval";
+    static inline llvm::StringRef ReachabilityDumper = "knight_reachable";
 
   public:
     explicit InspectionChecker(KnightContext& C) : Checker(C) {}

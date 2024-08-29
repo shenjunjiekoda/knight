@@ -13,7 +13,6 @@
 
 #pragma once
 
-#include "clang/AST/Type.h"
 #include "dfa/analysis/analysis_base.hpp"
 #include "dfa/analysis/core/numerical_event.hpp"
 #include "dfa/analysis_context.hpp"
@@ -22,19 +21,20 @@
 #include "dfa/symbol.hpp"
 #include "dfa/symbol_manager.hpp"
 #include "tooling/context.hpp"
+#include "util/log.hpp"
 
 #include <clang/AST/Decl.h>
 #include <clang/AST/Expr.h>
 #include <clang/AST/Stmt.h>
 #include <clang/AST/StmtVisitor.h>
+#include <clang/AST/Type.h>
 #include <llvm/ADT/APSInt.h>
-#include "util/log.hpp"
 
 namespace knight::dfa {
 
 namespace internal {
 
-constexpr unsigned AssignmentContextAlignment = 128U;
+constexpr unsigned AssignmentContextAlignment = 64U;
 
 } // namespace internal
 

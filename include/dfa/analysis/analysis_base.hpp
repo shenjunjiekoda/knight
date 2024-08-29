@@ -13,14 +13,14 @@
 
 #pragma once
 
-#include "clang/AST/Stmt.h"
-#include "util/log.hpp"
+#include <clang/AST/Stmt.h>
 
 #include "dfa/analysis/analyses.hpp"
 #include "dfa/analysis_context.hpp"
 #include "dfa/analysis_manager.hpp"
 #include "support/clang_ast.hpp"
 #include "support/event.hpp"
+#include "util/log.hpp"
 
 namespace knight::dfa {
 
