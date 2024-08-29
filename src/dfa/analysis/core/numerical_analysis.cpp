@@ -19,77 +19,111 @@
 
 namespace knight::dfa {
 
-void NumericalAnalysis::EventHandler::handle(
+void NumericalAnalysis::LinearAssignEventHandler::handle(
     const ZVarAssignZVar& assign) const {
     knight_log_nl(llvm::outs() << "Event ZVarAssignZVar: ";
                   assign.dump(llvm::outs());
                   llvm::outs() << "\n";);
 
-    auto zitv = input_state->get_zdom_clone();
-    zitv->assign_var(assign.x, assign.y);
-    output_state = input_state->set_zdom(zitv);
+    auto zdom = input_state->get_zdom_clone();
+    zdom->assign_var(assign.x, assign.y);
+    output_state = input_state->set_zdom(zdom);
 }
-void NumericalAnalysis::EventHandler::handle(
+void NumericalAnalysis::LinearAssignEventHandler::handle(
     const ZVarAssignZNum& assign) const {
     knight_log_nl(llvm::outs() << "Event ZVarAssignZNum: ";
                   assign.dump(llvm::outs());
                   llvm::outs() << "\n";);
 
-    auto zitv = input_state->get_zdom_clone();
-    zitv->assign_num(assign.x, assign.y);
-    output_state = input_state->set_zdom(zitv);
+    auto zdom = input_state->get_zdom_clone();
+    zdom->assign_num(assign.x, assign.y);
+    output_state = input_state->set_zdom(zdom);
 }
-void NumericalAnalysis::EventHandler::handle(
+void NumericalAnalysis::LinearAssignEventHandler::handle(
     const ZVarAssignZLinearExpr& assign) const {
     knight_log_nl(llvm::outs() << "Event ZVarAssignZLinearExpr: ";
                   assign.dump(llvm::outs());
                   llvm::outs() << "\n";);
 
-    auto zitv = input_state->get_zdom_clone();
-    zitv->assign_linear_expr(assign.x, assign.y);
-    output_state = input_state->set_zdom(zitv);
+    auto zdom = input_state->get_zdom_clone();
+    zdom->assign_linear_expr(assign.x, assign.y);
+    output_state = input_state->set_zdom(zdom);
 }
 
-void NumericalAnalysis::EventHandler::handle(
+void NumericalAnalysis::LinearAssignEventHandler::handle(
     const ZVarAssignZCast& assign) const {
     knight_log_nl(llvm::outs() << "Event ZVarAssignZCast: ";
                   assign.dump(llvm::outs()););
 
-    auto zitv = input_state->get_zdom_clone();
-    zitv->assign_cast(assign.dst_type,
+    auto zdom = input_state->get_zdom_clone();
+    zdom->assign_cast(assign.dst_type,
                       assign.dst_bit_width,
                       assign.x,
                       assign.y);
-    output_state = input_state->set_zdom(zitv);
+    output_state = input_state->set_zdom(zdom);
 }
 
-void NumericalAnalysis::EventHandler::handle(
+void NumericalAnalysis::LinearAssignEventHandler::handle(
     const ZVarAssignBinaryVarVar& assign) const {
     knight_log_nl(llvm::outs() << "Event ZVarAssignBinaryVarVar: ";
                   assign.dump(llvm::outs());
                   llvm::outs() << "\n";);
 
-    auto zitv = input_state->get_zdom_clone();
-    zitv->assign_binary_var_var(assign.op, assign.x, assign.y, assign.z);
-    output_state = input_state->set_zdom(zitv);
+    auto zdom = input_state->get_zdom_clone();
+    zdom->assign_binary_var_var(assign.op, assign.x, assign.y, assign.z);
+    output_state = input_state->set_zdom(zdom);
 }
-void NumericalAnalysis::EventHandler::handle(
+void NumericalAnalysis::LinearAssignEventHandler::handle(
     const ZVarAssignBinaryVarNum& assign) const {
     knight_log_nl(llvm::outs() << "Event ZVarAssignBinaryVarNum: ";
                   assign.dump(llvm::outs());
                   llvm::outs() << "\n";);
 
-    auto zitv = input_state->get_zdom_clone();
-    zitv->assign_binary_var_num(assign.op, assign.x, assign.y, assign.z);
-    output_state = input_state->set_zdom(zitv);
+    auto zdom = input_state->get_zdom_clone();
+    zdom->assign_binary_var_num(assign.op, assign.x, assign.y, assign.z);
+    output_state = input_state->set_zdom(zdom);
 }
 
-void NumericalAnalysis::EventHandler::handle(
+void NumericalAnalysis::LinearAssignEventHandler::handle(
     const QVarAssignQVar& assign) const {}
 
-void NumericalAnalysis::EventHandler::handle(
+void NumericalAnalysis::LinearAssignEventHandler::handle(
     const QVarAssignQNum& assign) const {}
 
-void NumericalAnalysis::EventHandler::handle(
+void NumericalAnalysis::LinearAssignEventHandler::handle(
     const QVarAssignQLinearExpr& assign) const {}
+
+void NumericalAnalysis::LinearAssumptionEventHandler::handle(
+    const PredicateZVarZNum& pred) const {
+    knight_log_nl(llvm::outs() << "Event PredicateZVarZNum: ";
+                  pred.dump(llvm::outs());
+                  llvm::outs() << "\n";);
+
+    auto zdom = input_state->get_zdom_clone();
+    zdom->assume_predicate_var_num(pred.op, pred.x, pred.y);
+    output_state = input_state->set_zdom(zdom);
+}
+
+void NumericalAnalysis::LinearAssumptionEventHandler::handle(
+    const PredicateZVarZVar& pred) const {
+    knight_log_nl(llvm::outs() << "Event PredicateZVarZVar: ";
+                  pred.dump(llvm::outs());
+                  llvm::outs() << "\n";);
+
+    auto zdom = input_state->get_zdom_clone();
+    zdom->assume_predicate_var_var(pred.op, pred.x, pred.y);
+    output_state = input_state->set_zdom(zdom);
+}
+
+void NumericalAnalysis::LinearAssumptionEventHandler::handle(
+    const GeneralLinearConstraint& cstr) const {
+    knight_log_nl(llvm::outs() << "Event GeneralLinearConstraint: ";
+                  cstr.dump(llvm::outs());
+                  llvm::outs() << "\n";);
+
+    auto zdom = input_state->get_zdom_clone();
+    zdom->apply_linear_constraint(cstr.cstr);
+    output_state = input_state->set_zdom(zdom);
+}
+
 } // namespace knight::dfa

@@ -15,9 +15,12 @@
 #include "dfa/analysis/analysis_base.hpp"
 #include "dfa/proc_cfg.hpp"
 #include "dfa/program_state.hpp"
+#include "llvm/Support/Casting.h"
 #include "util/assert.hpp"
 
 #include <clang/Analysis/CFG.h>
+
+#define DEBUG_TYPE "block_engine"
 
 namespace knight::dfa {
 
@@ -25,6 +28,10 @@ void BlockExecutionEngine::exec() {
     ProgramStateRef state = m_state;
 
     state = exec_branch_condition(state);
+    if (state->is_bottom()) {
+        m_state = state;
+        return;
+    }
     for (const auto& elem : m_node->Elements) {
         m_current_elem_idx++;
         switch (elem.getKind()) {
@@ -63,6 +70,9 @@ void BlockExecutionEngine::exec() {
             case Statement: {
                 const auto& cfg_stmt = elem.castAs< clang::CFGStmt >();
                 state = exec_cfg_stmt(cfg_stmt.getStmt(), state);
+                if (state->is_bottom()) {
+                    break;
+                }
             } break;
             case Constructor: {
                 knight_unreachable("constructor not implemented yet"); // NOLINT
@@ -98,6 +108,16 @@ ProgramStateRef BlockExecutionEngine::exec_branch_condition(
         pred != nullptr && pred->succ_size() == 2U) {
         if (ExprRef cond = pred->getLastCondition()) {
             bool is_true_branch = *(pred->succ_begin()) == m_node;
+
+            if (const auto* scalar_int = llvm::dyn_cast_or_null< ScalarInt >(
+                    state->get_stmt_sexpr(cond).value_or(nullptr))) {
+                LLVM_DEBUG(llvm::outs() << "condition as scalar int: "
+                                        << *scalar_int << "\n");
+                if ((is_true_branch && scalar_int->get_value() == 0) ||
+                    (!is_true_branch && scalar_int->get_value() != 1)) {
+                    return state->get_state_manager().get_bottom_state();
+                }
+            }
             AnalysisContext analysis_ctx(m_analysis_manager.get_context(),
                                          m_analysis_manager
                                              .get_region_manager(),

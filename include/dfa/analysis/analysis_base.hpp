@@ -261,7 +261,9 @@ class ConditionFilter {
     template < typename ANALYSIS >
     static void register_callback(ANALYSIS* analysis, AnalysisManager& mgr) {
         mgr.register_for_condition_filter(
-            internal::ConditionFilterCallback(ANALYSIS::get_kind(), analysis));
+            internal::ConditionFilterCallback(ANALYSIS::get_kind(),
+                                              analysis,
+                                              filter_condition< ANALYSIS >));
     }
 
 }; // class ConditionFilter

@@ -41,7 +41,9 @@ constexpr unsigned AssignmentContextAlignment = 128U;
 class SymbolResolver
     : public Analysis< SymbolResolver,
                        analyze::EvalStmt< clang::Stmt >,
-                       analyze::EventDispatcher< LinearAssignEvent > >,
+                       analyze::EventDispatcher< LinearAssignEvent >,
+                       analyze::EventDispatcher< LinearAssumptionEvent >,
+                       analyze::ConditionFilter >,
       public clang::ConstStmtVisitor< SymbolResolver > {
   private:
     mutable AnalysisContext* m_ctx{};
@@ -72,6 +74,10 @@ class SymbolResolver
     void VisitCastExpr(const clang::CastExpr* cast_expr) const;
 
     void analyze_stmt(const clang::Stmt* stmt, AnalysisContext& ctx) const;
+
+    void filter_condition(const clang::Expr* expr,
+                          bool assertion_result,
+                          AnalysisContext& ctx) const;
 
     static UniqueAnalysisRef register_analysis(AnalysisManager& mgr,
                                                KnightContext& ctx) {

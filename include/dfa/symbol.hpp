@@ -112,10 +112,8 @@ class SymExpr : public llvm::FoldingSetNode {
     [[nodiscard]] llvm::iterator_range< SymIterator > get_symbols() const {
         return llvm::make_range(SymIterator(this), SymIterator());
     }
-
-    virtual std::optional< RegionRef > get_as_region() const {
-        return std::nullopt;
-    }
+    std::optional< SymbolRef > get_as_symbol() const;
+    std::optional< RegionRef > get_as_region() const;
 
     std::optional< ZLinearExpr > get_as_zexpr() const;
     std::optional< ZLinearConstraint > get_as_zconstraint() const;
@@ -298,7 +296,7 @@ class RegionSymVal : public Sym {
     }
 
     void dump(llvm::raw_ostream& os) const override;
-    [[nodiscard]] std::optional< RegionRef > get_as_region() const override;
+
     [[gnu::returns_nonnull, nodiscard]] const LocationContext* get_loc_ctx()
         const {
         return m_loc_ctx;
@@ -583,12 +581,32 @@ class BinarySymExpr : public SymExpr {
             using enum clang::BinaryOperatorKind;
             case BO_Add:
             case BO_Sub:
+            case BO_Assign:
+            case BO_AddAssign:
+            case BO_SubAssign:
+            case BO_LT:
+            case BO_GT:
+            case BO_LE:
+            case BO_GE:
+            case BO_EQ:
+            case BO_NE: {
                 return std::max(lhs_complexity, rhs_complexity);
-            default:
-                break;
+            } break;
+            case BO_MulAssign:
+            case BO_DivAssign:
+            case BO_Mul:
+            case BO_Div: {
+                lhs_complexity = std::max(lhs_complexity, 1U);
+                rhs_complexity = std::max(rhs_complexity, 1U);
+
+            } break;
+
+            default: {
+                lhs_complexity = std::max(lhs_complexity, 2U);
+                rhs_complexity = std::max(rhs_complexity, 2U);
+            } break;
         }
-        lhs_complexity = std::max(lhs_complexity, 1U);
-        rhs_complexity = std::max(rhs_complexity, 1U);
+
         return lhs_complexity * rhs_complexity;
     }
 

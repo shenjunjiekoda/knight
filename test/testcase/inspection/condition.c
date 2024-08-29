@@ -14,3 +14,13 @@ void foo(int x) {
         // warning:-1:26:-1:26: -1 [debug-inspection]
     }
 }
+
+void bar(int x) {
+    if (x > 0) {
+        knight_dump_zval(x);
+        // warning:-1:26:-1:26: [1, +oo] [debug-inspection]
+    } else {
+        knight_dump_zval(x);
+        // warning:-1:26:-1:26: [-oo, 0] [debug-inspection]
+    }
+}

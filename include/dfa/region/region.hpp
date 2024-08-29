@@ -69,6 +69,9 @@ class MemSpaceRegion {
     [[nodiscard]] bool is_stack_local() const {
         return m_kind == SpaceKind::StackLocal;
     }
+    [[nodiscard]] bool is_stack_arg() const {
+        return m_kind == SpaceKind::StackArg;
+    }
 
 }; // class MemSpaceRegion
 
@@ -324,6 +327,12 @@ class TypedRegion : public llvm::FoldingSetNode {
     }
 
 }; // class TypedRegion
+
+inline llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
+                                     const TypedRegion& R) {
+    R.dump(os);
+    return os;
+}
 
 class CXXThisRegion : public TypedRegion {
     friend class RegionManager;

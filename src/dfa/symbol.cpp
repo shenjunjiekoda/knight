@@ -88,6 +88,20 @@ const Sym* SymIterator::operator*() {
     return m_syms.back();
 }
 
+std::optional< RegionRef > SymExpr::get_as_region() const {
+    if (const auto* reg_sym = dyn_cast< RegionSymVal >(this)) {
+        return reg_sym->get_region();
+    }
+    return std::nullopt;
+}
+
+std::optional< SymbolRef > SymExpr::get_as_symbol() const {
+    if (const auto* sym = dyn_cast< Sym >(this)) {
+        return sym;
+    }
+    return std::nullopt;
+}
+
 RegionSymVal::RegionSymVal(SymID id,
                            RegionRef region,
                            const LocationContext* loc_ctx,
@@ -109,10 +123,6 @@ void RegionSymVal::dump(llvm::raw_ostream& os) const {
     os << get_kind_name() << get_id() << "<" << get_type() << ' ';
     get_region()->dump(os);
     os << '>';
-}
-
-std::optional< RegionRef > RegionSymVal::get_as_region() const {
-    return m_region;
 }
 
 clang::QualType RegionSymVal::get_type() const {

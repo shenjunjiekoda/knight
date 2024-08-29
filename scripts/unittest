@@ -256,7 +256,7 @@ class Driver:
             elif os.path.isdir(cur_path):
                 self.construct_knight_commands_for_dir(cur_path)
             elif self.verbose:
-                warning(f"{cur_path}: skiped")
+                warning(f"{cur_path}: skipped")
 
     def run_test(self):
         """

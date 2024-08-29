@@ -164,7 +164,7 @@ class ProgramState : public llvm::FoldingSetNode {
         const ConstraintSystem& cst_system) const;
 
     [[nodiscard]] std::optional< const RegionSymVal* > get_region_def(
-        RegionRef region) const;
+        RegionRef region, const StackFrame* frame) const;
     [[nodiscard]] std::optional< SExprRef > get_stmt_sexpr(
         ProcCFG::StmtRef stmt) const;
     [[nodiscard]] std::optional< SExprRef > get_stmt_sexpr(
@@ -380,6 +380,12 @@ class ProgramState : public llvm::FoldingSetNode {
         Profile(id, this);
     }
 }; // class ProgramState
+
+inline llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
+                                     const ProgramState& state) {
+    state.dump(os);
+    return os;
+}
 
 class ProgramStateManager {
     friend class ProgramState;

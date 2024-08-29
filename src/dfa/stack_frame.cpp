@@ -13,6 +13,7 @@
 
 #include "dfa/stack_frame.hpp"
 #include "dfa/location_manager.hpp"
+#include "dfa/proc_cfg.hpp"
 
 #include <clang/AST/ExprCXX.h>
 #include <llvm/ADT/FoldingSet.h>
@@ -69,6 +70,12 @@ LocationManager* StackFrame::get_manager() const {
 
 ProcCFG::GraphRef StackFrame::get_cfg() const {
     return m_manager->get_cfg(m_decl);
+}
+
+const LocationContext* StackFrame::get_entry_location() const {
+    ProcCFG::NodeRef entry = ProcCFG::entry(get_cfg());
+    knight_assert_msg(entry, "entry cannot be null");
+    return get_manager()->create_location_context(this, entry);
 }
 
 ProcCFG::StmtRef StackFrame::get_callsite_expr() const {

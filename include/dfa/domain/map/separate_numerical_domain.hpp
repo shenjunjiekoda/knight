@@ -109,6 +109,7 @@ class SeparateNumericalDom
 
         auto it = m_table.find(key);
         if (it == m_table.end()) {
+            set_value(key, value);
             return;
         }
         it->second.meet_with(value);

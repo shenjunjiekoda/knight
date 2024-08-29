@@ -19,6 +19,7 @@
 #include "dfa/domain/interval.hpp"
 #include "dfa/domain/map/separate_numerical_domain.hpp"
 #include "dfa/domain/numerical/numerical_base.hpp"
+#include "llvm/Support/raw_ostream.h"
 
 namespace knight::dfa {
 
@@ -139,6 +140,7 @@ class IntervalSolver {
     bool refine_to_numerical(Var x,
                              const Interval& itv,
                              NumericalDom& numerical) {
+        llvm::outs() << "Refining " << x << " to " << itv << "\n";
         Interval old_itv = numerical.to_interval(x);
         Interval new_itv = old_itv;
         new_itv.meet_with(itv);
@@ -261,6 +263,7 @@ template < typename Num, DomainKind Kind, DomainKind SepKind >
 class IntervalDom
     : public NumericalDom< IntervalDom< Num, Kind, SepKind >, Num > {
   public:
+    using Base = NumericalDom< IntervalDom< Num, Kind, SepKind >, Num >;
     using IntervalDomT = IntervalDom< Num, Kind, SepKind >;
     using Var = Variable< Num >;
     using Interval = Interval< Num >;
@@ -380,54 +383,6 @@ class IntervalDom
         m_sep_dom.assign_unary(op, x, y);
     }
 
-    LinearConstraint construct_constraint(clang::BinaryOperatorKind op,
-                                          const Var& lhs,
-                                          const Num& rhs) {
-        knight_assert(clang::BinaryOperator::isComparisonOp(op));
-        switch (op) {
-            using enum clang::BinaryOperatorKind;
-            case BO_EQ:
-                return lhs == rhs;
-            case BO_NE:
-                return lhs != rhs;
-            case BO_LT:
-                return lhs <= rhs - 1;
-            case BO_GT:
-                return lhs >= rhs + 1;
-            case BO_LE:
-                return lhs <= rhs;
-            case BO_GE:
-                return lhs >= rhs;
-            default:
-                break;
-        }
-        knight_unreachable("Unsupported binary operator");
-    }
-
-    LinearConstraint construct_constraint(clang::BinaryOperatorKind op,
-                                          const Var& lhs,
-                                          const Var& rhs) {
-        knight_assert(clang::BinaryOperator::isComparisonOp(op));
-        switch (op) {
-            using enum clang::BinaryOperatorKind;
-            case BO_EQ:
-                return lhs == rhs;
-            case BO_NE:
-                return lhs != rhs;
-            case BO_LT:
-                return lhs <= rhs - Num(1);
-            case BO_GT:
-                return lhs >= rhs + Num(1);
-            case BO_LE:
-                return lhs <= rhs;
-            case BO_GE:
-                return lhs >= rhs;
-            default:
-                break;
-        }
-        knight_unreachable("Unsupported binary operator");
-    }
-
     void assign_binary_var_var(clang::BinaryOperatorKind op,
                                const Var& x,
                                const Var& y,
@@ -436,9 +391,9 @@ class IntervalDom
         if (clang::BinaryOperator::isComparisonOp(op)) {
             IntervalDom dom_pos = *this;
             IntervalDom dom_neg = *this;
-            LinearConstraint cstr = construct_constraint(op, y, z);
-            dom_pos.add_linear_constraint(cstr);
-            dom_neg.add_linear_constraint(cstr.negate());
+            LinearConstraint cstr = Base::construct_constraint(op, y, z);
+            dom_pos.apply_linear_constraint(cstr);
+            dom_neg.apply_linear_constraint(cstr.negate());
             if (dom_pos.is_bottom() && !dom_neg.is_bottom()) {
                 this->set_value(x, Interval::true_val());
             } else if (!dom_pos.is_bottom() && dom_neg.is_bottom()) {
@@ -459,9 +414,9 @@ class IntervalDom
         if (clang::BinaryOperator::isComparisonOp(op)) {
             IntervalDom dom_pos = *this;
             IntervalDom dom_neg = *this;
-            LinearConstraint cstr = construct_constraint(op, y, z);
-            dom_pos.add_linear_constraint(cstr);
-            dom_neg.add_linear_constraint(cstr.negate());
+            LinearConstraint cstr = Base::construct_constraint(op, y, z);
+            dom_pos.apply_linear_constraint(cstr);
+            dom_neg.apply_linear_constraint(cstr.negate());
             if (dom_pos.is_bottom() && !dom_neg.is_bottom()) {
                 this->set_value(x, Interval::true_val());
             } else if (!dom_pos.is_bottom() && dom_neg.is_bottom()) {
@@ -485,7 +440,7 @@ class IntervalDom
         return m_sep_dom.get_value(x);
     }
 
-    void add_linear_constraint(const LinearConstraint& cst) override {
+    void apply_linear_constraint(const LinearConstraint& cst) override {
         Solver solver;
         solver.add(cst);
         solver.run(*this);

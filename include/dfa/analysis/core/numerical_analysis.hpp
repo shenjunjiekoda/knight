@@ -34,10 +34,11 @@
 
 namespace knight::dfa {
 
-constexpr unsigned EventHandlerAlignment = 16U;
+constexpr unsigned EventHandlerAlignment = 32U;
 class NumericalAnalysis
     : public Analysis< NumericalAnalysis,
-                       analyze::EventListener< LinearAssignEvent > > {
+                       analyze::EventListener< LinearAssignEvent >,
+                       analyze::EventListener< LinearAssumptionEvent > > {
   public:
     explicit NumericalAnalysis(KnightContext& ctx) : Analysis(ctx) {}
 
@@ -45,14 +46,14 @@ class NumericalAnalysis
         return AnalysisKind::NumericalAnalysis;
     }
 
-    struct EventHandler {
+    struct LinearAssignEventHandler {
         const NumericalAnalysis& analysis;
         ProgramStateRef input_state;
         ProgramStateRef& output_state;
 
-        EventHandler(const NumericalAnalysis& analysis,
-                     ProgramStateRef input_state,
-                     ProgramStateRef& output_state)
+        LinearAssignEventHandler(const NumericalAnalysis& analysis,
+                                 ProgramStateRef input_state,
+                                 ProgramStateRef& output_state)
             : analysis(analysis),
               input_state(std::move(input_state)),
               output_state(output_state) {}
@@ -75,8 +76,41 @@ class NumericalAnalysis
     } __attribute__((aligned(EventHandlerAlignment))); // struct EventHandler
 
     void handle_event(LinearAssignEvent* event) const {
-        std::visit(EventHandler{*this, event->input_state, event->output_state},
+        std::visit(LinearAssignEventHandler{*this,
+                                            event->input_state,
+                                            event->output_state},
                    event->assign);
+    }
+
+    struct LinearAssumptionEventHandler {
+        const NumericalAnalysis& analysis;
+        ProgramStateRef input_state;
+        ProgramStateRef& output_state;
+
+        LinearAssumptionEventHandler(const NumericalAnalysis& analysis,
+                                     ProgramStateRef input_state,
+                                     ProgramStateRef& output_state)
+            : analysis(analysis),
+              input_state(std::move(input_state)),
+              output_state(output_state) {}
+
+        template < typename T >
+        void operator()(const T& event) const {
+            this->handle(event);
+        }
+
+        void handle(const PredicateZVarZNum& pred) const;
+        void handle(const PredicateZVarZVar& pred) const;
+        void handle(const GeneralLinearConstraint& cstr) const;
+
+    } __attribute__((
+        aligned(EventHandlerAlignment))); // struct LinearAssumptionEventHandler
+
+    void handle_event(LinearAssumptionEvent* event) const {
+        std::visit(LinearAssumptionEventHandler{*this,
+                                                event->input_state,
+                                                event->output_state},
+                   event->assumption);
     }
 
     static void add_dependencies(AnalysisManager& mgr) {

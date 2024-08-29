@@ -52,8 +52,10 @@ void InspectionChecker::dump_zval(const clang::Expr* expr,
     auto sexpr = state->get_stmt_sexpr(expr);
     if (!sexpr) {
         if (auto reg = state->get_region(expr, ctx.get_current_stack_frame())) {
-            // ctx.get_symbol_manager().get_region_sym_val(const TypedRegion
-            // *typed_region, const LocationContext *loc_ctx)
+            sexpr = state->get_region_def(*reg, ctx.get_current_stack_frame());
+        }
+        if (!sexpr) {
+            return;
         }
     }
 

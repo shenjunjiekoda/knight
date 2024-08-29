@@ -22,3 +22,4 @@
 #endif
 
 EVENT_DEF(LinearAssignEvent, "LinearAssignEvent", 0, "The numerical linear assignment event.")
+EVENT_DEF(LinearAssumptionEvent, "LinearAssumptionEvent", 1, "The numerical linear assumption event.")

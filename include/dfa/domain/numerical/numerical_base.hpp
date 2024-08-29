@@ -82,8 +82,68 @@ struct NumericalDomBase : AbsDomBase {
                              const Var& x,
                              const Var& y) = 0;
 
+    LinearConstraint construct_constraint(clang::BinaryOperatorKind op,
+                                          const Var& lhs,
+                                          const Num& rhs) {
+        knight_assert(clang::BinaryOperator::isComparisonOp(op));
+        switch (op) {
+            using enum clang::BinaryOperatorKind;
+            case BO_EQ:
+                return lhs == rhs;
+            case BO_NE:
+                return lhs != rhs;
+            case BO_LT:
+                return lhs <= rhs - 1;
+            case BO_GT:
+                return lhs >= rhs + 1;
+            case BO_LE:
+                return lhs <= rhs;
+            case BO_GE:
+                return lhs >= rhs;
+            default:
+                break;
+        }
+        knight_unreachable("Unsupported binary operator");
+    }
+
+    LinearConstraint construct_constraint(clang::BinaryOperatorKind op,
+                                          const Var& lhs,
+                                          const Var& rhs) {
+        knight_assert(clang::BinaryOperator::isComparisonOp(op));
+        switch (op) {
+            using enum clang::BinaryOperatorKind;
+            case BO_EQ:
+                return lhs == rhs;
+            case BO_NE:
+                return lhs != rhs;
+            case BO_LT:
+                return lhs <= rhs - Num(1);
+            case BO_GT:
+                return lhs >= rhs + Num(1);
+            case BO_LE:
+                return lhs <= rhs;
+            case BO_GE:
+                return lhs >= rhs;
+            default:
+                break;
+        }
+        knight_unreachable("Unsupported binary operator");
+    }
+
+    virtual void assume_predicate_var_num(clang::BinaryOperatorKind op,
+                                          const Var& x,
+                                          const Num& y) {
+        this->apply_linear_constraint(construct_constraint(op, x, y));
+    }
+
+    virtual void assume_predicate_var_var(clang::BinaryOperatorKind op,
+                                          const Var& x,
+                                          const Var& y) {
+        this->apply_linear_constraint(construct_constraint(op, x, y));
+    }
+
     /// \brief Add a linear constraint (semantic)
-    virtual void add_linear_constraint(const LinearConstraint& cst) = 0;
+    virtual void apply_linear_constraint(const LinearConstraint& cst) = 0;
 
     /// \brief Add a linear constraint system (semantic)
     virtual void merge_with_linear_constraint_system(
@@ -112,7 +172,7 @@ struct NumericalDomBase : AbsDomBase {
 /// - `assign_binary_var_var(clang::BinaryOperatorKind,Var,Var,Var)`
 /// - `assign_binary_var_num(clang::BinaryOperatorKind,Var,Var,const Num&)`
 /// - `assign_cast(clang::QualType, unsigned, Var, Var)`
-/// - `add_linear_constraint(const LinearConstraint&)`
+/// - `apply_linear_constraint(const LinearConstraint&)`
 /// - `merge_with_linear_constraint_system(const LinearConstraintSystem&)`
 /// - `to_linear_constraint_system() const`
 template < typename Derived, typename Num >

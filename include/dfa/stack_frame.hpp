@@ -25,6 +25,7 @@
 namespace knight::dfa {
 
 class LocationManager;
+class LocationContext;
 
 std::optional< ProcCFG::DeclRef > get_called_decl(const ProcCFG::StmtRef& call);
 
@@ -55,6 +56,7 @@ class StackFrame : public llvm::FoldingSetNode {
 
   public:
     [[nodiscard]] ProcCFG::GraphRef get_cfg() const;
+    [[nodiscard]] const LocationContext* get_entry_location() const;
 
     [[nodiscard]] clang::ASTContext& get_ast_context() const {
         return m_decl->getASTContext();

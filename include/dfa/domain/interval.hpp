@@ -275,6 +275,13 @@ class Interval : public AbsDom< Interval< Num > > {
 }; // class Interval
 
 template < typename Num >
+inline llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
+                                     const Interval< Num >& dom) {
+    dom.dump(os);
+    return os;
+}
+
+template < typename Num >
 inline Interval< Num > operator+(const Interval< Num >& lhs,
                                  const Interval< Num >& rhs) {
     using IntervalT = Interval< Num >;

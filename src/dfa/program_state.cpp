@@ -107,7 +107,7 @@ std::optional< ZVariable > ProgramState::try_get_zvariable(
         return std::nullopt;
     }
 
-    if (auto region_def = get_region_def(region_opt.value())) {
+    if (auto region_def = get_region_def(region_opt.value(), frame)) {
         return ZVariable(*region_def);
     }
     return std::nullopt;
@@ -125,7 +125,7 @@ std::optional< QVariable > ProgramState::try_get_qvariable(
         return std::nullopt;
     }
 
-    if (auto region_def = get_region_def(region_opt.value())) {
+    if (auto region_def = get_region_def(region_opt.value(), frame)) {
         return QVariable(*region_def);
     }
 
@@ -170,10 +170,15 @@ ProgramStateRef ProgramState::set_constraint_system(
 }
 
 std::optional< const RegionSymVal* > ProgramState::get_region_def(
-    RegionRef region) const {
+    RegionRef region, const StackFrame* frame) const {
     auto it = m_region_defs.find(region);
     if (it != m_region_defs.end()) {
         return it->second;
+    }
+    if (region->get_memory_space()->is_stack_arg()) {
+        return get_state_manager()
+            .m_symbol_mgr.get_region_sym_val(region,
+                                             frame->get_entry_location());
     }
     return std::nullopt;
 }
@@ -193,7 +198,7 @@ std::optional< SExprRef > ProgramState::get_stmt_sexpr(
         return res;
     }
     if (auto region_opt = get_region(stmt, frame)) {
-        return get_region_def(region_opt.value());
+        return get_region_def(region_opt.value(), frame);
     }
     return std::nullopt;
 }
@@ -209,7 +214,7 @@ SExprRef ProgramState::get_stmt_sexpr_or_conjured(
 
     auto region_opt = get_region(stmt, frame);
     if (region_opt.has_value()) {
-        if (auto region_def = get_region_def(region_opt.value())) {
+        if (auto region_def = get_region_def(region_opt.value(), frame)) {
             return *region_def;
         }
         if (const auto* typed_region =
