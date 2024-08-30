@@ -75,7 +75,6 @@ ProgramStateRef get_persistent_state_with_copy_and_dom_val_map(
 
 } // namespace internal
 
-// TODO(ProgramState): fix ProgramState to be immutable!!
 class ProgramState : public llvm::FoldingSetNode {
     friend class ProgramStateManager;
 
@@ -350,8 +349,7 @@ class ProgramState : public llvm::FoldingSetNode {
 
   public:
     /// \brief Profile the contents of a ProgramState object for use in a
-    ///  FoldingSet.  Two ProgramState objects are considered equal if they
-    ///  have the same domain value ptrs.
+    ///  FoldingSet.
     static void Profile(llvm::FoldingSetNodeID& id, // NOLINT
                         const ProgramState* s) {
         for (const auto& [dom_id, val] : s->m_dom_val) {

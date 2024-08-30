@@ -13,6 +13,8 @@
 
 #include "dfa/location_manager.hpp"
 #include "dfa/location_context.hpp"
+#include "dfa/stack_frame.hpp"
+#include "support/dumpable.hpp"
 
 namespace knight::dfa {
 
@@ -40,6 +42,19 @@ void LocationContext::profile(llvm::FoldingSetNodeID& id,
 
 void LocationContext::Profile(llvm::FoldingSetNodeID& id) const {
     profile(id, m_stack_frame, m_element_id, m_block);
+}
+
+void LocationContext::dump(llvm::raw_ostream& os) const {
+    os << "LocationContext:\n";
+    os << "  stack_frame: ";
+    DumpableTrait< StackFrame >::dump(os, *m_stack_frame);
+    os << "\n";
+    if (is_block_start()) {
+        os << "  block_start\n";
+    } else {
+        os << "  element_id: " << m_element_id << "\n";
+    }
+    os << "  block#" << m_block->getBlockID() << "\n";
 }
 
 const StackFrame* LocationManager::create_top_frame(ProcCFG::DeclRef decl) {

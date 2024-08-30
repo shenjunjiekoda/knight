@@ -18,10 +18,11 @@
 namespace knight::dfa {
 
 template < typename DerivedDom >
-concept derived_dom_has_join_with_method =
-    requires(DerivedDom& d1, const DerivedDom& d2) {
-        { d1.join_with(d2) } -> std::same_as< void >;
-    };
+concept derived_dom_has_join_with_method = requires {
+    {
+        &DerivedDom::join_with
+    } -> std::same_as< void (DerivedDom::*)(const DerivedDom&) >;
+};
 
 template < typename DerivedDom >
 struct does_derived_dom_can_join_with // NOLINT
@@ -29,10 +30,11 @@ struct does_derived_dom_can_join_with // NOLINT
 }; // struct does_derived_dom_can_join_with
 
 template < typename DerivedDom >
-concept derived_dom_has_join_with_at_loop_head_method =
-    requires(DerivedDom& d1, const DerivedDom& d2) {
-        { d1.join_with_at_loop_head(d2) } -> std::same_as< void >;
-    };
+concept derived_dom_has_join_with_at_loop_head_method = requires {
+    {
+        &DerivedDom::join_with_at_loop_head
+    } -> std::same_as< void (DerivedDom::*)(const DerivedDom&) >;
+};
 
 template < typename DerivedDom >
 struct does_derived_dom_can_join_with_at_loop_head // NOLINT
@@ -41,10 +43,11 @@ struct does_derived_dom_can_join_with_at_loop_head // NOLINT
 }; // struct does_derived_dom_can_join_with_at_loop_head
 
 template < typename DerivedDom >
-concept derived_dom_has_join_consecutive_iter_with_method =
-    requires(DerivedDom& d1, const DerivedDom& d2) {
-        { d1.join_consecutive_iter_with(d2) } -> std::same_as< void >;
-    };
+concept derived_dom_has_join_consecutive_iter_with_method = requires {
+    {
+        &DerivedDom::join_consecutive_iter_with
+    } -> std::same_as< void (DerivedDom::*)(const DerivedDom&) >;
+};
 
 template < typename DerivedDom >
 struct does_derived_dom_can_join_consecutive_iter_with // NOLINT
@@ -53,10 +56,11 @@ struct does_derived_dom_can_join_consecutive_iter_with // NOLINT
 }; // struct does_derived_dom_can_join_consecutive_iter_with
 
 template < typename DerivedDom >
-concept derived_dom_has_widen_with_method =
-    requires(DerivedDom& d1, const DerivedDom& d2) {
-        { d1.widen_with(d2) } -> std::same_as< void >;
-    };
+concept derived_dom_has_widen_with_method = requires {
+    {
+        &DerivedDom::widen_with
+    } -> std::same_as< void (DerivedDom::*)(const DerivedDom&) >;
+};
 
 template < typename DerivedDom >
 struct does_derived_dom_can_widen_with // NOLINT
@@ -64,10 +68,11 @@ struct does_derived_dom_can_widen_with // NOLINT
 }; // struct does_derived_dom_can_widen_with
 
 template < typename DerivedDom >
-concept derived_dom_has_meet_with_method =
-    requires(DerivedDom& d1, const DerivedDom& d2) {
-        { d1.meet_with(d2) } -> std::same_as< void >;
-    };
+concept derived_dom_has_meet_with_method = requires {
+    {
+        &DerivedDom::meet_with
+    } -> std::same_as< void (DerivedDom::*)(const DerivedDom&) >;
+};
 
 template < typename DerivedDom >
 struct does_derived_dom_can_meet_with // NOLINT
@@ -75,10 +80,11 @@ struct does_derived_dom_can_meet_with // NOLINT
 }; // struct does_derived_dom_can_meet_with
 
 template < typename DerivedDom >
-concept derived_dom_has_narrow_with_method =
-    requires(DerivedDom& d1, const DerivedDom& d2) {
-        { d1.narrow_with(d2) } -> std::same_as< void >;
-    };
+concept derived_dom_has_narrow_with_method = requires {
+    {
+        &DerivedDom::narrow_with
+    } -> std::same_as< void (DerivedDom::*)(const DerivedDom&) >;
+};
 
 template < typename DerivedDom >
 struct does_derived_dom_can_narrow_with // NOLINT
@@ -86,10 +92,11 @@ struct does_derived_dom_can_narrow_with // NOLINT
 }; // struct does_derived_dom_can_narrow_with
 
 template < typename DerivedDom >
-concept derived_dom_has_leq_method =
-    requires(const DerivedDom& d1, const DerivedDom& d2) {
-        { d1.leq(d2) } -> std::same_as< bool >;
-    };
+concept derived_dom_has_leq_method = requires {
+    {
+        &DerivedDom::leq
+    } -> std::same_as< bool (DerivedDom::*)(const DerivedDom&) const >;
+};
 
 template < typename DerivedDom >
 struct does_derived_dom_can_leq // NOLINT
@@ -97,10 +104,11 @@ struct does_derived_dom_can_leq // NOLINT
 }; // struct does_derived_dom_can_leq
 
 template < typename DerivedDom >
-concept derived_dom_has_equals_method =
-    requires(const DerivedDom& d1, const DerivedDom& d2) {
-        { d1.equals(d2) } -> std::same_as< bool >;
-    };
+concept derived_dom_has_equals_method = requires {
+    {
+        &DerivedDom::equals
+    } -> std::same_as< bool (DerivedDom::*)(const DerivedDom&) const >;
+};
 
 template < typename DerivedDom >
 struct does_derived_dom_can_equals // NOLINT
@@ -108,12 +116,12 @@ struct does_derived_dom_can_equals // NOLINT
 }; // struct does_derived_dom_can_equals
 
 template < typename DerivedNumericalDom, typename Num >
-concept derived_numerical_dom_has_widen_with_threshold_method =
-    requires(DerivedNumericalDom& d1,
-             const DerivedNumericalDom& d2,
-             const Num& thr) {
-        { d1.widen_with_threshold(d2, thr) } -> std::same_as< void >;
-    };
+concept derived_numerical_dom_has_widen_with_threshold_method = requires {
+    {
+        &DerivedNumericalDom::widen_with_threshold
+    } -> std::same_as< void (DerivedNumericalDom::*)(const DerivedNumericalDom&,
+                                                     const Num&) >;
+};
 
 template < typename DerivedNumericalDom, typename Num >
 struct does_derived_numerical_dom_can_widen_with_threshold // NOLINT
@@ -123,12 +131,12 @@ struct does_derived_numerical_dom_can_widen_with_threshold // NOLINT
 }; // struct does_derived_numerical_dom_can_widen_with_threshold
 
 template < typename DerivedNumericalDom, typename Num >
-concept derived_numerical_dom_has_narrow_with_threshold_method =
-    requires(DerivedNumericalDom& d1,
-             const DerivedNumericalDom& d2,
-             const Num& thr) {
-        { d1.narrow_with_threshold(d2, thr) } -> std::same_as< void >;
-    };
+concept derived_numerical_dom_has_narrow_with_threshold_method = requires {
+    {
+        &DerivedNumericalDom::narrow_with_threshold
+    } -> std::same_as< void (DerivedNumericalDom::*)(const DerivedNumericalDom&,
+                                                     const Num&) >;
+};
 
 template < typename DerivedNumericalDom, typename Num >
 struct does_derived_numerical_dom_can_narrow_with_threshold // NOLINT

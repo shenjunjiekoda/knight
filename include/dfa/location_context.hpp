@@ -81,6 +81,7 @@ class LocationContext : public llvm::FoldingSetNode {
 
     void Profile(llvm::FoldingSetNodeID& id) const; // NOLINT
 
+    void dump(llvm::raw_ostream& os) const;
 }; // class LocationContext
 
 } // namespace knight::dfa

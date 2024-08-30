@@ -33,20 +33,20 @@ class SymbolManager {
 
     [[nodiscard]] const ScalarInt* get_scalar_int(const ZNum& value,
                                                   clang::QualType type) {
-        return get_persistent_sepxr< ScalarInt >(value, type);
+        return get_persistent_sexpr< ScalarInt >(value, type);
     }
 
     [[nodiscard]] const ScalarFloat* get_scalar_float(const QNum& value,
                                                       clang::QualType type) {
-        return get_persistent_sepxr< ScalarFloat >(value, type);
+        return get_persistent_sexpr< ScalarFloat >(value, type);
     }
 
     [[nodiscard]] const RegionSymVal* get_region_sym_val(
         const TypedRegion* typed_region, const LocationContext* loc_ctx) {
         m_sym_cnt++;
         const auto* space = typed_region->get_memory_space();
-        bool is_external = space == nullptr || space->is_stack_local();
-        return get_persistent_sepxr< RegionSymVal >(m_sym_cnt,
+        bool is_external = space == nullptr || space->is_stack_arg();
+        return get_persistent_sexpr< RegionSymVal >(m_sym_cnt,
                                                     typed_region,
                                                     loc_ctx,
                                                     is_external);
@@ -58,7 +58,7 @@ class SymbolManager {
         const StackFrame* frame,
         const void* tag = nullptr) {
         m_sym_cnt++;
-        return get_persistent_sepxr< SymbolConjured >(m_sym_cnt,
+        return get_persistent_sexpr< SymbolConjured >(m_sym_cnt,
                                                       stmt,
                                                       type,
                                                       frame,
@@ -77,19 +77,19 @@ class SymbolManager {
         const SymExpr* rhs,
         clang::BinaryOperator::Opcode op,
         const clang::QualType& type) {
-        return get_persistent_sepxr< BinarySymExpr >(lhs, rhs, op, type);
+        return get_persistent_sexpr< BinarySymExpr >(lhs, rhs, op, type);
     }
 
     [[nodiscard]] const UnarySymExpr* get_unary_sym_expr(
         const SymExpr* operand,
         clang::UnaryOperator::Opcode opcode,
         const clang::QualType& type) {
-        return get_persistent_sepxr< UnarySymExpr >(operand, opcode, type);
+        return get_persistent_sexpr< UnarySymExpr >(operand, opcode, type);
     }
 
   private:
     template < typename STy, typename... Args >
-    [[nodiscard]] const STy* get_persistent_sepxr(Args&&... args) {
+    [[nodiscard]] const STy* get_persistent_sexpr(Args&&... args) {
         llvm::FoldingSetNodeID id;
         STy::profile(id, std::forward< Args >(args)...);
 

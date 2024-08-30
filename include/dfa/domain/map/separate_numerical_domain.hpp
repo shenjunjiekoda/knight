@@ -23,6 +23,7 @@
 #include <clang/AST/Expr.h>
 #include <clang/AST/OperationKinds.h>
 #include <llvm/ADT/DenseMap.h>
+#include <llvm/Support/raw_ostream.h>
 
 namespace knight::dfa {
 
@@ -312,14 +313,17 @@ class SeparateNumericalDom
         if (other.is_bottom()) {
             return false;
         }
-        if (this->m_table.size() > other.m_table.size()) {
-            return false;
-        }
+        // llvm::DenseSet< Var > this_keys;
+        bool need_to_check_other = this->m_table.size() != other.m_table.size();
         for (auto& [key, value] : this->m_table) {
             auto it = other.m_table.find(key);
             if (it == other.m_table.end()) {
+                if (value.is_bottom()) {
+                    continue;
+                }
                 return false;
             }
+
             if (!value.leq(it->second)) {
                 return false;
             }
@@ -334,16 +338,22 @@ class SeparateNumericalDom
         if (other.is_bottom()) {
             return false;
         }
-
-        if (this->m_table.size() != other.m_table.size()) {
-            return false;
-        }
+        llvm::DenseSet< Var > this_keys;
         for (auto& [key, value] : this->m_table) {
+            this_keys.insert(key);
             auto it = other.m_table.find(key);
             if (it == other.m_table.end()) {
+                if (value.is_bottom()) {
+                    continue;
+                }
                 return false;
             }
             if (!value.equals(it->second)) {
+                return false;
+            }
+        }
+        for (auto& [key, value] : other.m_table) {
+            if (!this_keys.contains(key) && !value.is_bottom()) {
                 return false;
             }
         }

@@ -25,11 +25,13 @@
 #include "dfa/symbol.hpp"
 #include "dfa/symbol_manager.hpp"
 #include "util/assert.hpp"
+#include "util/log.hpp"
 
 #include <llvm/ADT/BitVector.h>
 #include <llvm/ADT/STLExtras.h>
 #include <llvm/Support/raw_ostream.h>
 
+#include <limits>
 #include <memory>
 #include <optional>
 
@@ -251,95 +253,123 @@ ProgramStateRef ProgramState::set_to_top() const {
 }
 
 // NOLINTNEXTLINE
-#define UNION_MAP(OP)                                                         \
-    DomValMap new_map;                                                        \
-    for (const auto& [other_id, other_val] : other->m_dom_val) {              \
-        auto it = m_dom_val.find(other_id);                                   \
-        if (it == m_dom_val.end()) {                                          \
-            new_map[other_id] = other_val->clone_shared();                    \
-        } else {                                                              \
-            auto* new_val = it->second->clone();                              \
-            new_val->OP(*other_val);                                          \
-            new_map[other_id] = SharedVal(new_val);                           \
-        }                                                                     \
-    }                                                                         \
-                                                                              \
-    StmtSExprMap stmt_sexpr;                                                  \
-    llvm::for_each(m_stmt_sexpr, [&](const auto& pair) {                      \
-        const auto& [stmt, sexpr] = pair;                                     \
-        auto it = other->m_stmt_sexpr.find(stmt);                             \
-        if (it == other->m_stmt_sexpr.end() || it->second == sexpr) {         \
-            stmt_sexpr.insert_or_assign(stmt, sexpr);                         \
-        }                                                                     \
-    });                                                                       \
-                                                                              \
-    llvm::for_each(other->m_stmt_sexpr, [&](const auto& pair) {               \
-        const auto& [stmt, sexpr] = pair;                                     \
-        if (!stmt_sexpr.contains(stmt)) {                                     \
-            stmt_sexpr.insert_or_assign(stmt, sexpr);                         \
-        }                                                                     \
-    });                                                                       \
-                                                                              \
-    RegionDefMap region_defs = m_region_defs;                                 \
-    std::map< const RegionSymVal*,                                            \
-              std::pair< const RegionSymVal*, const RegionSymVal* > >         \
-        new_zregion_def;                                                      \
-    for (const auto [region_frame_pair, def] : other->m_region_defs) {        \
-        auto it = region_defs.find(region_frame_pair);                        \
-        if (it == region_defs.end() || it->second == def) {                   \
-            region_defs[region_frame_pair] = def;                             \
-        } else {                                                              \
-            const auto& [region, _] = region_frame_pair;                      \
-            const auto* new_def =                                             \
-                get_state_manager().m_symbol_mgr.get_region_sym_val(region,   \
-                                                                    loc_ctx); \
-                                                                              \
-            if (region->get_value_type()->isIntegralOrEnumerationType()) {    \
-                new_zregion_def[new_def] = {it->second, def};                 \
-                knight_log(llvm::outs()                                       \
-                           << "prepare new def: " << new_def << " with "      \
-                           << it->second << " and " << def << "\n");          \
-            }                                                                 \
-            region_defs[region_frame_pair] = new_def;                         \
-        }                                                                     \
-    }                                                                         \
-                                                                              \
-    if (!new_zregion_def.empty()) {                                           \
-        auto* zdom =                                                          \
-            dynamic_cast< ZNumericalDomBase* >(new_map[get_zdom_id()].get()); \
-        auto* zdom_cloned = dynamic_cast< ZNumericalDomBase* >(               \
-            new_map[get_zdom_id()]->clone());                                 \
-        for (const auto& [new_def, pair] : new_zregion_def) {                 \
-            ZVariable new_def_var(new_def);                                   \
-            knight_log(llvm::outs()                                           \
-                       << "join for new def: " << new_def_var << "\n");       \
-            zdom->assign_var(new_def_var, ZVariable(pair.first));             \
-            zdom_cloned->assign_var(new_def_var, ZVariable(pair.second));     \
-        }                                                                     \
-        knight_log(llvm::outs() << "assigned new def zdom: ";                 \
-                   zdom->dump(llvm::outs());                                  \
-                   llvm::outs() << "\n");                                     \
-        knight_log(llvm::outs() << "assigned new def zdom_cloned: ";          \
-                   zdom_cloned->dump(llvm::outs());                           \
-                   llvm::outs() << "\n");                                     \
-                                                                              \
-        zdom->OP(*zdom_cloned);                                               \
-        delete zdom_cloned;                                                   \
-        knight_log(llvm::outs() << "joined zdom: ";                           \
-                   new_map[get_zdom_id()]->dump(llvm::outs());                \
-                   llvm::outs() << "\n");                                     \
-    }                                                                         \
-                                                                              \
-    ConstraintSystem cst_system = m_constraint_system;                        \
-    cst_system.retain(other->m_constraint_system);                            \
-                                                                              \
-    return get_state_manager()                                                \
-        .get_persistent_state_with_copy_and_stateful_member_map(              \
-            *this,                                                            \
-            std ::move(new_map),                                              \
-            std ::move(region_defs),                                          \
-            std ::move(stmt_sexpr),                                           \
-            std ::move(cst_system));
+#define UNION_MAP(OP)                                                          \
+    DomValMap new_map;                                                         \
+    for (const auto& [other_id, other_val] : other->m_dom_val) {               \
+        auto it = m_dom_val.find(other_id);                                    \
+        if (it == m_dom_val.end()) {                                           \
+            new_map[other_id] = other_val->clone_shared();                     \
+        } else {                                                               \
+            auto* new_val = it->second->clone();                               \
+            new_val->OP(*other_val);                                           \
+            new_map[other_id] = SharedVal(new_val);                            \
+        }                                                                      \
+    }                                                                          \
+                                                                               \
+    StmtSExprMap stmt_sexpr;                                                   \
+    llvm::for_each(m_stmt_sexpr, [&](const auto& pair) {                       \
+        const auto& [stmt, sexpr] = pair;                                      \
+        auto it = other->m_stmt_sexpr.find(stmt);                              \
+        if (it == other->m_stmt_sexpr.end() || it->second == sexpr) {          \
+            stmt_sexpr.insert_or_assign(stmt, sexpr);                          \
+        }                                                                      \
+    });                                                                        \
+                                                                               \
+    llvm::for_each(other->m_stmt_sexpr, [&](const auto& pair) {                \
+        const auto& [stmt, sexpr] = pair;                                      \
+        if (!stmt_sexpr.contains(stmt)) {                                      \
+            stmt_sexpr.insert_or_assign(stmt, sexpr);                          \
+        }                                                                      \
+    });                                                                        \
+                                                                               \
+    RegionDefMap region_defs = m_region_defs;                                  \
+    std::map< const RegionSymVal*,                                             \
+              std::pair< const RegionSymVal*, const RegionSymVal* > >          \
+        new_zregion_def;                                                       \
+    for (const auto [region_frame_pair, def] : other->m_region_defs) {         \
+        auto it = region_defs.find(region_frame_pair);                         \
+        if (it == region_defs.end() || it->second == def) {                    \
+            region_defs[region_frame_pair] = def;                              \
+        } else {                                                               \
+            const auto& [region, _] = region_frame_pair;                       \
+                                                                               \
+            knight_log_nl(llvm::outs() << "loc ctx#" << loc_ctx << "\n";       \
+                          loc_ctx->dump(llvm::outs()););                       \
+            knight_log_nl(llvm::outs() << "region#" << region << "\n";         \
+                          region->dump(llvm::outs()););                        \
+                                                                               \
+            const auto* new_def =                                              \
+                get_state_manager().m_symbol_mgr.get_region_sym_val(region,    \
+                                                                    loc_ctx);  \
+                                                                               \
+            if (region->get_value_type()->isIntegralOrEnumerationType()) {     \
+                new_zregion_def[new_def] = {it->second, def};                  \
+                knight_log(                                                    \
+                    llvm::outs() << "prepare new def: " << new_def << " with " \
+                                 << it->second << " and " << def << "\n";      \
+                    llvm::FoldingSetNodeID id;                                 \
+                    new_def->Profile(id);                                      \
+                    llvm::outs()                                               \
+                    << "new region def id: " << id.ComputeHash() << "\n";      \
+                    id.clear();                                                \
+                    it->second->Profile(id);                                   \
+                    llvm::outs()                                               \
+                    << "this region def id: " << id.ComputeHash() << "\n";     \
+                    id.clear();                                                \
+                    def->Profile(id);                                          \
+                    llvm::outs()                                               \
+                    << "other region def id: " << id.ComputeHash() << "\n";);  \
+            } else {                                                           \
+                knight_log(llvm::outs() << "unsupported region type: "         \
+                                        << region->get_value_type() << "\n");  \
+                knight_unreachable("unsupported region type");                 \
+            }                                                                  \
+            region_defs[region_frame_pair] = new_def;                          \
+                                                                               \
+            knight_log(llvm::outs()                                            \
+                       << #OP " region `" << *region                           \
+                       << "` assigned new def: " << new_def << "\n");          \
+        }                                                                      \
+    }                                                                          \
+                                                                               \
+    if (!new_zregion_def.empty()) {                                            \
+        auto* zdom =                                                           \
+            dynamic_cast< ZNumericalDomBase* >(new_map[get_zdom_id()].get());  \
+        auto* zdom_cloned = dynamic_cast< ZNumericalDomBase* >(                \
+            new_map[get_zdom_id()]->clone());                                  \
+        for (const auto& [new_def, pair] : new_zregion_def) {                  \
+            ZVariable new_def_var(new_def);                                    \
+            knight_log(llvm::outs()                                            \
+                       << #OP " for new def: " << new_def_var << "\n");        \
+            zdom->assign_var(new_def_var, ZVariable(pair.first));              \
+            zdom_cloned->assign_var(new_def_var, ZVariable(pair.second));      \
+        }                                                                      \
+        knight_log(llvm::outs() << "assigned new def zdom: ";                  \
+                   zdom->dump(llvm::outs());                                   \
+                   llvm::outs() << "\n");                                      \
+        knight_log(llvm::outs() << "assigned new def zdom_cloned: ";           \
+                   zdom_cloned->dump(llvm::outs());                            \
+                   llvm::outs() << "\n");                                      \
+                                                                               \
+        zdom->OP(*zdom_cloned);                                                \
+        delete zdom_cloned;                                                    \
+        knight_log(llvm::outs() << "joined zdom: ";                            \
+                   new_map[get_zdom_id()]->dump(llvm::outs());                 \
+                   llvm::outs() << "\n");                                      \
+    }                                                                          \
+                                                                               \
+    ConstraintSystem cst_system = m_constraint_system;                         \
+    cst_system.retain(other->m_constraint_system);                             \
+                                                                               \
+    auto res = get_state_manager()                                             \
+                   .get_persistent_state_with_copy_and_stateful_member_map(    \
+                       *this,                                                  \
+                       std ::move(new_map),                                    \
+                       std ::move(region_defs),                                \
+                       std ::move(stmt_sexpr),                                 \
+                       std ::move(cst_system));                                \
+    knight_log(llvm::outs() << #OP " state: " << *res << "\n");                \
+    return res;
 
 // NOLINTNEXTLINE
 #define INTERSECT_MAP(OP)                                      \
@@ -397,17 +427,43 @@ ProgramStateRef ProgramState::join(const ProgramStateRef& other,
             region_defs[region_frame_pair] = def;
         } else {
             const auto& [region, _] = region_frame_pair;
+
+            knight_log_nl(llvm::outs() << "loc ctx#" << loc_ctx << "\n";
+                          loc_ctx->dump(llvm::outs()););
+            knight_log_nl(llvm::outs() << "region#" << region << "\n";
+                          region->dump(llvm::outs()););
+
             const auto* new_def =
                 get_state_manager().m_symbol_mgr.get_region_sym_val(region,
                                                                     loc_ctx);
 
             if (region->get_value_type()->isIntegralOrEnumerationType()) {
                 new_zregion_def[new_def] = {it->second, def};
-                knight_log(llvm::outs()
-                           << "prepare new def: " << new_def << " with "
-                           << it->second << " and " << def << "\n");
+                knight_log(
+                    llvm::outs() << "prepare new def: " << new_def << " with "
+                                 << it->second << " and " << def << "\n";
+                    llvm::FoldingSetNodeID id;
+                    new_def->Profile(id);
+                    llvm::outs()
+                    << "new region def id: " << id.ComputeHash() << "\n";
+                    id.clear();
+                    it->second->Profile(id);
+                    llvm::outs()
+                    << "this region def id: " << id.ComputeHash() << "\n";
+                    id.clear();
+                    def->Profile(id);
+                    llvm::outs()
+                    << "other region def id: " << id.ComputeHash() << "\n";);
+            } else {
+                knight_log(llvm::outs() << "unsupported region type: "
+                                        << region->get_value_type() << "\n");
+                knight_unreachable("unsupported region type");
             }
             region_defs[region_frame_pair] = new_def;
+
+            knight_log(llvm::outs()
+                       << "merged region `" << *region
+                       << "` assigned new def: " << new_def << "\n");
         }
     }
 
@@ -442,13 +498,15 @@ ProgramStateRef ProgramState::join(const ProgramStateRef& other,
     // TODO(constraint-join): handle constraint join more precisely.
     cst_system.retain(other->m_constraint_system);
 
-    return get_state_manager()
-        .get_persistent_state_with_copy_and_stateful_member_map(
-            *this,
-            std ::move(new_map),
-            std ::move(region_defs),
-            std ::move(stmt_sexpr),
-            std ::move(cst_system));
+    auto res = get_state_manager()
+                   .get_persistent_state_with_copy_and_stateful_member_map(
+                       *this,
+                       std ::move(new_map),
+                       std ::move(region_defs),
+                       std ::move(stmt_sexpr),
+                       std ::move(cst_system));
+    knight_log(llvm::outs() << "joined state: " << *res << "\n");
+    return res;
 }
 
 ProgramStateRef ProgramState::join_at_loop_head(
@@ -475,36 +533,38 @@ ProgramStateRef ProgramState::narrow(const ProgramStateRef& other) const {
 }
 
 bool ProgramState::leq(const ProgramState& other) const {
-    llvm::BitVector this_key_set;
-    bool need_to_check_other = other.m_dom_val.size() != this->m_dom_val.size();
+    // llvm::BitVector this_key_set(std::numeric_limits< DomID >::max());
+
+    knight_log(llvm::outs() << "leq this state: " << *this << "\n");
+    knight_log(llvm::outs() << "leq other state: " << other << "\n");
+
     for (const auto& [id, val] : this->m_dom_val) {
-        this_key_set.set(id);
-        auto dom_val = m_dom_val;
+        // this_key_set.set(id);
         auto it = other.m_dom_val.find(id);
         if (it == other.m_dom_val.end()) {
-            if (!val->is_bottom()) {
-                return false;
+            knight_log(llvm::outs() << "other has no domain: "
+                                    << get_domain_name_by_id(id) << "\n");
+            if (val->is_bottom()) {
+                continue;
             }
-            need_to_check_other = true;
-            continue;
-        }
-        if (!val->leq(*(it->second))) {
             return false;
         }
-    }
 
-    if (!need_to_check_other) {
-        return true;
-    }
+        knight_log_nl(llvm::outs() << "this val: "; val->dump(llvm::outs());
+                      llvm::outs() << "\n";
+                      llvm::outs() << "other val: ";
+                      it->second->dump(llvm::outs()););
 
-    for (const auto& [id, val] : other.m_dom_val) {
-        if (!this_key_set[id]) {
-            if (!val->is_top()) {
-                return false;
-            }
+        if (!val->leq(*(it->second))) {
+            knight_log(llvm::outs() << "this val is not leq other val: "
+                                    << get_domain_name_by_id(id) << "\n");
+            return false;
         }
+        knight_log(llvm::outs() << "this val is leq other val: "
+                                << get_domain_name_by_id(id) << "\n");
     }
 
+    knight_log(llvm::outs() << "leq result: true\n");
     return true;
 }
 
@@ -513,17 +573,37 @@ bool ProgramState::equals(const ProgramState& other) const {
         return true;
     }
 
-    if (m_region_defs != other.m_region_defs ||
-        m_stmt_sexpr != other.m_stmt_sexpr ||
-        m_constraint_system != other.m_constraint_system) {
+    if (m_region_defs != other.m_region_defs) {
         return false;
     }
 
-    return llvm::all_of(this->m_dom_val, [&other](const auto& this_pair) {
-        auto it = other.m_dom_val.find(this_pair.first);
-        return it != other.m_dom_val.end() &&
-               this_pair.second->equals(*(it->second));
-    });
+    bool need_to_check_other = other.m_dom_val.size() != this->m_dom_val.size();
+
+    llvm::BitVector this_key_set(std::numeric_limits< DomID >::max());
+    for (const auto& [id, val] : this->m_dom_val) {
+        this_key_set.set(id);
+        auto it = other.m_dom_val.find(id);
+        if (it == other.m_dom_val.end()) {
+            if (val->is_bottom()) {
+                need_to_check_other = true;
+                continue;
+            }
+            return false;
+        }
+
+        if (!val->equals(*(it->second))) {
+            return false;
+        }
+    }
+
+    if (need_to_check_other) {
+        for (const auto& [id, val] : other.m_dom_val) {
+            if (!this_key_set[id] && !val->is_bottom()) {
+                return false;
+            }
+        }
+    }
+    return true;
 }
 
 void ProgramState::dump(llvm::raw_ostream& os) const {

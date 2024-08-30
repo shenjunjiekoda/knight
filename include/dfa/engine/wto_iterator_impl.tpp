@@ -4,6 +4,8 @@
 #include "util/log.hpp"
 #include "wto_iterator.hpp"
 
+#include <llvm/Support/raw_ostream.h>
+
 #ifdef DEBUG_TYPE
 #    define DEBUG_TYPE_BACKUP DEBUG_TYPE
 #    undef DEBUG_TYPE
@@ -61,10 +63,9 @@ void WtoIterator< G, GraphTrait >::visit(const WtoCycle& cycle) {
     ProgramStateRef state_pre = this->m_fp_iterator.get_bottom();
     auto& wto = this->m_fp_iterator.get_wto();
     const auto& nesting = wto.get_nesting(head);
+    const auto* loc_ctx = get_location_context(head);
 
     this->m_fp_iterator.notify_enter_cycle(head);
-
-    const auto* loc_ctx = get_location_context(head);
 
     for (auto it = GraphTrait::pred_begin(head),
               end = GraphTrait::pred_end(head);
@@ -85,10 +86,19 @@ void WtoIterator< G, GraphTrait >::visit(const WtoCycle& cycle) {
     // Compute the fixpoint
     IterationKind kind = IterationKind::Increasing;
     for (unsigned iter_cnt = 1;; ++iter_cnt) {
+        knight_log(llvm::outs() << "iteration#" << iter_cnt << "\n");
+
         this->m_fp_iterator.notify_each_cycle_iteration(head, iter_cnt, kind);
+        state_pre = state_pre->normalize();
+        knight_log(llvm::outs() << "set for head pre: " << *state_pre << "\n");
+
         this->m_fp_iterator.set_pre(head, state_pre);
-        this->m_fp_iterator
-            .set_post(head, this->m_fp_iterator.transfer_node(head, state_pre));
+
+        auto state_post = this->m_fp_iterator.transfer_node(head, state_pre);
+        knight_log(llvm::outs()
+                   << "set for head post: " << *state_post << "\n");
+
+        this->m_fp_iterator.set_post(head, state_post);
 
         for (auto* component : cycle.components()) {
             component->accept(*this);
@@ -128,14 +138,21 @@ void WtoIterator< G, GraphTrait >::visit(const WtoCycle& cycle) {
                                                    new_state_front,
                                                    get_location_context(head));
             increased = increased->normalize();
+            knight_log(llvm::outs()
+                       << "head increased state: " << *increased << "\n");
+            knight_log(llvm::outs() << "state_pre: " << *state_pre << "\n");
             if (this->m_fp_iterator.is_increasing_fixpoint_reached(head,
                                                                    iter_cnt,
                                                                    state_pre,
                                                                    increased)) {
+                knight_log(llvm::outs() << "increasing fixpoint reached, turn "
+                                           "to decreasing stage\n");
                 // Increasing fixpoint is reached
                 kind = IterationKind::Decreasing;
                 iter_cnt = 1U;
             } else {
+                knight_log(llvm::outs() << "increasing fixpoint not reached, "
+                                           "continue to increase\n");
                 state_pre = std::move(increased);
             }
         }

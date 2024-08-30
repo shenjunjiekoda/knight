@@ -244,14 +244,14 @@ class NumericalDom : public NumericalDomBase< Num > {
     [[nodiscard]] virtual bool leq(const AbsDomBase& other) const override {
         static_assert(does_derived_dom_can_leq< Derived >::value,
                       "derived domain needs to implement `leq` method");
-        return static_cast< const Derived& >(other).leq(
-            static_cast< const Derived& >(*this));
+        return static_cast< const Derived& >(*this).leq(
+            static_cast< const Derived& >(other));
     }
 
     [[nodiscard]] virtual bool equals(const AbsDomBase& other) const override {
         if constexpr (does_derived_dom_can_equals< Derived >::value) {
-            return static_cast< const Derived& >(other).equals(
-                static_cast< const Derived& >(*this));
+            return static_cast< const Derived& >(*this).equals(
+                static_cast< const Derived& >(other));
         } else {
             return AbsDomBase::equals(other);
         }
