@@ -13,6 +13,7 @@
 
 #pragma once
 
+#include "dfa/analyzer_options.hpp"
 #include "dfa/engine/iterator.hpp"
 #include "dfa/location_context.hpp"
 #include "dfa/program_state.hpp"
@@ -43,19 +44,27 @@ class WtoBasedFixPointIterator : public FixPointIterator< CFG, GraphTrait > {
     using Wto = Wto< CFG, GraphTrait >;
     using WtoIterator = impl::WtoIterator< CFG, GraphTrait >;
     using WtoChecker = impl::WtoChecker< CFG, GraphTrait >;
+    using HeadThresholdMap = llvm::DenseMap< NodeRef, std::optional< ZNum > >;
 
-  private:
+  protected:
+    AnalyzerOptions m_analyzer_opts;
+
     GraphRef m_cfg;
     Wto m_wto;
+
     InvariantMap m_pre;
     InvariantMap m_post;
+    HeadThresholdMap m_head_thresholds;
     bool m_converged{};
 
     ProgramStateRef m_bottom;
 
   public:
-    WtoBasedFixPointIterator(const StackFrame* frame, ProgramStateRef bottom)
-        : m_cfg(frame->get_cfg()),
+    WtoBasedFixPointIterator(AnalyzerOptions analyzer_opts,
+                             const StackFrame* frame,
+                             ProgramStateRef bottom)
+        : m_analyzer_opts(analyzer_opts),
+          m_cfg(frame->get_cfg()),
           m_wto(frame->get_cfg()),
           m_bottom(std::move(bottom)) {}
     WtoBasedFixPointIterator(const WtoBasedFixPointIterator&) = delete;
@@ -66,6 +75,9 @@ class WtoBasedFixPointIterator : public FixPointIterator< CFG, GraphTrait > {
     ~WtoBasedFixPointIterator() = default;
 
   public:
+    [[nodiscard]] const AnalyzerOptions& get_analyzer_options() const {
+        return m_analyzer_opts;
+    }
     [[nodiscard]] bool is_converged() const override { return m_converged; }
     [[nodiscard]] GraphRef get_cfg() const override { return m_cfg; }
     [[nodiscard]] const Wto& get_wto() const { return m_wto; }
@@ -80,20 +92,32 @@ class WtoBasedFixPointIterator : public FixPointIterator< CFG, GraphTrait > {
         return get(m_post, node);
     }
 
-    /// \brief Merge the state at cycle head after an increasing iteration
+    [[nodiscard]] std::optional< ZNum > get_threshold(NodeRef head) const;
+
+    /// \brief Enlarge the state at cycle head after an increasing iteration
     ///
     /// \param head Head of the cycle
     /// \param iteration Iteration number
     /// \param state_before State before the iteration
     /// \param state_after State after the iteration
-    [[nodiscard]] virtual ProgramStateRef merge_at_head_when_increasing(
+    [[nodiscard]] virtual ProgramStateRef enlarge_at_head_when_increasing(
         [[maybe_unused]] NodeRef head,
         unsigned iter_cnt,
         const ProgramStateRef& state_before,
         const ProgramStateRef& state_after,
         const LocationContext* loc_ctx) {
-        if (iter_cnt < 2) {
+        if (iter_cnt < m_analyzer_opts.widening_delay + 1) {
             return state_before->join_consecutive_iter(state_after, loc_ctx);
+        }
+        if (m_analyzer_opts.analyze_with_threshold) {
+            if (!m_head_thresholds.contains(head)) {
+                m_head_thresholds[head] = get_threshold(head);
+            }
+            if (auto threshold = m_head_thresholds[head]) {
+                return state_before->widen_with_threshold(state_after,
+                                                          loc_ctx,
+                                                          *threshold);
+            }
         }
         return state_before->widen(state_after, loc_ctx);
     }
@@ -109,7 +133,8 @@ class WtoBasedFixPointIterator : public FixPointIterator< CFG, GraphTrait > {
         [[maybe_unused]] unsigned iter_cnt,
         const ProgramStateRef& state_before,
         const ProgramStateRef& state_after) {
-        return state_after->leq(*state_before);
+        return iter_cnt == m_analyzer_opts.max_widening_iterations ||
+               state_after->leq(*state_before);
     }
 
     /// \brief Narrow the state at loop head after a decreasing iteration
@@ -118,11 +143,20 @@ class WtoBasedFixPointIterator : public FixPointIterator< CFG, GraphTrait > {
     /// \param iter_cnt Iteration count
     /// \param state_before State before the iteration
     /// \param state_after State after the iteration
-    [[nodiscard]] virtual ProgramStateRef narrow_at_loop_head_when_decreasing(
+    [[nodiscard]] virtual ProgramStateRef refine_at_loop_head_when_decreasing(
         [[maybe_unused]] NodeRef head,
         [[maybe_unused]] unsigned iter_cnt,
         [[maybe_unused]] const ProgramStateRef& state_before,
         [[maybe_unused]] const ProgramStateRef& state_after) {
+        if (m_analyzer_opts.analyze_with_threshold) {
+            if (!m_head_thresholds.contains(head)) {
+                m_head_thresholds[head] = get_threshold(head);
+            }
+            if (auto threshold = m_head_thresholds[head]) {
+                return state_before->narrow_with_threshold(state_after,
+                                                           *threshold);
+            }
+        }
         return state_before->narrow(state_after);
     }
 
@@ -137,7 +171,8 @@ class WtoBasedFixPointIterator : public FixPointIterator< CFG, GraphTrait > {
         [[maybe_unused]] unsigned iter_cnt,
         [[maybe_unused]] const ProgramStateRef& state_before,
         [[maybe_unused]] const ProgramStateRef& state_after) {
-        return state_before->leq(*state_after);
+        return iter_cnt == m_analyzer_opts.max_narrowing_iterations ||
+               state_before->leq(*state_after);
     }
 
     /// \brief Notify the beginning of handling a cycle
@@ -197,88 +232,6 @@ class WtoBasedFixPointIterator : public FixPointIterator< CFG, GraphTrait > {
     }
 
 }; // class WtoBasedFixPointIterator
-
-namespace impl {
-
-template < graph G, typename GraphTrait = GraphTrait< G > >
-class WtoIterator final : public WtoComponentVisitor< G, GraphTrait > {
-  public:
-    using WtoFPIterator = WtoBasedFixPointIterator< G, GraphTrait >;
-    using GraphRef = typename WtoFPIterator::GraphRef;
-    using NodeRef = typename WtoFPIterator::NodeRef;
-
-    using Wto = Wto< G, GraphTrait >;
-    using WtoNesting = WtoNesting< G, GraphTrait >;
-    using WtoVertex = WtoVertex< G, GraphTrait >;
-    using WtoCycle = WtoCycle< G, GraphTrait >;
-
-  private:
-    /// \brief Fixpoint iterator
-    WtoFPIterator& m_fp_iterator;
-
-    /// \brief Graph entry point
-    NodeRef m_entry;
-
-    /// \brief Location manager
-    LocationManager& m_loc_mgr;
-
-    /// \brief Stack frame
-    const StackFrame* m_frame;
-
-  public:
-    explicit WtoIterator(WtoFPIterator& fp_iter,
-                         LocationManager& loc_mgr,
-                         const StackFrame* frame)
-        : m_fp_iterator(fp_iter),
-          m_loc_mgr(loc_mgr),
-          m_frame(frame),
-          m_entry(GraphTrait::entry(fp_iter.get_cfg())) {}
-
-  public:
-    /// \brief Update the pre and post states of a WTO vertex
-    ///
-    /// Use join of pred-dst edge out status to update the pre-state,
-    /// and apply node transfer function on pre to update the post-state.
-    void visit(const WtoVertex& vertex) override;
-
-    void visit(const WtoCycle& cycle) override;
-
-    const LocationContext* get_location_context(const NodeRef& node) const;
-
-}; // class WtoIterator
-template < graph G, typename GraphTrait >
-class WtoChecker final : public WtoComponentVisitor< G, GraphTrait > {
-  public:
-    using WtoFPIterator = WtoBasedFixPointIterator< G, GraphTrait >;
-    using GraphRef = typename WtoFPIterator::GraphRef;
-    using NodeRef = typename WtoFPIterator::NodeRef;
-
-    using Wto = Wto< G, GraphTrait >;
-    using WtoNesting = WtoNesting< G, GraphTrait >;
-    using WtoVertex = WtoVertex< G, GraphTrait >;
-    using WtoCycle = WtoCycle< G, GraphTrait >;
-
-  private:
-    WtoFPIterator& m_fp_iterator;
-
-    LocationManager& m_loc_mgr;
-
-    const StackFrame* m_frame;
-
-  public:
-    explicit WtoChecker(WtoFPIterator& fp_iter,
-                        LocationManager& loc_mgr,
-                        const StackFrame* frame)
-        : m_fp_iterator(fp_iter), m_loc_mgr(loc_mgr), m_frame(frame) {}
-
-  public:
-    void visit(const WtoVertex& vertex) override;
-
-    void visit(const WtoCycle& cycle) override;
-
-}; // class WtoChecker
-
-} // namespace impl
 
 } // namespace knight::dfa
 

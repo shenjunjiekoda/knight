@@ -37,9 +37,11 @@ using SharedVal = std::shared_ptr< AbsDomBase >;
 /// Abstract domain should be thread-safe on copy and `const` methods
 struct AbsDomBase {
     DomainKind kind;
+    bool is_numerical;
 
     /// \brief Create the `Top` abstract value
-    explicit AbsDomBase(DomainKind k) : kind(k) {}
+    explicit AbsDomBase(DomainKind k, bool is_numerical = false)
+        : kind(k), is_numerical(is_numerical) {}
 
     virtual ~AbsDomBase() = default;
 
@@ -117,13 +119,15 @@ struct AbsDomBase {
     /// default impl is dump nothing
     virtual void dump(llvm::raw_ostream& os) const {}
 
-} __attribute__((aligned(4))) __attribute__((packed)); // class AbsDomBase
+} __attribute__((aligned(8))) __attribute__((packed)); // class AbsDomBase
 
 using DomainDefaultValFn = std::function< SharedVal() >;
 using DomainBottomValFn = std::function< SharedVal() >;
 
-extern std::unordered_map< DomainKind, DomainDefaultValFn > DefaultValFns;
-extern std::unordered_map< DomainKind, DomainBottomValFn > BottomValFns;
+extern std::unordered_map< DomainKind, DomainDefaultValFn >
+    DefaultValFns; // NOLINT
+extern std::unordered_map< DomainKind, DomainBottomValFn >
+    BottomValFns; // NOLINT
 
 template < typename Dom >
 struct DomainRegistry {

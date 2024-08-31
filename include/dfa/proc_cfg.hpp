@@ -88,6 +88,8 @@ class ProcCFG {
     void dump(llvm::raw_ostream& os, bool show_colors = false) const;
     void view() const;
 
+    FunctionRef get_proc() const { return m_proc; }
+
   private:
     /// \brief private constructor
     ProcCFG(FunctionRef proc,

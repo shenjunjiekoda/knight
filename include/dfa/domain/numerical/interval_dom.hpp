@@ -24,8 +24,12 @@
 
 namespace knight::dfa {
 
+namespace impl {
+
 template < typename Num, typename NumericalDom >
 class IntervalSolver;
+
+} // namespace impl
 
 template < typename Num, DomainKind Kind, DomainKind SepKind >
 class IntervalDom
@@ -39,7 +43,7 @@ class IntervalDom
     using LinearConstraint = LinearConstraint< Num >;
     using LinearConstraintSystem = LinearConstraintSystem< Num >;
     using SeparateNumericalDom = SeparateNumericalDom< Num, Interval, SepKind >;
-    using Solver = IntervalSolver< Num, IntervalDomT >;
+    using Solver = impl::IntervalSolver< Num, IntervalDomT >;
     using Map = typename SeparateNumericalDom::Map;
 
   private:

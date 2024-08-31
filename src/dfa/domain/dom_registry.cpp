@@ -12,7 +12,7 @@
 //===------------------------------------------------------------------===//
 
 #include "dfa/domain/demo_dom.hpp"
-#include "dfa/domain/interval_dom.hpp"
+#include "dfa/domain/numerical/interval_dom.hpp"
 
 namespace knight::dfa {
 

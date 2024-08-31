@@ -11,6 +11,7 @@
 //
 //===------------------------------------------------------------------===//
 
+#include "dfa/analyzer_options.hpp"
 #include "dfa/domain/domains.hpp"
 #include "tooling/cl_opts.hpp"
 #include "tooling/context.hpp"
@@ -68,6 +69,42 @@ llvm::IntrusiveRefCntPtr< llvm::vfs::OverlayFileSystem > get_vfs(
     return base_vfs;
 }
 
+dfa::AnalyzerOptions forward_to_knight_analyzer_options(int argc,
+                                                        const char** argv) {
+    (void)cl::ParseCommandLineOptions(argc,
+                                      argv,
+                                      "knight analyzer options",
+                                      &llvm::errs());
+
+    return dfa::AnalyzerOptions{widening_delay,
+                                max_widening_iterations,
+                                max_narrowing_iterations,
+                                analyze_with_threshold};
+}
+
+/// \brief  Resolve -Xc options
+dfa::AnalyzerOptions get_analyzer_options() {
+    std::vector< const char* > analyzer_argv;
+    analyzer_argv.push_back("dummy");
+    int analyzer_argc = 0;
+
+    // Dummy program name
+    for (const auto& arg : knight::cl_opts::XcArgs) {
+        analyzer_argv.push_back(arg.c_str());
+    }
+    analyzer_argv.push_back(nullptr); // Null-terminate the array
+    analyzer_argc = static_cast< int >(analyzer_argv.size()) - 1;
+
+    knight_log(
+        llvm::errs()
+        << "Forwarding the following arguments to the target mechanism:\n");
+    for (int i = 1; i < analyzer_argc; ++i) {
+        llvm::errs() << analyzer_argv[i] << "\n";
+    }
+    return forward_to_knight_analyzer_options(analyzer_argc,
+                                              analyzer_argv.data());
+}
+
 std::unique_ptr< KnightOptionsProvider > get_opts_provider() {
     auto opts_provider = std::make_unique< KnightOptionsCommandLineProvider >();
     if (analyses.getNumOccurrences() > 0) {
@@ -94,6 +131,10 @@ std::unique_ptr< KnightOptionsProvider > get_opts_provider() {
     if (qdomain.getNumOccurrences() > 0) {
         opts_provider->options.qdom = qdomain;
     }
+    if (XcArgs.getNumOccurrences() > 0) {
+        opts_provider->options.analyzer_opts = get_analyzer_options();
+    }
+
     return std::move(opts_provider);
 }
 

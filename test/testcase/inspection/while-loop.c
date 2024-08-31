@@ -1,10 +1,14 @@
 // checker=debug*
+// arg=-Xc
+// arg=-analyze-with-threshold=true
 
 void knight_dump_zval(int);
 
 void foo() {
     int i = 0;
     while (i < 10) {
+        knight_dump_zval(i);
+        // warning:-1:26:-1:26: [0, +oo] [debug-inspection]
         i = i + 1;
         knight_dump_zval(i);
         // warning:-1:26:-1:26: [1, +oo] [debug-inspection]

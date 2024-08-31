@@ -13,12 +13,12 @@
 
 #pragma once
 
+#include <clang/Driver/Options.h>
+#include <clang/Tooling/CommonOptionsParser.h>
 #include <llvm/Option/OptTable.h>
 #include <llvm/Support/CommandLine.h>
 #include <llvm/Support/Debug.h>
 
-#include <clang/Driver/Options.h>
-#include <clang/Tooling/CommonOptionsParser.h>
 #include "dfa/domain/domains.hpp"
 
 namespace knight::cl_opts {
@@ -132,6 +132,37 @@ Dump the control flow graph of the analyzed function.
 )"),
                                 cl::init(false),
                                 cl::cat(knight_category));
+
+inline cl::list< std::string > XcArgs(
+    "Xc",
+    cl::desc("Pass the following argument to the analyzer options"),
+    cl::ZeroOrMore,
+    cl::cat(knight_category));
+inline cl::OptionCategory knight_analyzer_category("knight analyzer options");
+
+inline cl::opt< int > widening_delay(
+    "widening-delay",
+    cl::init(1),
+    cl::desc("delay count of iterations before widening"),
+    cl::cat(knight_analyzer_category));
+
+inline cl::opt< int > max_widening_iterations(
+    "max-widening-iterations",
+    cl::desc("maximum number of widening iterations"),
+    cl::init(3),
+    cl::cat(knight_analyzer_category));
+
+inline cl::opt< int > max_narrowing_iterations(
+    "max-narrowing-iterations",
+    cl::desc("maximum number of narrowing iterations"),
+    cl::init(3),
+    cl::cat(knight_analyzer_category));
+
+inline cl::opt< bool > analyze_with_threshold(
+    "analyze-with-threshold",
+    cl::desc("if true, do widening and narrowing with threshold"),
+    cl::init(false),
+    cl::cat(knight_analyzer_category));
 
 // NOLINTEND(readability-identifier-naming,cert-err58-cpp,cppcoreguidelines-avoid-non-const-global-variables,cppcoreguidelines-interfaces-global-init,fuchsia-statically-constructed-objects)
 

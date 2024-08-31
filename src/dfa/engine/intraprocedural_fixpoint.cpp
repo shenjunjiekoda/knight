@@ -39,7 +39,9 @@ IntraProceduralFixpointIterator::IntraProceduralFixpointIterator(
       m_symbol_mgr(analysis_mgr.get_symbol_manager()),
       m_location_mgr(location_mgr),
       m_state_mgr(state_mgr),
-      WtoBasedFixPointIterator(frame, state_mgr.get_bottom_state()) {}
+      WtoBasedFixPointIterator(ctx.get_current_options().analyzer_opts,
+                               frame,
+                               state_mgr.get_bottom_state()) {}
 
 ProgramStateRef IntraProceduralFixpointIterator::transfer_node(
     NodeRef node, ProgramStateRef pre_state) {

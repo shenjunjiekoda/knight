@@ -26,6 +26,8 @@
 
 namespace knight::dfa {
 
+/// \brief A bound is a value that can be either positive or negative infinity,
+/// or a finite value.
 template < typename Num >
 class Bound {
   private:

@@ -1,6 +1,8 @@
 #pragma once
 
+#include "clang/AST/Expr.h"
 #include "dfa/location_context.hpp"
+#include "llvm/Support/Casting.h"
 #include "util/log.hpp"
 #include "wto_iterator.hpp"
 
@@ -13,7 +15,146 @@
 
 #define DEBUG_TYPE "wto-iterator"
 
-namespace knight::dfa::impl {
+namespace knight::dfa {
+
+// std::optional< ZNum > WtoBasedFixPointIterator< ProcCFG >::get_threshold(
+template < graph CFG, typename GraphTrait >
+std::optional< ZNum > WtoBasedFixPointIterator< CFG, GraphTrait >::
+    get_threshold(NodeRef head) const {
+    if (NodeRef pred = ProcCFG::get_unique_pred(head);
+        pred != nullptr && pred->succ_size() == 2U) {
+        if (const auto* binary_cond =
+                llvm::dyn_cast_or_null< clang::BinaryOperator >(
+                    pred->getLastCondition());
+            binary_cond != nullptr && binary_cond->isComparisonOp()) {
+            bool lhs_cst = false;
+            std::optional< ZNum > cst = std::nullopt;
+            clang::Expr::EvalResult res;
+            if (binary_cond->getLHS()
+                    ->EvaluateAsInt(res,
+                                    get_cfg()->get_proc()->getASTContext())) {
+                cst = res.Val.getInt().getZExtValue();
+                lhs_cst = true;
+            } else if (binary_cond->getRHS()
+                           ->EvaluateAsInt(res,
+                                           get_cfg()
+                                               ->get_proc()
+                                               ->getASTContext())) {
+                cst = res.Val.getInt().getZExtValue();
+            }
+            if (cst.has_value()) {
+                ZNum threshold = *cst;
+                switch (binary_cond->getOpcode()) {
+                    case clang::BO_LE: {
+                        if (lhs_cst) {
+                            threshold--;
+                        } else {
+                            threshold++;
+                        }
+                    } break;
+                    case clang::BO_GE: {
+                        if (lhs_cst) {
+                            threshold++;
+                        } else {
+                            threshold--;
+                        }
+                    } break;
+                    case clang::BO_LT:
+                        [[fallthrough]];
+                    case clang::BO_GT:
+                        [[fallthrough]];
+                    case clang::BO_EQ:
+                        [[fallthrough]];
+                    case clang::BO_NE:
+                        return threshold;
+                    default:
+                        break;
+                }
+            }
+        }
+    }
+    return std::nullopt;
+}
+
+namespace impl {
+
+template < graph G, typename GraphTrait = GraphTrait< G > >
+class WtoIterator final : public WtoComponentVisitor< G, GraphTrait > {
+  public:
+    using WtoFPIterator = WtoBasedFixPointIterator< G, GraphTrait >;
+    using GraphRef = typename WtoFPIterator::GraphRef;
+    using NodeRef = typename WtoFPIterator::NodeRef;
+
+    using Wto = Wto< G, GraphTrait >;
+    using WtoNesting = WtoNesting< G, GraphTrait >;
+    using WtoVertex = WtoVertex< G, GraphTrait >;
+    using WtoCycle = WtoCycle< G, GraphTrait >;
+
+  private:
+    /// \brief Fixpoint iterator
+    WtoFPIterator& m_fp_iterator;
+
+    /// \brief Graph entry point
+    NodeRef m_entry;
+
+    /// \brief Location manager
+    LocationManager& m_loc_mgr;
+
+    /// \brief Stack frame
+    const StackFrame* m_frame;
+
+  public:
+    explicit WtoIterator(WtoFPIterator& fp_iter,
+                         LocationManager& loc_mgr,
+                         const StackFrame* frame)
+        : m_fp_iterator(fp_iter),
+          m_loc_mgr(loc_mgr),
+          m_frame(frame),
+          m_entry(GraphTrait::entry(fp_iter.get_cfg())) {}
+
+  public:
+    /// \brief Update the pre and post states of a WTO vertex
+    ///
+    /// Use join of pred-dst edge out status to update the pre-state,
+    /// and apply node transfer function on pre to update the post-state.
+    void visit(const WtoVertex& vertex) override;
+
+    void visit(const WtoCycle& cycle) override;
+
+    const LocationContext* get_location_context(const NodeRef& node) const;
+
+}; // class WtoIterator
+template < graph G, typename GraphTrait >
+class WtoChecker final : public WtoComponentVisitor< G, GraphTrait > {
+  public:
+    using WtoFPIterator = WtoBasedFixPointIterator< G, GraphTrait >;
+    using GraphRef = typename WtoFPIterator::GraphRef;
+    using NodeRef = typename WtoFPIterator::NodeRef;
+
+    using Wto = Wto< G, GraphTrait >;
+    using WtoNesting = WtoNesting< G, GraphTrait >;
+    using WtoVertex = WtoVertex< G, GraphTrait >;
+    using WtoCycle = WtoCycle< G, GraphTrait >;
+
+  private:
+    WtoFPIterator& m_fp_iterator;
+
+    LocationManager& m_loc_mgr;
+
+    const StackFrame* m_frame;
+
+  public:
+    explicit WtoChecker(WtoFPIterator& fp_iter,
+                        LocationManager& loc_mgr,
+                        const StackFrame* frame)
+        : m_fp_iterator(fp_iter), m_loc_mgr(loc_mgr), m_frame(frame) {}
+
+  public:
+    void visit(const WtoVertex& vertex) override;
+
+    void visit(const WtoCycle& cycle) override;
+
+}; // class WtoChecker
 
 template < graph G, typename GraphTrait >
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
@@ -132,15 +273,18 @@ void WtoIterator< G, GraphTrait >::visit(const WtoCycle& cycle) {
         if (kind == IterationKind::Increasing) {
             ProgramStateRef increased =
                 this->m_fp_iterator
-                    .merge_at_head_when_increasing(head,
-                                                   iter_cnt,
-                                                   state_pre,
-                                                   new_state_front,
-                                                   get_location_context(head));
+                    .enlarge_at_head_when_increasing(head,
+                                                     iter_cnt,
+                                                     state_pre,
+                                                     new_state_front,
+                                                     get_location_context(
+                                                         head));
             increased = increased->normalize();
-            knight_log(llvm::outs()
-                       << "head increased state: " << *increased << "\n");
-            knight_log(llvm::outs() << "state_pre: " << *state_pre << "\n");
+
+            knight_log_nl(llvm::outs()
+                          << "head increased state: " << *increased << "\n"
+                          << "state_pre: " << *state_pre << "\n");
+
             if (this->m_fp_iterator.is_increasing_fixpoint_reached(head,
                                                                    iter_cnt,
                                                                    state_pre,
@@ -160,7 +304,7 @@ void WtoIterator< G, GraphTrait >::visit(const WtoCycle& cycle) {
         if (kind == IterationKind::Decreasing) {
             ProgramStateRef refined =
                 this->m_fp_iterator
-                    .narrow_at_loop_head_when_decreasing(head,
+                    .refine_at_loop_head_when_decreasing(head,
                                                          iter_cnt,
                                                          state_pre,
                                                          new_state_front);
@@ -204,7 +348,9 @@ void WtoChecker< G, GraphTrait >::visit(const WtoCycle& cycle) {
     }
 }
 
-} // namespace knight::dfa::impl
+} // namespace impl
+
+} // namespace knight::dfa
 
 #ifdef DEBUG_TYPE_BACKUP
 #    define DEBUG_TYPE DEBUG_TYPE_BACKUP

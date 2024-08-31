@@ -19,8 +19,9 @@
 #include <set>
 #include <string>
 #include <variant>
+#include "dfa/analyzer_options.hpp"
 #include "dfa/domain/domains.hpp"
-#include "dfa/domain/interval_dom.hpp"
+#include "dfa/domain/numerical/interval_dom.hpp"
 
 namespace knight {
 
@@ -30,6 +31,9 @@ const char* option_src_to_string(OptionSource source);
 
 using CheckerOptVal = std::variant< bool, std::string, int >;
 using Extensions = std::set< std::string >;
+
+constexpr unsigned KnightOptionsAlignment = 128U;
+constexpr unsigned KnightOptionsProviderAlignment = 64U;
 
 /// \brief Knight options.
 struct KnightOptions {
@@ -65,7 +69,12 @@ struct KnightOptions {
 
     /// \brief dump control flow graph
     bool dump_cfg = false;
-}; // struct KnightOptions
+
+    /// \brief analyzer options
+    dfa::AnalyzerOptions analyzer_opts;
+
+} __attribute__((aligned(KnightOptionsAlignment)))
+__attribute__((packed)); // struct KnightOptions
 
 struct KnightOptionsProvider {
     virtual ~KnightOptionsProvider() = default;
@@ -78,7 +87,7 @@ struct KnightOptionsProvider {
 
     virtual void set_checker_option(const std::string& option,
                                     CheckerOptVal value) = 0;
-}; // struct KnightOptionsProvider
+} __attribute__((packed)); // struct KnightOptionsProvider
 
 struct KnightOptionsDefaultProvider : KnightOptionsProvider {
   public:
@@ -99,7 +108,8 @@ struct KnightOptionsDefaultProvider : KnightOptionsProvider {
   protected:
     void set_default_options();
 
-}; // struct KnightOptionsDefaultProvider
+} __attribute__((aligned(KnightOptionsProviderAlignment)))
+__attribute__((packed)); // struct KnightOptionsDefaultProvider
 
 struct KnightOptionsCommandLineProvider : KnightOptionsDefaultProvider {
   protected:
@@ -114,7 +124,8 @@ struct KnightOptionsCommandLineProvider : KnightOptionsDefaultProvider {
     void set_checker_option(const std::string& option,
                             CheckerOptVal value) override;
 
-}; // class KnightOptionsCommandLineProvider
+} __attribute__((aligned(KnightOptionsProviderAlignment)))
+__attribute__((packed)); // class KnightOptionsCommandLineProvider
 
 // TODO: add config file support
 class KnightOptionsConfigFileProvider

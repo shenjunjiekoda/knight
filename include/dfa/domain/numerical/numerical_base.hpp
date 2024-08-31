@@ -30,9 +30,9 @@ struct NumericalDomBase : AbsDomBase {
     using Var = Variable< Num >;
 
   public:
-    explicit NumericalDomBase(DomainKind k) : AbsDomBase(k) {}
+    explicit NumericalDomBase(DomainKind k) : AbsDomBase(k, true) {}
 
-    virtual ~NumericalDomBase() = default;
+    ~NumericalDomBase() override = default;
 
     /// \brief Widen with a threshold num
     virtual void widen_with_threshold(const NumericalDomBase& other,
@@ -157,6 +157,8 @@ struct NumericalDomBase : AbsDomBase {
     virtual void forget(const Var& x) = 0;
 
     [[nodiscard]] virtual Interval< Num > to_interval(const Var& x) const = 0;
+
+    static bool classof(const AbsDomBase* dom) { return dom->is_numerical; }
 
 }; // struct NumericalDomBase
 

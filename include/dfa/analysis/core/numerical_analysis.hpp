@@ -20,7 +20,7 @@
 #include "dfa/constraint/linear.hpp"
 #include "dfa/domain/demo_dom.hpp"
 #include "dfa/domain/domains.hpp"
-#include "dfa/domain/interval_dom.hpp"
+#include "dfa/domain/numerical/interval_dom.hpp"
 #include "dfa/program_state.hpp"
 #include "dfa/region/region.hpp"
 #include "tooling/context.hpp"

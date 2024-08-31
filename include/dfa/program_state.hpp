@@ -332,8 +332,16 @@ class ProgramState : public llvm::FoldingSetNode {
 
     [[nodiscard]] ProgramStateRef widen(const ProgramStateRef& other,
                                         const LocationContext* loc_ctx) const;
+
+    [[nodiscard]] ProgramStateRef widen_with_threshold(
+        const ProgramStateRef& other,
+        const LocationContext* loc_ctx,
+        const ZNum& threshold) const;
+
     [[nodiscard]] ProgramStateRef meet(const ProgramStateRef& other) const;
     [[nodiscard]] ProgramStateRef narrow(const ProgramStateRef& other) const;
+    [[nodiscard]] ProgramStateRef narrow_with_threshold(
+        const ProgramStateRef& other, const ZNum& threshold) const;
 
     [[nodiscard]] bool leq(const ProgramState& other) const;
     [[nodiscard]] bool equals(const ProgramState& other) const;

@@ -13,7 +13,7 @@
 
 #pragma once
 
-#include "dfa/domain/interval_dom.hpp"
+#include "dfa/domain/numerical/interval_dom.hpp"
 #include "util/log.hpp"
 
 #ifdef DEBUG_TYPE
@@ -24,85 +24,6 @@
 #define DEBUG_TYPE "interval-dom"
 
 namespace knight::dfa {
-
-constexpr std::size_t MaxCycles = 10U;
-constexpr std::size_t LargeSystemCstThreshold = 3;
-constexpr std::size_t LargeSystemOpThreshold = 27;
-
-template < typename Num, typename NumericalDom >
-class IntervalSolver {
-  public:
-    using Var = Variable< Num >;
-    using VarSet = llvm::DenseSet< Var >;
-
-    using Bound = Bound< Num >;
-    using Interval = Interval< Num >;
-
-    using LinearExpr = LinearExpr< Num >;
-    using LinearConstraint = LinearConstraint< Num >;
-    using LinearConstraintSystem = LinearConstraintSystem< Num >;
-    using LinearConstraintRef =
-        std::reference_wrapper< const LinearConstraint >;
-    using LinearConstraintSystemRef =
-        std::reference_wrapper< const LinearConstraintSystem >;
-
-    using LinearConstraintSet = std::vector< LinearConstraintRef >;
-    using TriggerTable = llvm::DenseMap< Var, LinearConstraintSet >;
-
-  private:
-    VarSet m_refined_vars;
-    LinearConstraintSet m_csts;
-    TriggerTable m_trigger_table;
-
-    std::size_t m_op_cnt = 0U;
-    std::size_t m_op_per_cycle = 0U;
-    std::size_t m_max_op = 0U;
-
-    bool m_is_contradiction = false;
-    bool m_is_large_system = false;
-
-  public:
-    IntervalSolver() = default;
-
-  public:
-    /// \brief Add a constraint
-    void add(LinearConstraintRef cst);
-
-    /// \brief Add a constraint system
-    void add(LinearConstraintSystemRef csts);
-
-    [[nodiscard]] std::size_t num_constraints() const {
-        return this->m_csts.size();
-    }
-
-    [[nodiscard]] bool empty() const { return this->m_csts.empty(); }
-
-    /// \brief Solve the constraint system of interval domain
-    void run(NumericalDom& numerical);
-
-  private:
-    /// \return true if the value is bottom, false otherwise
-    [[nodiscard]] bool refine_to_numerical(Var x,
-                                           const Interval& itv,
-                                           NumericalDom& numerical);
-
-    [[nodiscard]] Interval compute_residual(const LinearConstraint& cst,
-                                            Var pivot,
-                                            const NumericalDom& numerical);
-
-    /// \return true if the value is bottom, false otherwise
-    [[nodiscard]] bool propagate(const LinearConstraint& cst,
-                                 NumericalDom& numerical);
-
-    void build_trigger_table();
-
-    /// \return true if the value is bottom, false otherwise
-    [[nodiscard]] bool solve_large_system(NumericalDom& numerical);
-
-    /// \return true if the value is bottom, false otherwise
-    [[nodiscard]] bool solve_small_system(NumericalDom& inv);
-
-}; // class IntervalSolver < Num, NumericalDom >
 
 template < typename Num, DomainKind Kind, DomainKind SepKind >
 void IntervalDom< Num, Kind, SepKind >::assign_binary_var_var(
@@ -209,6 +130,87 @@ IntervalDom< Num, Kind, SepKind >::to_linear_constraint_system() const {
 
     return csts;
 }
+
+namespace impl {
+
+constexpr std::size_t MaxCycles = 10U;
+constexpr std::size_t LargeSystemCstThreshold = 3;
+constexpr std::size_t LargeSystemOpThreshold = 27;
+
+template < typename Num, typename NumericalDom >
+class IntervalSolver {
+  public:
+    using Var = Variable< Num >;
+    using VarSet = llvm::DenseSet< Var >;
+
+    using Bound = Bound< Num >;
+    using Interval = Interval< Num >;
+
+    using LinearExpr = LinearExpr< Num >;
+    using LinearConstraint = LinearConstraint< Num >;
+    using LinearConstraintSystem = LinearConstraintSystem< Num >;
+    using LinearConstraintRef =
+        std::reference_wrapper< const LinearConstraint >;
+    using LinearConstraintSystemRef =
+        std::reference_wrapper< const LinearConstraintSystem >;
+
+    using LinearConstraintSet = std::vector< LinearConstraintRef >;
+    using TriggerTable = llvm::DenseMap< Var, LinearConstraintSet >;
+
+  private:
+    VarSet m_refined_vars;
+    LinearConstraintSet m_csts;
+    TriggerTable m_trigger_table;
+
+    std::size_t m_op_cnt = 0U;
+    std::size_t m_op_per_cycle = 0U;
+    std::size_t m_max_op = 0U;
+
+    bool m_is_contradiction = false;
+    bool m_is_large_system = false;
+
+  public:
+    IntervalSolver() = default;
+
+  public:
+    /// \brief Add a constraint
+    void add(LinearConstraintRef cst);
+
+    /// \brief Add a constraint system
+    void add(LinearConstraintSystemRef csts);
+
+    [[nodiscard]] std::size_t num_constraints() const {
+        return this->m_csts.size();
+    }
+
+    [[nodiscard]] bool empty() const { return this->m_csts.empty(); }
+
+    /// \brief Solve the constraint system of interval domain
+    void run(NumericalDom& numerical);
+
+  private:
+    /// \return true if the value is bottom, false otherwise
+    [[nodiscard]] bool refine_to_numerical(Var x,
+                                           const Interval& itv,
+                                           NumericalDom& numerical);
+
+    [[nodiscard]] Interval compute_residual(const LinearConstraint& cst,
+                                            Var pivot,
+                                            const NumericalDom& numerical);
+
+    /// \return true if the value is bottom, false otherwise
+    [[nodiscard]] bool propagate(const LinearConstraint& cst,
+                                 NumericalDom& numerical);
+
+    void build_trigger_table();
+
+    /// \return true if the value is bottom, false otherwise
+    [[nodiscard]] bool solve_large_system(NumericalDom& numerical);
+
+    /// \return true if the value is bottom, false otherwise
+    [[nodiscard]] bool solve_small_system(NumericalDom& inv);
+
+}; // class IntervalSolver < Num, NumericalDom >
 
 template < typename Num, typename NumericalDom >
 void IntervalSolver< Num, NumericalDom >::add(LinearConstraintRef cst) {
@@ -405,6 +407,8 @@ bool IntervalSolver< Num, NumericalDom >::solve_small_system(
 
     return false;
 }
+
+} // namespace impl
 
 } // namespace knight::dfa
 
