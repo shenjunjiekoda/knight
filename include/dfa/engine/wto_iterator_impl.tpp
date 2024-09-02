@@ -1,11 +1,12 @@
 #pragma once
 
-#include "clang/AST/Expr.h"
+#include "dfa/domain/num/znum.hpp"
 #include "dfa/location_context.hpp"
-#include "llvm/Support/Casting.h"
 #include "util/log.hpp"
 #include "wto_iterator.hpp"
 
+#include <clang/AST/Expr.h>
+#include <llvm/Support/Casting.h>
 #include <llvm/Support/raw_ostream.h>
 
 #ifdef DEBUG_TYPE
@@ -17,15 +18,26 @@
 
 namespace knight::dfa {
 
-// std::optional< ZNum > WtoBasedFixPointIterator< ProcCFG >::get_threshold(
 template < graph CFG, typename GraphTrait >
 std::optional< ZNum > WtoBasedFixPointIterator< CFG, GraphTrait >::
     get_threshold(NodeRef head) const {
-    if (NodeRef pred = ProcCFG::get_unique_pred(head);
-        pred != nullptr && pred->succ_size() == 2U) {
+    if (const auto* cond = head->getLastCondition()) {
+        if (cond == nullptr) {
+            return std::nullopt;
+        }
+        cond = cond->IgnoreParenImpCasts();
+
+        if (llvm::isa< clang::DeclRefExpr >(cond)) {
+            return ZNum(0);
+        }
+        if (const auto* unary_cond =
+                llvm::dyn_cast_or_null< clang::UnaryOperator >(cond)) {
+            if (unary_cond->getOpcode() == clang::UO_LNot) {
+                return ZNum(0);
+            }
+        }
         if (const auto* binary_cond =
-                llvm::dyn_cast_or_null< clang::BinaryOperator >(
-                    pred->getLastCondition());
+                llvm::dyn_cast_or_null< clang::BinaryOperator >(cond);
             binary_cond != nullptr && binary_cond->isComparisonOp()) {
             bool lhs_cst = false;
             std::optional< ZNum > cst = std::nullopt;
@@ -42,35 +54,30 @@ std::optional< ZNum > WtoBasedFixPointIterator< CFG, GraphTrait >::
                                                ->getASTContext())) {
                 cst = res.Val.getInt().getZExtValue();
             }
-            if (cst.has_value()) {
-                ZNum threshold = *cst;
-                switch (binary_cond->getOpcode()) {
-                    case clang::BO_LE: {
-                        if (lhs_cst) {
-                            threshold--;
-                        } else {
-                            threshold++;
-                        }
-                    } break;
-                    case clang::BO_GE: {
-                        if (lhs_cst) {
-                            threshold++;
-                        } else {
-                            threshold--;
-                        }
-                    } break;
-                    case clang::BO_LT:
-                        [[fallthrough]];
-                    case clang::BO_GT:
-                        [[fallthrough]];
-                    case clang::BO_EQ:
-                        [[fallthrough]];
-                    case clang::BO_NE:
-                        return threshold;
-                    default:
-                        break;
-                }
+            if (!cst.has_value()) {
+                return std::nullopt;
             }
+            ZNum threshold = *cst;
+            switch (binary_cond->getOpcode()) {
+                case clang::BO_LT: {
+                    if (lhs_cst) {
+                        threshold++;
+                    } else {
+                        threshold--;
+                    }
+                } break;
+
+                case clang::BO_GT: {
+                    if (lhs_cst) {
+                        threshold--;
+                    } else {
+                        threshold++;
+                    }
+                } break;
+                default:
+                    break;
+            }
+            return threshold;
         }
     }
     return std::nullopt;
@@ -271,6 +278,10 @@ void WtoIterator< G, GraphTrait >::visit(const WtoCycle& cycle) {
             new_state_front->join_at_loop_head(new_state_back, loc_ctx);
         new_state_front = new_state_front->normalize();
         if (kind == IterationKind::Increasing) {
+            knight_log_nl(llvm::outs()
+                          << "in increasing stage, head state_pre: "
+                          << *state_pre
+                          << "\nnew_state_front: " << *new_state_front << "\n");
             ProgramStateRef increased =
                 this->m_fp_iterator
                     .enlarge_at_head_when_increasing(head,
@@ -309,14 +320,20 @@ void WtoIterator< G, GraphTrait >::visit(const WtoCycle& cycle) {
                                                          state_pre,
                                                          new_state_front);
             refined = refined->normalize();
+            knight_log_nl(llvm::outs()
+                          << "head refined state: " << *refined << "\n"
+                          << "state_pre: " << *state_pre << "\n");
             if (this->m_fp_iterator.is_decreasing_fixpoint_reached(head,
                                                                    iter_cnt,
                                                                    state_pre,
                                                                    refined)) {
+                knight_log(llvm::outs() << "decreasing fixpoint reached\n");
                 // Decreasing fixpoint is reached
                 this->m_fp_iterator.set_pre(head, std::move(refined));
                 break;
             }
+            knight_log(llvm::outs() << "decreasing fixpoint not reached, "
+                                       "continue to refine\n");
             state_pre = std::move(refined);
         }
     }

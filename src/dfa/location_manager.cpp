@@ -53,8 +53,12 @@ void LocationContext::dump(llvm::raw_ostream& os) const {
         os << "  block_start\n";
     } else {
         os << "  element_id: " << m_element_id << "\n";
+        if (const auto* stmt = get_stmt()) {
+            stmt->dumpColor();
+        }
     }
     os << "  block#" << m_block->getBlockID() << "\n";
+    m_block->dump();
 }
 
 const StackFrame* LocationManager::create_top_frame(ProcCFG::DeclRef decl) {

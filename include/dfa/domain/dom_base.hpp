@@ -121,6 +121,12 @@ struct AbsDomBase {
 
 } __attribute__((aligned(8))) __attribute__((packed)); // class AbsDomBase
 
+inline llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
+                                     const AbsDomBase& dom) {
+    dom.dump(os);
+    return os;
+}
+
 using DomainDefaultValFn = std::function< SharedVal() >;
 using DomainBottomValFn = std::function< SharedVal() >;
 

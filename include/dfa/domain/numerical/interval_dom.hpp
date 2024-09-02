@@ -129,11 +129,12 @@ class IntervalDom
     void dump(llvm::raw_ostream& os) const override { m_sep_dom.dump(os); }
 
   public:
-    void widen_with_threshold(const IntervalDomT& other, Num threshold) {
+    void widen_with_threshold(const IntervalDomT& other, const Num& threshold) {
         m_sep_dom.widen_with_threshold(other.m_sep_dom, threshold);
     }
 
-    void narrow_with_threshold(const IntervalDomT& other, Num threshold) {
+    void narrow_with_threshold(const IntervalDomT& other,
+                               const Num& threshold) {
         m_sep_dom.narrow_with_threshold(other.m_sep_dom, threshold);
     }
 

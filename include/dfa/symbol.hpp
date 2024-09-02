@@ -583,13 +583,7 @@ class BinarySymExpr : public SymExpr {
             case BO_Sub:
             case BO_Assign:
             case BO_AddAssign:
-            case BO_SubAssign:
-            case BO_LT:
-            case BO_GT:
-            case BO_LE:
-            case BO_GE:
-            case BO_EQ:
-            case BO_NE: {
+            case BO_SubAssign: {
                 return std::max(lhs_complexity, rhs_complexity);
             } break;
             case BO_MulAssign:

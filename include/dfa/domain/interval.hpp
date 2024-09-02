@@ -166,11 +166,24 @@ class Interval : public AbsDom< Interval< Num > > {
             return;
         }
         Bound thr = Bound(threshold);
+        Bound one = Bound(Num(1));
         if (m_lb > other.m_lb) {
-            m_lb = other.m_lb >= thr ? thr : Bound::ninf();
+            if (other.m_lb >= thr) {
+                m_lb = thr;
+            } else if (other.m_lb == thr - one) {
+                m_lb = thr - one;
+            } else {
+                m_lb = Bound::ninf();
+            }
         }
         if (m_ub < other.m_ub) {
-            m_ub = other.m_ub <= thr ? thr : Bound::pinf();
+            if (other.m_ub <= thr) {
+                m_ub = thr;
+            } else if (other.m_ub == thr + one) {
+                m_ub = thr + one;
+            } else {
+                m_ub = Bound::pinf();
+            }
         }
     }
 

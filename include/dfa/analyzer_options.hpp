@@ -23,10 +23,10 @@ struct AnalyzerOptions {
     int widening_delay = 1;
 
     /// \brief Maximum number of widening iterations
-    int max_widening_iterations = 3;
+    int max_widening_iterations = 5;
 
     /// \brief Maximum number of narrowing iterations
-    int max_narrowing_iterations = 3;
+    int max_narrowing_iterations = 5;
 
     /// \brief If true, do widening and narrowing with threshold
     bool analyze_with_threshold = false;

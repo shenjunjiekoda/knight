@@ -136,6 +136,13 @@ std::optional< QVariable > ProgramState::try_get_qvariable(
 
 std::optional< RegionRef > ProgramState::get_region(
     ProcCFG::StmtRef stmt, const StackFrame* frame) const {
+    if (const auto* imp_cast =
+            llvm::dyn_cast< clang::ImplicitCastExpr >(stmt)) {
+        if (imp_cast->getCastKind() == clang::CK_LValueToRValue) {
+            stmt = imp_cast->getSubExpr();
+        }
+    }
+
     if (const auto* decl_ref_expr =
             llvm::dyn_cast< clang::DeclRefExpr >(stmt)) {
         const auto* decl = decl_ref_expr->getDecl();
@@ -189,13 +196,17 @@ std::optional< const RegionSymVal* > ProgramState::get_region_def(
 
 std::optional< SExprRef > ProgramState::get_stmt_sexpr(
     ProcCFG::StmtRef stmt, const StackFrame* frame) const {
+    if (auto region = get_region(stmt, frame)) {
+        if (auto region_def = get_region_def(*region, frame)) {
+            return region_def;
+        }
+    }
+
     auto it = m_stmt_sexpr.find({stmt, frame});
     if (it != m_stmt_sexpr.end()) {
         return it->second;
     }
-    if (auto region_opt = get_region(stmt, frame)) {
-        return get_region_def(region_opt.value(), frame);
-    }
+
     return std::nullopt;
 }
 
@@ -204,20 +215,22 @@ SExprRef ProgramState::get_stmt_sexpr_or_conjured(
     const clang::QualType& type,
     const LocationContext* loc_ctx) const {
     const auto* frame = loc_ctx->get_stack_frame();
-    if (auto res = get_stmt_sexpr(stmt, frame)) {
-        return res.value();
-    }
 
     auto region_opt = get_region(stmt, frame);
-    if (region_opt.has_value()) {
-        if (auto region_def = get_region_def(region_opt.value(), frame)) {
+    if (region_opt) {
+        if (auto region_def = get_region_def(*region_opt, frame)) {
             return *region_def;
         }
-        if (const auto* typed_region =
-                llvm::dyn_cast< TypedRegion >(region_opt.value())) {
-            return m_state_mgr->m_symbol_mgr.get_region_sym_val(typed_region,
-                                                                loc_ctx);
-        }
+    }
+
+    auto it = m_stmt_sexpr.find({stmt, frame});
+    if (it != m_stmt_sexpr.end()) {
+        return it->second;
+    }
+
+    if (region_opt) {
+        return m_state_mgr->m_symbol_mgr.get_region_sym_val(*region_opt,
+                                                            loc_ctx);
     }
 
     return m_state_mgr->m_symbol_mgr.get_symbol_conjured(stmt, type, frame);
@@ -620,7 +633,7 @@ ProgramStateRef ProgramState::widen_with_threshold(
 
         zdom->widen_with_threshold(*zdom_cloned, threshold);
         delete zdom_cloned;
-        knight_log(llvm::outs() << "joined zdom: ";
+        knight_log(llvm::outs() << "widen_with_threshold zdom: ";
                    new_map[get_zdom_id()]->dump(llvm::outs());
                    llvm::outs() << "\n");
     }
@@ -636,7 +649,7 @@ ProgramStateRef ProgramState::widen_with_threshold(
                        std ::move(region_defs),
                        std ::move(stmt_sexpr),
                        std ::move(cst_system));
-    knight_log(llvm::outs() << "joined state: " << *res << "\n");
+    knight_log(llvm::outs() << "widen_with_threshold state: " << *res << "\n");
     return res;
 }
 
@@ -676,10 +689,17 @@ ProgramStateRef ProgramState::narrow_with_threshold(
         if (it != m_dom_val.end()) {
             auto* new_val = it->second->clone();
             if (auto* new_zval = llvm::dyn_cast< ZNumericalDomBase >(new_val)) {
+                knight_log_nl(llvm::outs() << "before narrow with threshold :"
+                                           << threshold << "\n"
+                                           << *new_val << "\n";);
                 new_zval
                     ->narrow_with_threshold(*(llvm::cast< ZNumericalDomBase >(
                                                 other_val.get())),
                                             threshold);
+
+                knight_log_nl(llvm::outs() << "after narrow with threshold :"
+                                           << threshold << "\n"
+                                           << *new_val << "\n";);
             } else {
                 new_val->narrow_with(*other_val);
             }
@@ -752,7 +772,7 @@ void ProgramState::dump(llvm::raw_ostream& os) const {
         const auto [region, frame] = region_frame_pair;
         os << "\n";
         region->dump(os);
-        os << "@" << frame << ": ";
+        os << " @" << frame << ": ";
         def->dump(os);
     }
     if (!m_region_defs.empty()) {
@@ -772,7 +792,7 @@ void ProgramState::dump(llvm::raw_ostream& os) const {
                               .get_ast_ctx()
                               .getPrintingPolicy());
 
-        os << "@" << frame << ": ";
+        os << " @" << frame << ": ";
         sexpr->dump(os);
     }
     if (!m_stmt_sexpr.empty()) {

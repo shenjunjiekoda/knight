@@ -59,21 +59,40 @@ class LocationContext : public llvm::FoldingSetNode {
     }
 
     [[nodiscard]] bool is_stmt() const {
-        return get_element().getKind() == clang::CFGElement::Statement;
+        return is_element() &&
+               get_element().getKind() == clang::CFGElement::Statement;
     }
 
     template < typename ElemTy >
     [[nodiscard]] std::optional< ElemTy > get_elem_as() const {
-        return get_element().getAs< ElemTy >();
+        if (is_element()) {
+            return get_element().getAs< ElemTy >();
+        }
+        return std::nullopt;
     }
 
     [[nodiscard]] const clang::Stmt* get_stmt() const {
+        if (!is_element()) {
+            return nullptr;
+        }
         auto stmt_opt = get_elem_as< clang::CFGStmt >();
         if (stmt_opt) {
             return stmt_opt.value().getStmt();
         }
         return nullptr;
     }
+
+    [[nodiscard]] std::optional< clang::SourceLocation > get_source_location()
+        const {
+        if (!is_element()) {
+            return std::nullopt;
+        }
+        if (auto stmt = get_elem_as< clang::CFGStmt >()) {
+            return stmt.value().getStmt()->getBeginLoc();
+        }
+        return std::nullopt;
+    }
+
     static void profile(llvm::FoldingSetNodeID& id,
                         const StackFrame* stack_frame,
                         unsigned element_id,

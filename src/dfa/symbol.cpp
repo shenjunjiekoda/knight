@@ -18,6 +18,7 @@
 
 #include <clang/AST/Expr.h>
 #include <clang/AST/OperationKinds.h>
+#include <clang/Basic/SourceManager.h>
 #include <llvm/ADT/APFloat.h>
 #include <llvm/ADT/APSInt.h>
 
@@ -122,6 +123,15 @@ RegionRef RegionSymVal::get_region() const {
 void RegionSymVal::dump(llvm::raw_ostream& os) const {
     os << get_kind_name() << get_id() << "<" << get_type() << ' ';
     get_region()->dump(os);
+    if (auto loc = get_loc_ctx()->get_source_location()) {
+        auto& mgr = get_region()->get_ast_ctx().getSourceManager();
+        if (loc->isFileID()) {
+            auto ploc = mgr.getPresumedLoc(*loc);
+            if (ploc.isValid()) {
+                os << " @" << ploc.getLine() << ':' << ploc.getColumn();
+            }
+        }
+    }
     os << '>';
 }
 
@@ -150,7 +160,10 @@ void SymbolConjured::dump(llvm::raw_ostream& os) const {
     if (m_stmt != nullptr) {
         m_stmt->printPretty(os,
                             nullptr,
-                            m_frame->get_ast_context().getPrintingPolicy());
+                            m_frame->get_ast_context().getPrintingPolicy(),
+                            0,
+                            "\n",
+                            &m_frame->get_ast_context());
     } else {
         os << "`unknown stmt`";
     }

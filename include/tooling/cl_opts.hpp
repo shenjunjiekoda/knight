@@ -149,13 +149,13 @@ inline cl::opt< int > widening_delay(
 inline cl::opt< int > max_widening_iterations(
     "max-widening-iterations",
     cl::desc("maximum number of widening iterations"),
-    cl::init(3),
+    cl::init(5),
     cl::cat(knight_analyzer_category));
 
 inline cl::opt< int > max_narrowing_iterations(
     "max-narrowing-iterations",
     cl::desc("maximum number of narrowing iterations"),
-    cl::init(3),
+    cl::init(5),
     cl::cat(knight_analyzer_category));
 
 inline cl::opt< bool > analyze_with_threshold(
