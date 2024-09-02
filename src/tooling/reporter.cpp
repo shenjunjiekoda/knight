@@ -206,7 +206,7 @@ void DiagnosticReporter::report(const KnightDiagnostic& diagnostic) {
 
                         llvm::Error err = replaces.add(replace);
                         if (err) {
-                            llvm::errs()
+                            llvm::WithColor::error()
                                 << "Trying to resolve conflict: "
                                 << llvm::toString(std::move(err)) << "\n";
 
@@ -228,7 +228,7 @@ void DiagnosticReporter::report(const KnightDiagnostic& diagnostic) {
                                 can_be_applied = true;
                                 ++m_applied_fixes;
                             } else {
-                                llvm::errs()
+                                llvm::WithColor::error()
                                     << "Can't resolve conflict, skipping "
                                        "the replacement.\n";
                             }
@@ -278,24 +278,25 @@ void DiagnosticReporter::apply_fixes() {
 
         auto buffer = m_source_manager.getFileManager().getBufferForFile(file);
         if (!buffer) {
-            llvm::errs() << "error when accessing file: " << file << ": "
-                         << buffer.getError().message() << "\n";
+            llvm::WithColor::error()
+                << "error when accessing file: " << file << ": "
+                << buffer.getError().message() << "\n";
             continue;
         }
         auto code = buffer.get()->getBuffer();
 
         auto fmt = format::getStyle("none", file, "none");
         if (!fmt) {
-            llvm::errs() << llvm::toString(fmt.takeError()) << "\n";
+            llvm::WithColor::error() << llvm::toString(fmt.takeError()) << "\n";
             continue;
         }
 
         auto replacements_expected =
             format::cleanupAroundReplacements(code, replaces, *fmt);
         if (!replacements_expected) {
-            llvm::errs() << "error when applying replacements: "
-                         << llvm::toString(replacements_expected.takeError())
-                         << "\n";
+            llvm::WithColor::error()
+                << "error when applying replacements: "
+                << llvm::toString(replacements_expected.takeError()) << "\n";
             continue;
         }
 
@@ -305,21 +306,21 @@ void DiagnosticReporter::apply_fixes() {
             knight_assert_msg(replacements_expected,
                               "format replacements failed");
         } else {
-            llvm::errs() << "error when formatting replacements: "
-                         << llvm::toString(replacements_formatted.takeError())
-                         << "\n";
+            llvm::WithColor::error()
+                << "error when formatting replacements: "
+                << llvm::toString(replacements_formatted.takeError()) << "\n";
             continue;
         }
 
         if (!clang::tooling::applyAllReplacements(replacements_expected.get(),
                                                   rewriter)) {
-            llvm::errs() << "error when applying replacements\n";
+            llvm::WithColor::error() << "error when applying replacements\n";
         }
         any_not_written |= rewriter.overwriteChangedFiles();
     }
 
     if (any_not_written) {
-        llvm::errs() << "failed to apply some suggested fixes.\n";
+        llvm::WithColor::error() << "failed to apply some suggested fixes.\n";
     } else {
         llvm::outs() << "applied " << m_applied_fixes << " out of "
                      << m_total_fixes << " suggested fixes.\n";

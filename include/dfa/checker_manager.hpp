@@ -23,6 +23,8 @@
 #include "dfa/proc_cfg.hpp"
 #include "tooling/context.hpp"
 
+#include <llvm/Support/WithColor.h>
+
 #include <memory>
 #include <unordered_set>
 
@@ -122,8 +124,8 @@ class CheckerManager {
     UniqueCheckerRef register_checker(KnightContext& ctx, AT&&... Args) {
         CheckerID id = get_checker_id(CHECKER::get_kind());
         if (m_checkers.contains(id)) {
-            llvm::errs() << get_checker_name_by_id(id)
-                         << " checker is already registered.\n";
+            llvm::WithColor::error() << get_checker_name_by_id(id)
+                                     << " checker is already registered.\n";
         } else {
             m_checkers.insert(id);
         }

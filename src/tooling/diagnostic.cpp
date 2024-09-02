@@ -228,8 +228,8 @@ void KnightDiagnosticRenderer::emitCodeContext(
                                                fix_it.CodeToInsert);
         auto err = diag_msg->Fix[replacement.getFilePath()].add(replacement);
         if (err) {
-            llvm::errs() << "Fix conflicts with existing fix! "
-                         << llvm::toString(std::move(err)) << "\n";
+            llvm::WithColor::error() << "Fix conflicts with existing fix! "
+                                     << llvm::toString(std::move(err)) << "\n";
             knight_assert(false && // NOLINT
                           "Fix conflicts with existing fix!");
         }

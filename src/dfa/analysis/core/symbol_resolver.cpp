@@ -21,6 +21,7 @@
 #include <clang/AST/Expr.h>
 #include <clang/AST/OperationKinds.h>
 #include <llvm/Support/Casting.h>
+#include <llvm/Support/WithColor.h>
 #include <llvm/Support/raw_ostream.h>
 
 #include <optional>
@@ -245,7 +246,7 @@ ProgramStateRef SymbolResolver::handle_assign(
         state = state->add_zlinear_constraint(
             ZLinearConstraint(cstr, LinearConstraintKind::LCK_Equality));
     } else {
-        llvm::errs() << "floating point not implemented for now!\n";
+        llvm::WithColor::error() << "floating point not implemented for now!\n";
     }
 
     if (assign_ctx.treg) {
@@ -510,7 +511,7 @@ void SymbolResolver::VisitDeclStmt(const clang::DeclStmt* decl_stmt) const {
                     init_expr, m_ctx->get_current_location_context());
 
             } else {
-                llvm::errs() << "no typed region for decl!\n";
+                llvm::WithColor::error() << "no typed region for decl!\n";
             }
             stmt_sexpr = *init_sexpr_opt;
         }
@@ -543,7 +544,7 @@ void SymbolResolver::handle_load(const clang::Expr* load_expr) const {
         knight_log(llvm::outs() << "no region for decl!\n");
         return;
     }
-    llvm::outs() << "region: " << *(region.value()) << "\n";
+    knight_log(llvm::outs() << "region: " << *(region.value()) << "\n");
 
     auto def = state->get_region_def(*region, m_ctx->get_current_stack_frame());
     if (!def) {

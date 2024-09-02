@@ -24,6 +24,8 @@
 
 #include "util/log.hpp"
 
+#include <llvm/Support/WithColor.h>
+
 #include <memory>
 #include <unordered_set>
 
@@ -165,8 +167,8 @@ class AnalysisManager {
                                                       AT&&... Args) {
         AnalysisID id = get_analysis_id(ANALYSIS::get_kind());
         if (m_analyses.contains(id)) {
-            llvm::errs() << get_analysis_name_by_id(id)
-                         << " analysis is already registered.\n";
+            llvm::WithColor::error() << get_analysis_name_by_id(id)
+                                     << " analysis is already registered.\n";
         } else {
             m_analyses.insert(id);
         }

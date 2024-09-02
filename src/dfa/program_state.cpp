@@ -29,6 +29,7 @@
 
 #include <llvm/ADT/BitVector.h>
 #include <llvm/ADT/STLExtras.h>
+#include <llvm/Support/WithColor.h>
 #include <llvm/Support/raw_ostream.h>
 
 #include <limits>
@@ -92,7 +93,7 @@ std::optional< RegionRef > ProgramState::get_region(
                                                    decl),
                                                frame);
     }
-    knight_log(llvm::errs()
+    knight_log(llvm::WithColor::error()
                << "unhandled decl type: " << decl->getDeclKindName() << "\n");
     return std::nullopt;
 }

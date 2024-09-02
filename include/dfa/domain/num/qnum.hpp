@@ -25,6 +25,8 @@
 
 #include <gmpxx.h>
 
+#include <llvm/Support/WithColor.h>
+
 #include "util/assert.hpp"
 #include "znum.hpp"
 
@@ -59,7 +61,8 @@ class QNum : public llvm::FoldingSetNode {
         try {
             return QNum(mpq_class(str, base));
         } catch (std::invalid_argument&) {
-            llvm::errs() << "QNum: invalid input string '" << str << "'\n";
+            llvm::WithColor::error()
+                << "QNum: invalid input string '" << str << "'\n";
             return std::nullopt;
         }
     }

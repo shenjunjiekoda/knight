@@ -263,7 +263,8 @@ class ZNum : public llvm::FoldingSetNode {
         try {
             return ZNum(mpz_class(str, base));
         } catch (std::invalid_argument&) {
-            llvm::errs() << "ZNum: invalid input string `" << str << "`\n";
+            llvm::WithColor::error()
+                << "ZNum: invalid input string `" << str << "`\n";
             return std::nullopt;
         }
     }

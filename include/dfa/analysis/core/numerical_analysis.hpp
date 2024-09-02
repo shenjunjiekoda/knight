@@ -73,11 +73,8 @@ class NumericalAnalysis
     } __attribute__((aligned(EventHandlerAlignment))); // struct EventHandler
 
     void handle_event(LinearAssignEvent* event) const {
-        llvm::outs() << "before handle event state: " << *(event->state)
-                     << "\n";
         std::visit(LinearAssignEventHandler{*this, event->state},
                    event->assign);
-        llvm::outs() << "after handle event state: " << *(event->state) << "\n";
     }
 
     struct LinearAssumptionEventHandler {

@@ -74,7 +74,7 @@ dfa::AnalyzerOptions forward_to_knight_analyzer_options(int argc,
     (void)cl::ParseCommandLineOptions(argc,
                                       argv,
                                       "knight analyzer options",
-                                      &llvm::errs());
+                                      &llvm::WithColor::error());
 
     return dfa::AnalyzerOptions{widening_delay,
                                 max_widening_iterations,
@@ -96,10 +96,10 @@ dfa::AnalyzerOptions get_analyzer_options() {
     analyzer_argc = static_cast< int >(analyzer_argv.size()) - 1;
 
     knight_log(
-        llvm::errs()
+        llvm::WithColor::error()
         << "Forwarding the following arguments to the target mechanism:\n");
     for (int i = 1; i < analyzer_argc; ++i) {
-        llvm::errs() << analyzer_argv[i] << "\n";
+        llvm::WithColor::error() << analyzer_argv[i] << "\n";
     }
     return forward_to_knight_analyzer_options(analyzer_argc,
                                               analyzer_argv.data());
@@ -163,7 +163,8 @@ bool ensure_input_files_exist(const std::vector< std::string >& files,
     return llvm::all_of(files, [&vfs](const auto& file) {
         bool res = vfs->exists(fs::make_absolute(file));
         if (!res) {
-            llvm::errs() << "Errors: input `" << file << "` not found!\n";
+            llvm::WithColor::error()
+                << "Errors: input `" << file << "` not found!\n";
         }
         return res;
     });
@@ -173,13 +174,13 @@ void print_enabled_checkers(
     const std::vector< std::string >& enabled_checkers) {
     auto size = enabled_checkers.size();
     if (size == 0) {
-        llvm::errs() << "No checkers are enabled.\n";
+        llvm::WithColor::error() << "No checkers are enabled.\n";
     } else {
-        llvm::errs() << "\n* enabled" << size << " checker"
-                     << (size > 1 ? "s" : "") << ":\n";
+        llvm::WithColor::error() << "\n* enabled" << size << " checker"
+                                 << (size > 1 ? "s" : "") << ":\n";
         auto i = 0;
         for (const auto& checker : enabled_checkers) {
-            llvm::errs() << "(" << ++i << ") " << checker << "\n";
+            llvm::WithColor::error() << "(" << ++i << ") " << checker << "\n";
         }
     }
 }
@@ -188,13 +189,14 @@ void print_enabled_analyses(
     const std::vector< std::string >& enabled_analyses) {
     auto size = enabled_analyses.size();
     if (size == 0) {
-        llvm::errs() << "No analyses are enabled.\n";
+        llvm::WithColor::error() << "No analyses are enabled.\n";
     } else {
-        llvm::errs() << "\n* enabled " << size << " "
-                     << (size > 1 ? "analyses" : "analysis") << ":\n";
+        llvm::WithColor::error()
+            << "\n* enabled " << size << " "
+            << (size > 1 ? "analyses" : "analysis") << ":\n";
         auto i = 0;
         for (const auto& analysis : enabled_analyses) {
-            llvm::errs() << "(" << ++i << ") " << analysis << "\n";
+            llvm::WithColor::error() << "(" << ++i << ") " << analysis << "\n";
         }
     }
 }
@@ -243,7 +245,7 @@ int main(int argc, const char** argv) {
     }
 
     if (src_path_lst.empty()) {
-        llvm::errs() << "No input files provided.\n";
+        llvm::WithColor::error() << "No input files provided.\n";
         llvm::cl::PrintHelpMessage(false, true);
         return NoInputFiles;
     }
@@ -254,7 +256,7 @@ int main(int argc, const char** argv) {
     }
 
     if (enabled_analyses.empty() && enabled_checkers.empty()) {
-        llvm::errs() << "No analyses or checkers are enabled.\n";
+        llvm::WithColor::error() << "No analyses or checkers are enabled.\n";
         return NormalExit;
     }
 
@@ -270,9 +272,10 @@ int main(int argc, const char** argv) {
             llvm::any_of(diags, [](const auto& diag) {
                 return diag.DiagLevel == KnightDiagnostic::Error;
             })) {
-        llvm::errs().changeColor(llvm::raw_ostream::Colors::RED, true);
-        llvm::errs() << "Error: compilation failed.\n";
-        llvm::errs().resetColor();
+        llvm::WithColor::error().changeColor(llvm::raw_ostream::Colors::RED,
+                                             true);
+        llvm::WithColor::error() << "Error: compilation failed.\n";
+        llvm::WithColor::error().resetColor();
         return CompileErrorFound;
     }
 
