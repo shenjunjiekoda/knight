@@ -55,9 +55,6 @@ enum class SymExprKind {
     // cast
     CastSym,
 
-    // unary op
-    UnarySymEx,
-
     // binary op
     BinarySymEx
 
@@ -479,61 +476,6 @@ class CastSymExpr : public SymExpr {
     }
 
 }; // class CastSymExpr
-
-class UnarySymExpr : public SymExpr {
-  private:
-    const SymExpr* m_operand;
-    clang::UnaryOperator::Opcode m_opcode;
-    clang::QualType m_type;
-
-  public:
-    UnarySymExpr(const SymExpr* operand,
-                 clang::UnaryOperator::Opcode opcode,
-                 clang::QualType type)
-        : SymExpr(SymExprKind::UnarySymEx),
-          m_operand(operand),
-          m_opcode(opcode),
-          m_type(type) {
-        knight_assert_msg(opcode == clang::UO_Minus || opcode == clang::UO_Not,
-                          "Invalid unary operator");
-        knight_assert_msg(is_valid_type_for_sym_expr(type), "Invalid type");
-    }
-    ~UnarySymExpr() override = default;
-
-  public:
-    [[nodiscard]] const SymExpr* get_operand() const { return m_operand; }
-
-    [[nodiscard]] clang::UnaryOperator::Opcode get_opcode() const {
-        return m_opcode;
-    }
-
-    [[nodiscard]] clang::QualType get_type() const override { return m_type; }
-
-    [[nodiscard]] unsigned get_worst_complexity() const override;
-
-    [[nodiscard]] bool is_leaf() const override { return true; }
-
-    void dump(llvm::raw_ostream& os) const override;
-
-    static void profile(llvm::FoldingSetNodeID& id,
-                        const SymExpr* operand,
-                        clang::UnaryOperator::Opcode opcode,
-                        clang::QualType type) {
-        id.AddInteger(static_cast< unsigned >(SymExprKind::UnarySymEx));
-        id.AddPointer(operand);
-        id.AddInteger(static_cast< unsigned >(opcode));
-        id.Add(type);
-    }
-
-    void Profile(llvm::FoldingSetNodeID& profile) const override { // NOLINT
-        UnarySymExpr::profile(profile, m_operand, m_opcode, m_type);
-    }
-
-    static bool classof(const SymExpr* sym_expr) {
-        return sym_expr->get_kind() == SymExprKind::UnarySymEx;
-    }
-
-}; // class UnarySymExpr
 
 class BinarySymExpr : public SymExpr {
   private:

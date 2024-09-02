@@ -80,13 +80,6 @@ class SymbolManager {
         return get_persistent_sexpr< BinarySymExpr >(lhs, rhs, op, type);
     }
 
-    [[nodiscard]] const UnarySymExpr* get_unary_sym_expr(
-        const SymExpr* operand,
-        clang::UnaryOperator::Opcode opcode,
-        const clang::QualType& type) {
-        return get_persistent_sexpr< UnarySymExpr >(operand, opcode, type);
-    }
-
   private:
     template < typename STy, typename... Args >
     [[nodiscard]] const STy* get_persistent_sexpr(Args&&... args) {

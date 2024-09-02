@@ -1,4 +1,4 @@
-// checker=debug*
+// checker=debug-inspection
 
 void knight_dump_zval(int);
 void knight_reachable();

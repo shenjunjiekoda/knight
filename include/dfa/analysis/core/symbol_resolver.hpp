@@ -86,11 +86,27 @@ class SymbolResolver
     }
 
   private:
+    struct BinaryOperationContext {
+        clang::BinaryOperator::Opcode op;
+        // lhs_expr has value or lhs_sexpr has value
+        std::optional< const clang::Expr* > lhs_expr;
+        std::optional< SExprRef > lhs_sexpr;
+
+        // rhs_expr has value or rhs_sexpr has value
+        std::optional< const clang::Expr* > rhs_expr;
+        std::optional< SExprRef > rhs_sexpr;
+
+        clang::QualType result_type;
+        const clang::Stmt* result_stmt;
+    }; // struct BinaryOperationContext
+
+    void handle_binary_operation(BinaryOperationContext bo_ctx) const;
+
     struct AssignmentContext {
         bool is_int = true;
         std::optional< const TypedRegion* > treg = std::nullopt;
         std::optional< const clang::Stmt* > stmt = std::nullopt;
-        const clang::Expr* rhs_expr{};
+        std::optional< const clang::Expr* > rhs_expr = std::nullopt;
         SExprRef lhs_sexpr{};
         SExprRef rhs_sexpr{};
         clang::BinaryOperator::Opcode op =

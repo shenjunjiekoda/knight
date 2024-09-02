@@ -334,16 +334,31 @@ class Driver:
             false_positives = [
                 d for d in diags_in_impl_file if d not in diags_in_stdout
             ]
-           
+
             passed = not (false_negatives or false_positives)
 
             # pass use green color, fail use red color
-            color = "\033[1;32m" if passed else "\033[1;31m"
-            print(f"{file_path}: {color}{"√" if passed else "×"}\033[0m"f" ({diags_impl_len}/{diags_impl_len})" if passed else "")
+            if passed:
+                color = "\033[1;32m"
+                print(
+                    f"{file_path}: {color}√ \033[0m"
+                    f" ({diags_impl_len}/{diags_impl_len})"
+                )
+            else:
+                color = "\033[1;31m"
+                print(
+                    f"{file_path}: {color}X \033[0m"
+                    f" ({diags_impl_len - len(false_negatives)}/{diags_impl_len})"
+                )
+
             if false_negatives:
-                print(f"False negatives: {false_negatives}")
+                print("-" * 60)
+                print(f"FN:\n{false_negatives}")
+                print("-" * 60)
             if false_positives:
-                print(f"False positives: {false_positives}")
+                print("-" * 60)
+                print(f"FP:\n{false_positives}")
+                print("-" * 60)
 
             if not passed:
                 error_msg = f"Test failed for {file_path}.\n"
@@ -524,7 +539,6 @@ class Driver:
             print("-" * 80)
 
 
-
 def main():
     parser = argparse.ArgumentParser(description="Run unit tests for Knight.")
     parser.add_argument(
@@ -544,7 +558,7 @@ def main():
     )
 
     args = parser.parse_args()
-    
+
     if args.subcommand is None:
         args.subcommand = "run"
 

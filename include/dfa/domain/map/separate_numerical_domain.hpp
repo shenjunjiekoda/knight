@@ -448,20 +448,6 @@ class SeparateNumericalDom
         this->set_value(x, this->project(linear_expr));
     }
 
-    /// \brief Assign `x = op y`
-    void assign_unary(clang::UnaryOperatorKind op, Var x, Var y) {
-        switch (op) {
-            using enum clang::UnaryOperatorKind;
-            case clang::UO_Minus:
-                this->set_value(x, -this->get_value(y));
-                break;
-            default:
-                break;
-        }
-
-        knight_unreachable("Unsupported unary operator");
-    }
-
     /// \brief Assign `x = y op z`
     ///
     /// \note `op` shall not be assignment or comparison operator.

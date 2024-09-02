@@ -53,11 +53,6 @@ struct NumericalDomBase : AbsDomBase {
     /// This method is often
     virtual void assign_linear_expr(const Var& x, const LinearExpr& expr) = 0;
 
-    /// \brief Assign `x = op y`
-    virtual void assign_unary(clang::UnaryOperatorKind op,
-                              const Var& x,
-                              const Var& y) = 0;
-
     /// \brief Apply `x = y op z`
     ///
     /// @{
@@ -167,13 +162,14 @@ struct NumericalDomBase : AbsDomBase {
 /// it should also implement the following *required* methods:
 /// - `widen_with_threshold(const Derived&, const Num&)`
 /// - `narrow_with_threshold(const Derived&, const Num&)`
-/// - `assign_num(Var, const Num &)`
-/// - `assign_variable(Var, Var)`
-/// - `assign_linear_expr(Var, const LinearExpr&)`
-/// - `assign_unary(clang::UnaryOperatorKind, Var, Var)`
-/// - `assign_binary_var_var(clang::BinaryOperatorKind,Var,Var,Var)`
-/// - `assign_binary_var_num(clang::BinaryOperatorKind,Var,Var,const Num&)`
-/// - `assign_cast(clang::QualType, unsigned, Var, Var)`
+/// - `assign_num(const Var &, const Num &)`
+/// - `assign_var(const Var &, const Var &)`
+/// - `assign_linear_expr(const Var &, const LinearExpr&)`
+/// - `assign_binary_var_var(clang::BinaryOperatorKind,const Var &,const Var
+/// &,const Var &)`
+/// - `assign_binary_var_num(clang::BinaryOperatorKind,const Var &,const Var
+/// &,const Num&)`
+/// - `assign_cast(clang::QualType, unsigned, const Var &, const Var &)`
 /// - `apply_linear_constraint(const LinearConstraint&)`
 /// - `merge_with_linear_constraint_system(const LinearConstraintSystem&)`
 /// - `to_linear_constraint_system() const`

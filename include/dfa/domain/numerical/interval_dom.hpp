@@ -150,12 +150,6 @@ class IntervalDom
         m_sep_dom.assign_linear_expr(x, e);
     }
 
-    void assign_unary(clang::UnaryOperatorKind op,
-                      const Var& x,
-                      const Var& y) override {
-        m_sep_dom.assign_unary(op, x, y);
-    }
-
     void assign_binary_var_var(clang::BinaryOperatorKind op,
                                const Var& x,
                                const Var& y,

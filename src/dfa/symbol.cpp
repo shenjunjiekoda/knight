@@ -60,9 +60,6 @@ void SymIterator::resolve(SExprRef sym_expr) {
             case CastSym: {
                 sym_exprs.push(cast< CastSymExpr >(back)->get_operand());
             } break;
-            case UnarySymEx: {
-                sym_exprs.push(cast< UnarySymExpr >(back)->get_operand());
-            } break;
             case BinarySymEx: {
                 sym_exprs.push(cast< BinarySymExpr >(back)->get_lhs());
                 sym_exprs.push(cast< BinarySymExpr >(back)->get_rhs());
@@ -170,25 +167,6 @@ void SymbolConjured::dump(llvm::raw_ostream& os) const {
     os << "}";
 }
 
-unsigned UnarySymExpr::get_worst_complexity() const {
-    if (m_complexity == 0U) {
-        m_complexity = m_operand->get_worst_complexity();
-    }
-    return m_complexity;
-}
-
-void UnarySymExpr::dump(llvm::raw_ostream& os) const {
-    os << clang::UnaryOperator::getOpcodeStr(m_opcode);
-    auto non_leaf_op = !m_operand->is_leaf();
-    if (non_leaf_op) {
-        os << "(";
-    }
-    m_operand->dump(os);
-    if (non_leaf_op) {
-        os << ")";
-    }
-}
-
 unsigned CastSymExpr::get_worst_complexity() const {
     if (m_complexity == 0U) {
         m_complexity = get_worst_complexity();
@@ -211,22 +189,6 @@ std::optional< ZLinearExpr > SymExpr::get_as_zexpr() const {
     }
     if (const auto* scalar_int = dyn_cast< ScalarInt >(this)) {
         return ZLinearExpr(scalar_int->get_value());
-    }
-    if (const auto* unary = dyn_cast< UnarySymExpr >(this)) {
-        switch (unary->get_opcode()) {
-            using enum clang::UnaryOperatorKind;
-            case clang::UO_Plus:
-                return unary->get_operand()->get_as_zexpr();
-            case clang::UO_Minus: {
-                if (auto zexpr_opt = unary->get_operand()->get_as_zexpr()) {
-                    return -zexpr_opt.value();
-                }
-                break;
-                default:
-                    break;
-            }
-        }
-        return std::nullopt;
     }
 
     if (const auto* binary = dyn_cast< BinarySymExpr >(this)) {
@@ -263,14 +225,6 @@ std::optional< ZLinearConstraint > SymExpr::get_as_zconstraint() const {
     if (const auto* scalar_int = dyn_cast< ScalarInt >(this)) {
         return scalar_int->get_value() == 0 ? ZLinearConstraint::contradiction()
                                             : ZLinearConstraint::tautology();
-    }
-    if (const auto* unary = dyn_cast< UnarySymExpr >(this)) {
-        if (unary->get_opcode() == clang::UO_LNot) {
-            if (auto zconstraint = unary->get_operand()->get_as_zconstraint()) {
-                return zconstraint.value().negate();
-            }
-        }
-        return std::nullopt;
     }
     if (const auto* binary = dyn_cast< BinarySymExpr >(this)) {
         auto lhs = binary->get_lhs()->get_as_zexpr();
@@ -310,22 +264,6 @@ std::optional< QLinearExpr > SymExpr::get_as_qexpr() const {
     if (const auto* scalar_fp = dyn_cast< ScalarFloat >(this)) {
         return QLinearExpr(scalar_fp->get_value());
     }
-    if (const auto* unary = dyn_cast< UnarySymExpr >(this)) {
-        switch (unary->get_opcode()) {
-            using enum clang::UnaryOperatorKind;
-            case clang::UO_Plus:
-                return unary->get_operand()->get_as_qexpr();
-            case clang::UO_Minus: {
-                if (auto qexpr_opt = unary->get_operand()->get_as_qexpr()) {
-                    return -qexpr_opt.value();
-                }
-                break;
-                default:
-                    break;
-            }
-                return std::nullopt;
-        }
-    }
 
     if (const auto* binary = dyn_cast< BinarySymExpr >(this)) {
         auto lhs = binary->get_lhs()->get_as_qexpr();
@@ -361,14 +299,6 @@ std::optional< QLinearConstraint > SymExpr::get_as_qconstraint() const {
     if (const auto* scalar_int = dyn_cast< ScalarInt >(this)) {
         return scalar_int->get_value() == 0 ? QLinearConstraint::contradiction()
                                             : QLinearConstraint::tautology();
-    }
-    if (const auto* unary = dyn_cast< UnarySymExpr >(this)) {
-        if (unary->get_opcode() == clang::UO_LNot) {
-            if (auto qconstraint = unary->get_operand()->get_as_qconstraint()) {
-                return qconstraint.value().negate();
-            }
-            return std::nullopt;
-        }
     }
     if (const auto* binary = dyn_cast< BinarySymExpr >(this)) {
         auto lhs = binary->get_lhs()->get_as_qexpr();
