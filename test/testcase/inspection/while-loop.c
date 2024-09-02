@@ -1,6 +1,4 @@
 // checker=debug*
-// arg=-Xc
-// arg=-analyze-with-threshold=true
 
 void knight_dump_zval(int);
 
