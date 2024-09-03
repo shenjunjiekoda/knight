@@ -192,9 +192,6 @@ class IntervalDom
 using ZIntervalDom = IntervalDom< ZNum,
                                   DomainKind::ZIntervalDomain,
                                   DomainKind::ZIntervalSeparate >;
-using QIntervalDom = IntervalDom< QNum,
-                                  DomainKind::QIntervalDomain,
-                                  DomainKind::QIntervalSeparate >;
 
 template < typename Num, DomainKind Kind, DomainKind SepKind >
 inline llvm::raw_ostream& operator<<(

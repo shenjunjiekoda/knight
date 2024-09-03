@@ -16,7 +16,6 @@
 #include "dfa/domain/bound.hpp"
 #include "dfa/domain/dom_base.hpp"
 #include "dfa/domain/domains.hpp"
-#include "dfa/domain/num/qnum.hpp"
 #include "dfa/domain/num/znum.hpp"
 #include "util/assert.hpp"
 
@@ -585,7 +584,6 @@ inline Interval< Num > operator^(const Interval< Num >& lhs,
 }
 
 using ZInterval = Interval< ZNum >;
-using QInterval = Interval< QNum >;
 
 inline ZInterval trim_bound(const ZInterval& itv, const ZBound& b) {
     knight_assert(!itv.is_bottom());
@@ -595,10 +593,6 @@ inline ZInterval trim_bound(const ZInterval& itv, const ZBound& b) {
     if (itv.get_ub() == b) {
         return {itv.get_lb(), b - ZBound(ZNum(1))};
     }
-    return itv;
-}
-
-inline QInterval trim_bound(const QInterval& itv, const QBound&) { // NOLINT
     return itv;
 }
 

@@ -20,8 +20,7 @@ std::unordered_map< DomainKind, DomainDefaultValFn > DefaultValFns;
 std::unordered_map< DomainKind, DomainBottomValFn > BottomValFns;
 
 static DomainRegistry< ZIntervalDom > A;
-static DomainRegistry< QIntervalDom > B;
-static DomainRegistry< DemoItvDom > C;
-static DomainRegistry< DemoMapDomain > D;
+static DomainRegistry< DemoItvDom > B;
+static DomainRegistry< DemoMapDomain > C;
 
 } // namespace knight::dfa

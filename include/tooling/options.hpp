@@ -46,9 +46,6 @@ struct KnightOptions {
     /// \brief ZNumerical domain.
     dfa::DomainKind zdom = dfa::DomainKind::ZIntervalDomain;
 
-    /// \brief QNumerical domain.
-    dfa::DomainKind qdom = dfa::DomainKind::QIntervalDomain;
-
     /// \brief Header file extensions.
     Extensions header_extensions = {"h", "hh", "hpp", "hxx"};
 

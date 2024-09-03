@@ -66,9 +66,6 @@ class NumericalAnalysis
         void handle(const ZVarAssignZCast& assign) const;
         void handle(const ZVarAssignBinaryVarVar& assign) const;
         void handle(const ZVarAssignBinaryVarNum& assign) const;
-        void handle(const QVarAssignQVar& assign) const;
-        void handle(const QVarAssignQNum& assign) const;
-        void handle(const QVarAssignQLinearExpr& assign) const;
 
     } __attribute__((aligned(EventHandlerAlignment))); // struct EventHandler
 

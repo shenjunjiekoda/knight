@@ -20,7 +20,6 @@
 #include <llvm/ADT/FoldingSet.h>
 #include "util/log.hpp"
 
-#include "dfa/domain/num/qnum.hpp"
 #include "dfa/domain/num/znum.hpp"
 #include "support/dumpable.hpp"
 #include "util/assert.hpp"
@@ -69,7 +68,6 @@ inline llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
 }
 
 using ZVariable = Variable< ZNum >;
-using QVariable = Variable< QNum >;
 
 } // namespace knight::dfa
 
@@ -107,40 +105,6 @@ struct DenseMapInfo< knight::dfa::ZVariable > {
     // NOLINTNEXTLINE
     static bool isEqual(const knight::dfa::ZVariable& lhs,
                         const knight::dfa::ZVariable& rhs) {
-        return lhs.m_symbol == rhs.m_symbol;
-    }
-};
-
-template <>
-struct DenseMapInfo< knight::dfa::QVariable > {
-    // NOLINTNEXTLINE
-    static inline knight::dfa::QVariable getEmptyKey() {
-        uintptr_t x = reinterpret_cast< uintptr_t >(
-                          DenseMapInfo< void* >::getEmptyKey()) &
-                      ~0x7; // NOLINT
-        return knight::dfa::QVariable(
-            reinterpret_cast< knight::dfa::SymbolRef >(x));
-    }
-
-    // NOLINTNEXTLINE
-    static inline knight::dfa::QVariable getTombstoneKey() {
-        uintptr_t x = reinterpret_cast< uintptr_t >(
-                          DenseMapInfo< void* >::getTombstoneKey()) &
-                      ~0x7; // NOLINT
-        return knight::dfa::QVariable(
-            reinterpret_cast< knight::dfa::SymbolRef >(x));
-    }
-
-    // NOLINTNEXTLINE
-    static unsigned getHashValue(const knight::dfa::QVariable& qvar) {
-        llvm::FoldingSetNodeID id;
-        profile_symbol(id, qvar.m_symbol);
-        return id.ComputeHash();
-    }
-
-    // NOLINTNEXTLINE
-    static bool isEqual(const knight::dfa::QVariable& lhs,
-                        const knight::dfa::QVariable& rhs) {
         return lhs.m_symbol == rhs.m_symbol;
     }
 };
@@ -351,7 +315,6 @@ class LinearExpr : public llvm::FoldingSetNode {
 }; // class LinearExpr
 
 using ZLinearExpr = LinearExpr< ZNum >;
-using QLinearExpr = LinearExpr< QNum >;
 
 template < typename Num >
 inline llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
@@ -704,7 +667,6 @@ class LinearConstraint : public llvm::FoldingSetNode {
 }; // class LinearConstraint
 
 using ZLinearConstraint = LinearConstraint< ZNum >;
-using QLinearConstraint = LinearConstraint< QNum >;
 
 template < typename Num >
 inline llvm::raw_ostream& operator<<(
@@ -1003,7 +965,6 @@ class LinearConstraintSystem : public llvm::FoldingSetNode {
 }; // end class LinearConstraintSystem
 
 using ZLinearConstraintSystem = LinearConstraintSystem< ZNum >;
-using QLinearConstraintSystem = LinearConstraintSystem< QNum >;
 
 template < typename Num >
 inline llvm::raw_ostream& operator<<(

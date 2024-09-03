@@ -81,24 +81,6 @@ struct ZVarAssignZCast {
     }
 } __attribute__((aligned(AssignEventAlignSize)));
 
-struct QVarAssignQVar {
-    QVariable x;
-    QVariable y;
-    void dump(llvm::raw_ostream& os) const { os << x << " = " << y; }
-} __attribute__((aligned(AssignEventAlignSmallSize)));
-
-struct QVarAssignQNum {
-    QVariable x;
-    QNum y;
-    void dump(llvm::raw_ostream& os) const { os << x << " = " << y; }
-} __attribute__((aligned(AssignEventAlignSize)));
-
-struct QVarAssignQLinearExpr {
-    QVariable x;
-    QLinearExpr y;
-    void dump(llvm::raw_ostream& os) const { os << x << " = " << y; }
-} __attribute__((aligned(AssignEventAlignBigSize)));
-
 struct LinearAssignEvent {
     static EventKind get_kind() { return EventKind::LinearAssignEvent; }
 
@@ -107,10 +89,7 @@ struct LinearAssignEvent {
                                   ZVarAssignZLinearExpr,
                                   ZVarAssignBinaryVarVar,
                                   ZVarAssignBinaryVarNum,
-                                  ZVarAssignZCast,
-                                  QVarAssignQVar,
-                                  QVarAssignQNum,
-                                  QVarAssignQLinearExpr >;
+                                  ZVarAssignZCast >;
 
     AssignT assign;
     ProgramStateRef& state;

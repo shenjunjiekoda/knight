@@ -36,11 +36,6 @@ class SymbolManager {
         return get_persistent_sexpr< ScalarInt >(value, type);
     }
 
-    [[nodiscard]] const ScalarFloat* get_scalar_float(const QNum& value,
-                                                      clang::QualType type) {
-        return get_persistent_sexpr< ScalarFloat >(value, type);
-    }
-
     [[nodiscard]] const RegionSymVal* get_region_sym_val(
         const TypedRegion* typed_region, const LocationContext* loc_ctx) {
         m_sym_cnt++;

@@ -18,7 +18,6 @@
 
 #include "util/log.hpp"
 
-#include "dfa/domain/num/qnum.hpp"
 #include "dfa/domain/num/znum.hpp"
 #include "util/assert.hpp"
 
@@ -381,6 +380,5 @@ inline Bound< Num > operator>>(const Bound< Num >& lhs,
 }
 
 using ZBound = Bound< ZNum >;
-using QBound = Bound< QNum >;
 
 } // namespace knight::dfa

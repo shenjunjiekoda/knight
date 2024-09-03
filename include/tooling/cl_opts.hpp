@@ -62,17 +62,6 @@ Choose the znumerical domain.
                 dfa::get_domain_desc(dfa::DomainKind::ZIntervalDomain))),
             cl::init(dfa::DomainKind::ZIntervalDomain));
 
-inline cl::opt< dfa::DomainKind, false, llvm::cl::parser< dfa::DomainKind > >
-    qdomain("qdom",
-            desc(R"(
-Choose the qnumerical domain.
-)"),
-            cl::values(clEnumValN(
-                dfa::DomainKind::QIntervalDomain,
-                "itv",
-                dfa::get_domain_desc(dfa::DomainKind::QIntervalDomain))),
-            cl::init(dfa::DomainKind::QIntervalDomain));
-
 inline cl::opt< std::string > checkers("checkers",
                                        desc(R"(
 use `*` for all checkers enabled, and `-` prefix to disable 

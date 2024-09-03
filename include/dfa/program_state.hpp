@@ -91,9 +91,6 @@ class ProgramState : public llvm::FoldingSetNode {
     /// \brief znumerical domain.
     DomainKind m_zdom_kind;
 
-    /// \brief qnumerical domain.
-    DomainKind m_qdom_kind;
-
     /// \brief region def map. (memory region -> def)
     RegionDefMap m_region_defs;
 
@@ -143,10 +140,6 @@ class ProgramState : public llvm::FoldingSetNode {
         return get_domain_id(m_zdom_kind);
     }
 
-    [[nodiscard]] DomID get_qdom_id() const {
-        return get_domain_id(m_qdom_kind);
-    }
-
   public:
     [[nodiscard]] std::optional< RegionRef > get_region(
         ProcCFG::DeclRef decl, const StackFrame*) const;
@@ -154,8 +147,6 @@ class ProgramState : public llvm::FoldingSetNode {
         ProcCFG::StmtRef stmt, const StackFrame*) const;
 
     [[nodiscard]] std::optional< ZVariable > try_get_zvariable(
-        ProcCFG::DeclRef decl, const StackFrame* frame) const;
-    [[nodiscard]] std::optional< QVariable > try_get_qvariable(
         ProcCFG::DeclRef decl, const StackFrame* frame) const;
 
     [[nodiscard]] ProgramStateRef set_region_def(RegionRef region,
@@ -194,20 +185,6 @@ class ProgramState : public llvm::FoldingSetNode {
         const ZLinearConstraintSystem& system) const {
         auto cst_system = m_constraint_system;
         cst_system.merge_zlinear_constraint_system(system);
-        return set_constraint_system(cst_system);
-    }
-
-    [[nodiscard]] ProgramStateRef add_qlinear_constraint(
-        const QLinearConstraint& constraint) const {
-        auto cst_system = m_constraint_system;
-        cst_system.add_qlinear_constraint(constraint);
-        return set_constraint_system(cst_system);
-    }
-
-    [[nodiscard]] ProgramStateRef merge_qlinear_constraint_system(
-        const QLinearConstraintSystem& system) const {
-        auto cst_system = m_constraint_system;
-        cst_system.merge_qlinear_constraint_system(system);
         return set_constraint_system(cst_system);
     }
 
@@ -437,10 +414,6 @@ class ProgramStateManager {
   public:
     [[nodiscard]] DomainKind get_zdom_kind() const {
         return m_analysis_mgr.get_context().get_current_options().zdom;
-    }
-
-    [[nodiscard]] DomainKind get_qdom_kind() const {
-        return m_analysis_mgr.get_context().get_current_options().qdom;
     }
 
     [[nodiscard]] ProgramStateRef get_default_state();

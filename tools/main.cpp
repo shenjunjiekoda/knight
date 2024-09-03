@@ -95,12 +95,12 @@ dfa::AnalyzerOptions get_analyzer_options() {
     analyzer_argv.push_back(nullptr); // Null-terminate the array
     analyzer_argc = static_cast< int >(analyzer_argv.size()) - 1;
 
-    knight_log(
+    knight_log_nl(
         llvm::WithColor::error()
-        << "Forwarding the following arguments to the target mechanism:\n");
-    for (int i = 1; i < analyzer_argc; ++i) {
-        llvm::WithColor::error() << analyzer_argv[i] << "\n";
-    }
+            << "Forwarding the following arguments to the target mechanism:\n";
+        for (int i = 1; i < analyzer_argc;
+             ++i) { llvm::WithColor::error() << analyzer_argv[i] << "\n"; });
+
     return forward_to_knight_analyzer_options(analyzer_argc,
                                               analyzer_argv.data());
 }
@@ -127,9 +127,6 @@ std::unique_ptr< KnightOptionsProvider > get_opts_provider() {
     }
     if (zdomain.getNumOccurrences() > 0) {
         opts_provider->options.zdom = zdomain;
-    }
-    if (qdomain.getNumOccurrences() > 0) {
-        opts_provider->options.qdom = qdomain;
     }
     if (XcArgs.getNumOccurrences() > 0) {
         opts_provider->options.analyzer_opts = get_analyzer_options();

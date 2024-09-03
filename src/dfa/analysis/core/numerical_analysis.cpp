@@ -86,15 +86,6 @@ void NumericalAnalysis::LinearAssignEventHandler::handle(
     state = state->set_zdom(zdom);
 }
 
-void NumericalAnalysis::LinearAssignEventHandler::handle(
-    const QVarAssignQVar& assign) const {}
-
-void NumericalAnalysis::LinearAssignEventHandler::handle(
-    const QVarAssignQNum& assign) const {}
-
-void NumericalAnalysis::LinearAssignEventHandler::handle(
-    const QVarAssignQLinearExpr& assign) const {}
-
 void NumericalAnalysis::LinearAssumptionEventHandler::handle(
     const PredicateZVarZNum& pred) const {
     knight_log_nl(llvm::outs() << "Event PredicateZVarZNum: ";

@@ -65,7 +65,6 @@ ProgramState::ProgramState(ProgramStateManager* state_mgr,
       m_region_mgr(region_mgr),
       m_ref_cnt(0),
       m_zdom_kind(state_mgr->get_zdom_kind()),
-      m_qdom_kind(state_mgr->get_qdom_kind()),
       m_dom_val(std::move(dom_val)),
       m_region_defs(std::move(region_defs)),
       m_stmt_sexpr(std::move(stmt_sexpr)),
@@ -76,7 +75,6 @@ ProgramState::ProgramState(ProgramState&& other) noexcept
       m_region_mgr(other.m_region_mgr),
       m_ref_cnt(0),
       m_zdom_kind(other.m_state_mgr->get_zdom_kind()),
-      m_qdom_kind(other.m_state_mgr->get_qdom_kind()),
       m_dom_val(std::move(other.m_dom_val)),
       m_region_defs(std::move(other.m_region_defs)),
       m_stmt_sexpr(std::move(other.m_stmt_sexpr)),
@@ -113,25 +111,6 @@ std::optional< ZVariable > ProgramState::try_get_zvariable(
     if (auto region_def = get_region_def(region_opt.value(), frame)) {
         return ZVariable(*region_def);
     }
-    return std::nullopt;
-}
-
-std::optional< QVariable > ProgramState::try_get_qvariable(
-    ProcCFG::DeclRef decl, const StackFrame* frame) const {
-    const auto* value_decl = llvm::dyn_cast< clang::ValueDecl >(decl);
-    if (value_decl == nullptr || !value_decl->getType()->isFloatingType()) {
-        return std::nullopt;
-    }
-
-    auto region_opt = get_region(decl, frame);
-    if (!region_opt.has_value()) {
-        return std::nullopt;
-    }
-
-    if (auto region_def = get_region_def(region_opt.value(), frame)) {
-        return QVariable(*region_def);
-    }
-
     return std::nullopt;
 }
 

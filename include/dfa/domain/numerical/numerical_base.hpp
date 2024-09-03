@@ -288,8 +288,5 @@ class NumericalDom : public NumericalDomBase< Num > {
 using ZNumericalDomBase = NumericalDomBase< ZNum >;
 using ZNumericalValRef = ZNumericalDomBase*;
 using SharedZNumericalVal = std::shared_ptr< ZNumericalDomBase >;
-using QNumericalDomBase = NumericalDomBase< QNum >;
-using QNumericalValRef = QNumericalDomBase*;
-using SharedQNumericalVal = std::shared_ptr< QNumericalDomBase >;
 
 } // namespace knight::dfa

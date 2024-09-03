@@ -69,32 +69,6 @@ void SymbolResolver::VisitIntegerLiteral(
                                            scalar));
 }
 
-void SymbolResolver::VisitFloatingLiteral(
-    const clang::FloatingLiteral* floating_literal) const {
-    auto state = m_ctx->get_state();
-    auto ap_float = floating_literal->getValue();
-    auto aps_float = llvm::APFloat(ap_float);
-
-    SymbolManager& symbol_manager = m_ctx->get_symbol_manager();
-    const auto* scalar =
-        symbol_manager.get_scalar_float(QNum(aps_float.convertToDouble()),
-                                        floating_literal->getType());
-
-    knight_log_nl(llvm::outs() << "SymbolResolver::VisitFloatLiteral: "
-                               << "set floating literal: ";
-                  floating_literal->printPretty(llvm::outs(),
-                                                nullptr,
-                                                m_ctx->get_ast_context()
-                                                    .getPrintingPolicy());
-                  llvm::outs() << " to scalar: ";
-                  scalar->dump(llvm::outs());
-                  llvm::outs() << "\n";);
-
-    m_ctx->set_state(state->set_stmt_sexpr(floating_literal,
-                                           m_ctx->get_current_stack_frame(),
-                                           scalar));
-}
-
 void SymbolResolver::VisitUnaryOperator(
     const clang::UnaryOperator* unary_operator) const {
     auto state = m_ctx->get_state();
@@ -226,69 +200,64 @@ ProgramStateRef SymbolResolver::handle_assign(
                        << *assign_ctx.rhs_sexpr << "\n";
         llvm::outs() << "binary_sexpr: " << *binary_sexpr << "\n";);
 
-    if (assign_ctx.is_int) {
-        ZVariable x(res_sym);
-        cstr += x;
+    ZVariable x(res_sym);
+    cstr += x;
 
-        knight_log_nl(llvm::outs() << "zvar x: "; x.dump(llvm::outs());
-                      llvm::outs() << "\n";);
-        auto lhs_var = assign_ctx.lhs_sexpr != nullptr
-                           ? assign_ctx.lhs_sexpr->get_as_zvariable()
-                           : std::nullopt;
-        auto lhs_num = assign_ctx.lhs_sexpr != nullptr
-                           ? assign_ctx.lhs_sexpr->get_as_znum()
-                           : std::nullopt;
-        auto rhs_var = assign_ctx.rhs_sexpr->get_as_zvariable();
-        auto rhs_num = assign_ctx.rhs_sexpr->get_as_znum();
-        if (!is_direct_assign && lhs_var && rhs_var) {
-            LinearAssignEvent
-                event(ZVarAssignBinaryVarVar{op, x, *lhs_var, *rhs_var}, state);
+    knight_log_nl(llvm::outs() << "zvar x: "; x.dump(llvm::outs());
+                  llvm::outs() << "\n";);
+    auto lhs_var = assign_ctx.lhs_sexpr != nullptr
+                       ? assign_ctx.lhs_sexpr->get_as_zvariable()
+                       : std::nullopt;
+    auto lhs_num = assign_ctx.lhs_sexpr != nullptr
+                       ? assign_ctx.lhs_sexpr->get_as_znum()
+                       : std::nullopt;
+    auto rhs_var = assign_ctx.rhs_sexpr->get_as_zvariable();
+    auto rhs_num = assign_ctx.rhs_sexpr->get_as_znum();
+    if (!is_direct_assign && lhs_var && rhs_var) {
+        LinearAssignEvent
+            event(ZVarAssignBinaryVarVar{op, x, *lhs_var, *rhs_var}, state);
+        EventDispatcher< LinearAssignEvent >::dispatch_event(event);
+
+        cstr -= (*lhs_var + *rhs_var);
+    } else if (!is_direct_assign &&
+               ((lhs_var && rhs_num) || (lhs_num && rhs_var))) {
+        auto y = lhs_var ? *lhs_var : *rhs_var;
+        auto z = lhs_var ? *rhs_num : *lhs_num;
+        LinearAssignEvent event(ZVarAssignBinaryVarNum{op, x, y, z}, state);
+        EventDispatcher< LinearAssignEvent >::dispatch_event(event);
+
+        cstr -= (y + z);
+    } else if (auto zexpr = binary_sexpr->get_as_zexpr()) {
+        if (auto znum = binary_sexpr->get_as_znum()) {
+            LinearAssignEvent event(ZVarAssignZNum{x, *znum}, state);
             EventDispatcher< LinearAssignEvent >::dispatch_event(event);
 
-            cstr -= (*lhs_var + *rhs_var);
-        } else if (!is_direct_assign &&
-                   ((lhs_var && rhs_num) || (lhs_num && rhs_var))) {
-            auto y = lhs_var ? *lhs_var : *rhs_var;
-            auto z = lhs_var ? *rhs_num : *lhs_num;
-            LinearAssignEvent event(ZVarAssignBinaryVarNum{op, x, y, z}, state);
+            binary_sexpr = sym_mgr.get_scalar_int(*znum, type);
+            cstr -= *znum;
+        } else if (auto zvar = binary_sexpr->get_as_zvariable()) {
+            LinearAssignEvent event(ZVarAssignZVar{x, *zvar}, state);
             EventDispatcher< LinearAssignEvent >::dispatch_event(event);
 
-            cstr -= (y + z);
-        } else if (auto zexpr = binary_sexpr->get_as_zexpr()) {
-            if (auto znum = binary_sexpr->get_as_znum()) {
-                LinearAssignEvent event(ZVarAssignZNum{x, *znum}, state);
-                EventDispatcher< LinearAssignEvent >::dispatch_event(event);
-
-                binary_sexpr = sym_mgr.get_scalar_int(*znum, type);
-                cstr -= *znum;
-            } else if (auto zvar = binary_sexpr->get_as_zvariable()) {
-                LinearAssignEvent event(ZVarAssignZVar{x, *zvar}, state);
-                EventDispatcher< LinearAssignEvent >::dispatch_event(event);
-
-                cstr -= *zvar;
-            } else {
-                LinearAssignEvent event(ZVarAssignZLinearExpr{x, *zexpr},
-                                        state);
-                EventDispatcher< LinearAssignEvent >::dispatch_event(event);
-
-                cstr -= *zexpr;
-            }
-        } else if (auto rhs_expr = assign_ctx.rhs_expr) {
-            ZVariable y(
-                sym_mgr.get_symbol_conjured(*rhs_expr,
-                                            m_ctx->get_current_stack_frame()));
-            LinearAssignEvent event(ZVarAssignZVar{x, y}, state);
-            EventDispatcher< LinearAssignEvent >::dispatch_event(event);
-            cstr -= y;
+            cstr -= *zvar;
         } else {
-            knight_log(llvm::outs() << "unhandled case!\n");
-            return state;
+            LinearAssignEvent event(ZVarAssignZLinearExpr{x, *zexpr}, state);
+            EventDispatcher< LinearAssignEvent >::dispatch_event(event);
+
+            cstr -= *zexpr;
         }
-        state = state->add_zlinear_constraint(
-            ZLinearConstraint(cstr, LinearConstraintKind::LCK_Equality));
+    } else if (auto rhs_expr = assign_ctx.rhs_expr) {
+        ZVariable y(
+            sym_mgr.get_symbol_conjured(*rhs_expr,
+                                        m_ctx->get_current_stack_frame()));
+        LinearAssignEvent event(ZVarAssignZVar{x, y}, state);
+        EventDispatcher< LinearAssignEvent >::dispatch_event(event);
+        cstr -= y;
     } else {
-        llvm::WithColor::error() << "floating point not implemented for now!\n";
+        knight_log(llvm::outs() << "unhandled case!\n");
+        return state;
     }
+    state = state->add_zlinear_constraint(
+        ZLinearConstraint(cstr, LinearConstraintKind::LCK_Equality));
 
     if (assign_ctx.treg) {
         knight_log_nl(llvm::outs() << "\nset region: ";
@@ -331,9 +300,8 @@ void SymbolResolver::handle_binary_operation(
     auto rhs_expr = bo_ctx.rhs_expr;
 
     bool is_int = bo_ctx.result_type->isIntegralOrEnumerationType();
-    bool is_float = bo_ctx.result_type->isFloatingType();
-    if (!is_int && !is_float) {
-        knight_log(llvm::outs() << "not int or float!\n");
+    if (!is_int) {
+        knight_log(llvm::outs() << "not int type binary operation!\n");
         return;
     }
     auto op = bo_ctx.op;
@@ -381,13 +349,8 @@ void SymbolResolver::handle_binary_operation(
             state->get_region(*lhs_expr, m_ctx->get_current_stack_frame());
         std::optional< const clang::Stmt* > stmt =
             treg ? std::nullopt : std::make_optional(bo_ctx.result_stmt);
-        m_ctx->set_state(handle_assign(AssignmentContext{is_int,
-                                                         treg,
-                                                         stmt,
-                                                         rhs_expr,
-                                                         lhs_sexpr,
-                                                         rhs_sexpr,
-                                                         op}));
+        m_ctx->set_state(handle_assign(
+            AssignmentContext{treg, stmt, rhs_expr, lhs_sexpr, rhs_sexpr, op}));
         return;
     }
 
@@ -449,8 +412,6 @@ void SymbolResolver::handle_binary_operation(
             state = state->add_zlinear_constraint(
                 ZLinearConstraint(cstr, LinearConstraintKind::LCK_Equality));
         }
-        // binary_sexpr = ;
-        // TODO(floating-bo): support fp
     }
 
     knight_log(llvm::outs()
@@ -499,8 +460,7 @@ void SymbolResolver::VisitConditionalOperator(
                                          m_ctx->get_current_location_context());
 
     auto state_with_true_br =
-        handle_assign(AssignmentContext{true,
-                                        std::nullopt,
+        handle_assign(AssignmentContext{std::nullopt,
                                         conditional_operator,
                                         true_expr,
                                         nullptr,
@@ -511,8 +471,7 @@ void SymbolResolver::VisitConditionalOperator(
                   llvm::outs() << "\n";);
 
     auto state_with_false_br =
-        handle_assign(AssignmentContext{true,
-                                        std::nullopt,
+        handle_assign(AssignmentContext{std::nullopt,
                                         conditional_operator,
                                         false_expr,
                                         nullptr,
@@ -555,13 +514,15 @@ void SymbolResolver::VisitDeclStmt(const clang::DeclStmt* decl_stmt) const {
                     state->get_region(var_decl,
                                       m_ctx->get_current_stack_frame())) {
                 auto type = treg.value()->get_value_type();
-                state = handle_assign(
-                    AssignmentContext{type->isIntegralOrEnumerationType(),
-                                      treg,
-                                      std::nullopt,
-                                      init_expr,
-                                      nullptr,
-                                      init_sexpr_opt.value()});
+                if (!type->isIntegralOrEnumerationType()) {
+                    continue;
+                }
+                state =
+                    handle_assign(AssignmentContext{treg,
+                                                    std::nullopt,
+                                                    init_expr,
+                                                    nullptr,
+                                                    init_sexpr_opt.value()});
 
                 init_sexpr_opt = state->get_stmt_sexpr_or_conjured(
                     init_expr, m_ctx->get_current_location_context());
@@ -748,10 +709,9 @@ void SymbolResolver::VisitCastExpr(const clang::CastExpr* cast_expr) const {
 
     bool int_cast = src_type->isIntegralOrEnumerationType() &&
                     dst_type->isIntegralOrEnumerationType();
-    bool float_cast = src_type->isFloatingType() && dst_type->isFloatingType();
 
-    if (!int_cast && !float_cast) {
-        knight_log(llvm::outs() << "not int or float cast!\n";);
+    if (!int_cast) {
+        knight_log(llvm::outs() << "not int cast!\n";);
         return;
     }
 

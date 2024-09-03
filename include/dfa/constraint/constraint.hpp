@@ -25,7 +25,6 @@ class ConstraintSystem : public llvm::FoldingSetNode {
 
   private:
     ZLinearConstraintSystem m_zlinear_constraint_system;
-    QLinearConstraintSystem m_qlinear_constraint_system;
     NonLinearConstraintSet m_non_linear_constraint_set;
 
   public:
@@ -34,7 +33,6 @@ class ConstraintSystem : public llvm::FoldingSetNode {
     // NOLINTNEXTLINE
     void Profile(llvm::FoldingSetNodeID& id) const {
         m_zlinear_constraint_system.Profile(id);
-        m_qlinear_constraint_system.Profile(id);
         for (const auto& constraint : m_non_linear_constraint_set) {
             id.AddPointer(constraint);
         }
@@ -44,11 +42,6 @@ class ConstraintSystem : public llvm::FoldingSetNode {
     [[nodiscard]] const ZLinearConstraintSystem& get_zlinear_constraint_system()
         const {
         return m_zlinear_constraint_system;
-    }
-
-    [[nodiscard]] const QLinearConstraintSystem& get_qlinear_constraint_system()
-        const {
-        return m_qlinear_constraint_system;
     }
 
     [[nodiscard]] const NonLinearConstraintSet& get_non_linear_constraint_set()
@@ -63,15 +56,12 @@ class ConstraintSystem : public llvm::FoldingSetNode {
 
     void merge(const ConstraintSystem& system) {
         merge_zlinear_constraint_system(system.get_zlinear_constraint_system());
-        merge_qlinear_constraint_system(system.get_qlinear_constraint_system());
         merge_non_linear_constraint_set(system.get_non_linear_constraint_set());
     }
 
     void retain(const ConstraintSystem& system) {
         retain_zlinear_constraint_system(
             system.get_zlinear_constraint_system());
-        retain_qlinear_constraint_system(
-            system.get_qlinear_constraint_system());
         retain_non_linear_constraint_set(
             system.get_non_linear_constraint_set());
     }
@@ -84,21 +74,6 @@ class ConstraintSystem : public llvm::FoldingSetNode {
     void retain_zlinear_constraint_system(
         const ZLinearConstraintSystem& system) {
         m_zlinear_constraint_system.retain_common_linear_constraint_system(
-            system);
-    }
-
-    void add_qlinear_constraint(const QLinearConstraint& constraint) {
-        m_qlinear_constraint_system.add_linear_constraint(constraint);
-    }
-
-    void merge_qlinear_constraint_system(
-        const QLinearConstraintSystem& system) {
-        m_qlinear_constraint_system.merge_linear_constraint_system(system);
-    }
-
-    void retain_qlinear_constraint_system(
-        const QLinearConstraintSystem& system) {
-        m_qlinear_constraint_system.retain_common_linear_constraint_system(
             system);
     }
 
@@ -129,12 +104,6 @@ class ConstraintSystem : public llvm::FoldingSetNode {
             os << "\n";
         }
 
-        if (!m_qlinear_constraint_system.is_empty()) {
-            os << "Q:\n";
-            m_qlinear_constraint_system.dump(os);
-            os << "\n";
-        }
-
         if (!m_non_linear_constraint_set.empty()) {
             os << "N:\n";
             for (const auto& constraint : m_non_linear_constraint_set) {
@@ -147,8 +116,6 @@ class ConstraintSystem : public llvm::FoldingSetNode {
     bool operator==(const ConstraintSystem& other) const {
         return m_zlinear_constraint_system.equals(
                    other.m_zlinear_constraint_system) &&
-               m_qlinear_constraint_system.equals(
-                   other.m_qlinear_constraint_system) &&
                m_non_linear_constraint_set == other.m_non_linear_constraint_set;
     }
 

@@ -10,7 +10,7 @@ void foo(int i) {
         // reg_$9<int i>
         knight_dump_zval(i);
         // warning:-1:26:-1:26: [0, 9] [debug-inspection]
-        i = i + 1;
+        i++;
         // reg_$5<int i>
         knight_dump_zval(i);
         // warning:-1:26:-1:26: [1, 10] [debug-inspection]

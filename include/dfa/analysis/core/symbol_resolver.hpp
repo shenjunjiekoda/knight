@@ -58,9 +58,6 @@ class SymbolResolver
     void VisitIntegerLiteral(
         const clang::IntegerLiteral* integer_literal) const;
 
-    void VisitFloatingLiteral(
-        const clang::FloatingLiteral* floating_literal) const;
-
     void VisitUnaryOperator(const clang::UnaryOperator* unary_operator) const;
 
     void VisitBinaryOperator(
@@ -103,7 +100,6 @@ class SymbolResolver
     void handle_binary_operation(BinaryOperationContext bo_ctx) const;
 
     struct AssignmentContext {
-        bool is_int = true;
         std::optional< const TypedRegion* > treg = std::nullopt;
         std::optional< const clang::Stmt* > stmt = std::nullopt;
         std::optional< const clang::Expr* > rhs_expr = std::nullopt;

@@ -40,7 +40,6 @@ enum class SymExprKind {
 
     SCALAR_BEGIN,
     Int,
-    Float,
     // TODO(scalar-sexpr): add more scalar types here
     // TODO(scalar-sexpr): Shall we add a region type here?
     SCALAR_END,
@@ -117,11 +116,6 @@ class SymExpr : public llvm::FoldingSetNode {
     std::optional< ZNum > get_as_znum() const;
     std::optional< ZVariable > get_as_zvariable() const;
 
-    std::optional< QLinearExpr > get_as_qexpr() const;
-    std::optional< QLinearConstraint > get_as_qconstraint() const;
-    std::optional< QNum > get_as_qnum() const;
-    std::optional< QVariable > get_as_qvariable() const;
-
     virtual bool is_leaf() const { return false; }
 
     virtual void Profile(llvm::FoldingSetNodeID& profile) const = 0; // NOLINT
@@ -144,7 +138,6 @@ class Scalar : public SymExpr {
 
     [[nodiscard]] bool is_leaf() const override { return true; }
     [[nodiscard]] virtual bool is_integer() const { return false; }
-    [[nodiscard]] virtual bool is_float() const { return false; }
     [[nodiscard]] unsigned get_worst_complexity() const override { return 0U; }
     [[nodiscard]] static bool classof(const SymExpr* sym_expr) {
         return sym_expr->get_kind() >= SymExprKind::SCALAR_BEGIN &&
@@ -186,40 +179,6 @@ class ScalarInt : public Scalar {
         ScalarInt::profile(id, m_value, m_type);
     }
 }; // class Integer
-
-class ScalarFloat : public Scalar {
-  private:
-    QNum m_value;
-    clang::QualType m_type;
-
-  public:
-    explicit ScalarFloat(QNum value, clang::QualType type)
-        : Scalar(SymExprKind::Float), m_value(std::move(value)), m_type(type) {}
-
-    [[nodiscard]] QNum get_value() const { return m_value; }
-    [[nodiscard]] bool is_float() const override { return true; }
-    [[nodiscard]] static bool classof(const SymExpr* sym_expr) {
-        return sym_expr->get_kind() == SymExprKind::Float;
-    }
-    [[nodiscard]] static bool classof(const Scalar* scalar) {
-        return scalar->get_kind() == SymExprKind::Float;
-    }
-
-    [[nodiscard]] clang::QualType get_type() const override { return m_type; }
-    static void profile(llvm::FoldingSetNodeID& id,
-                        const QNum& value,
-                        clang::QualType type) {
-        id.AddInteger(static_cast< unsigned >(SymExprKind::Float));
-        value.Profile(id);
-        id.Add(type);
-    }
-
-    void dump(llvm::raw_ostream& os) const override { os << m_value; }
-
-    void Profile(llvm::FoldingSetNodeID& id) const override { // NOLINT
-        ScalarFloat::profile(id, m_value, m_type);
-    }
-}; // class Float
 
 using SymID = unsigned;
 

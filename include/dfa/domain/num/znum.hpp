@@ -14,8 +14,10 @@
 
 #pragma once
 
-#include <llvm/ADT/FoldingSet.h>
 #include "util/log.hpp"
+
+#include <llvm/ADT/FoldingSet.h>
+#include <llvm/Support/WithColor.h>
 
 #include <functional>
 #include <string>
@@ -247,8 +249,6 @@ struct MpzTo< LL > : public MpzToLL< sizeof(LL) == sizeof(L) > {};
 
 /// \brief Unlimited precision integer
 class ZNum : public llvm::FoldingSetNode {
-    friend class QNum;
-
   private:
     mpz_class m_mpz;
 
