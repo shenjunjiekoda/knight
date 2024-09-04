@@ -38,7 +38,6 @@ jobs:
         run: |
           cmake -DCMAKE_BUILD_TYPE:STRING=Release -DLINK_LLVM_DYLIB=ON -DCMAKE_C_COMPILER:STRING=/usr/bin/gcc -DCMAKE_CXX_COMPILER:STRING=/usr/bin/g++ -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE -DCMAKE_INSTALL_PREFIX="/opt/knight" -DLLVM_BUILD_DIR="/usr/lib/llvm-18" -B build
           cmake --build build -j16
-          cmake --install build
           echo $(pwd)/build/bin >> $GITHUB_PATH
 
       - name: Clang Tidy
@@ -52,7 +51,6 @@ jobs:
 
       - name: Unit Tests
         run: |
-          pwd
           chmod +x scripts/unittest
           scripts/unittest run test/testcase/
       
