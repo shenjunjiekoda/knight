@@ -33,13 +33,18 @@ jobs:
         run: |
           chmod +x scripts/run-clang-format
           scripts/run-clang-format
-            
+
       - name: Build Repo
         run: |
           cmake -DCMAKE_BUILD_TYPE:STRING=Release -DLINK_LLVM_DYLIB=ON -DCMAKE_C_COMPILER:STRING=/usr/bin/gcc -DCMAKE_CXX_COMPILER:STRING=/usr/bin/g++ -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE -DCMAKE_INSTALL_PREFIX="/opt/knight" -DLLVM_BUILD_DIR="/usr/lib/llvm-18" -B build
           cmake --build build -j16
           cmake --install build
           echo $(pwd)/build/bin >> $GITHUB_PATH
+
+      - name: Clang Tidy
+        run: |
+          chmod +x scripts/run-clang-tidy
+          scripts/run-clang-tidy -j16
       
       - name: Test Binary
         run: |
@@ -50,4 +55,5 @@ jobs:
           pwd
           chmod +x scripts/unittest
           scripts/unittest run test/testcase/
+      
         

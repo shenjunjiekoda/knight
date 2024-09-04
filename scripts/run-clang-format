@@ -80,7 +80,11 @@ def check_clang_format_version(clang_format):
 
 
 def format_source_files(src_dir, clang_format):
-    """Format source files using clang-format and update the progress bar."""
+    """
+    Format source files using clang-format and update the progress bar.
+    
+    return True if any file was formatted, False otherwise.
+    """
     files_to_format = []
     for root, dirs, files in os.walk(src_dir):
         dirs[:] = [d for d in dirs if d not in IGNORE_DIRECTORIES]
@@ -93,13 +97,27 @@ def format_source_files(src_dir, clang_format):
     completed_files = 0
     print_progress_bar(total_files, completed_files)
 
+    format_cnt = 0
     for file_path in files_to_format:
+        with open(file_path, "r", encoding="utf-8") as f:
+            original_content = f.read()
+            result = subprocess.run(
+                [str(clang_format), file_path],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            if original_content != result.stdout:
+                format_cnt += 1
         subprocess.run(
             [str(clang_format), "-i", "-style=file", str(file_path)], check=True
         )
         completed_files += 1
         print_progress_bar(total_files, completed_files)
     print(f"\nAll {total_files} files formatted.")
+    if format_cnt != 0:
+        print(f"{format_cnt} files formatted.")
+    return format_cnt != 0
 
 
 def main():
@@ -135,8 +153,8 @@ def main():
     if args.check_version:
         check_clang_format_version(clang_format)
 
-    format_source_files(args.srcdir, clang_format)
+    return format_source_files(args.srcdir, clang_format)
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

@@ -218,7 +218,8 @@ def main():
             print(f"\n$ {command}")
             print(f"stderr:\n{out}")
             print(f"stderr:\n{error}")
+    return len(error_log) != 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
