@@ -1,0 +1,53 @@
+name: Build on Ubuntu
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+jobs:
+  build-ubuntu:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: |
+         echo "deb http://apt.llvm.org/noble/ llvm-toolchain-noble main" | sudo tee /etc/apt/sources.list.d/llvm.list
+         echo "deb-src http://apt.llvm.org/noble/ llvm-toolchain-noble main" | sudo tee -a /etc/apt/sources.list.d/llvm.list
+         echo "deb http://apt.llvm.org/noble/ llvm-toolchain-noble-18 main" | sudo tee -a /etc/apt/sources.list.d/llvm.list
+         echo "deb-src http://apt.llvm.org/noble/ llvm-toolchain-noble-18 main" | sudo tee -a /etc/apt/sources.list.d/llvm.list
+         echo "deb http://apt.llvm.org/noble/ llvm-toolchain-noble-19 main" | sudo tee -a /etc/apt/sources.list.d/llvm.list
+         echo "deb-src http://apt.llvm.org/noble/ llvm-toolchain-noble-19 main" | sudo tee -a /etc/apt/sources.list.d/llvm.list
+         wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+         sudo apt-get update
+         sudo apt-get install --yes \
+           gcc g++ cmake libgmp-dev libedit-dev \
+           python3 python3-pip \
+           llvm-18 llvm-18-dev llvm-18-tools clang-18 libclang-18-dev
+      
+      - name: Spell Check
+        uses: crate-ci/typos@v1.24.3
+
+      - name: Clang Format
+        run: |
+          chmod +x scripts/run-clang-format
+          scripts/run-clang-format
+            
+      - name: Build Repo
+        run: |
+          cmake -DCMAKE_BUILD_TYPE:STRING=Release -DLINK_LLVM_DYLIB=ON -DCMAKE_C_COMPILER:STRING=/usr/bin/gcc -DCMAKE_CXX_COMPILER:STRING=/usr/bin/g++ -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE -DCMAKE_INSTALL_PREFIX="/opt/knight" -DLLVM_BUILD_DIR="/usr/lib/llvm-18" -B build
+          cmake --build build -j16
+          cmake --install build
+          echo $(pwd)/build/bin >> $GITHUB_PATH
+      
+      - name: Test Binary
+        run: |
+          knight --help
+
+      - name: Unit Tests
+        run: |
+          pwd
+          chmod +x scripts/unittest
+          scripts/unittest run test/testcase/
+        

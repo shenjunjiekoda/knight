@@ -264,14 +264,14 @@ ProgramStateRef ProgramState::set_to_top() const {
         const auto& [stmt, sexpr] = pair;                                      \
         auto it = other->m_stmt_sexpr.find(stmt);                              \
         if (it == other->m_stmt_sexpr.end() || it->second == sexpr) {          \
-            stmt_sexpr.insert_or_assign(stmt, sexpr);                          \
+            stmt_sexpr[stmt] = sexpr;                                          \
         }                                                                      \
     });                                                                        \
                                                                                \
     llvm::for_each(other->m_stmt_sexpr, [&](const auto& pair) {                \
         const auto& [stmt, sexpr] = pair;                                      \
         if (!stmt_sexpr.contains(stmt)) {                                      \
-            stmt_sexpr.insert_or_assign(stmt, sexpr);                          \
+            stmt_sexpr[stmt] = sexpr;                                          \
         }                                                                      \
     });                                                                        \
                                                                                \
@@ -384,14 +384,14 @@ ProgramStateRef ProgramState::join(const ProgramStateRef& other,
         const auto& [stmt, sexpr] = pair;
         auto it = other->m_stmt_sexpr.find(stmt);
         if (it == other->m_stmt_sexpr.end() || it->second == sexpr) {
-            stmt_sexpr.insert_or_assign(stmt, sexpr);
+            stmt_sexpr[stmt] = sexpr;
         }
     });
 
     llvm::for_each(other->m_stmt_sexpr, [&](const auto& pair) {
         const auto& [stmt, sexpr] = pair;
         if (!stmt_sexpr.contains(stmt)) {
-            stmt_sexpr.insert_or_assign(stmt, sexpr);
+            stmt_sexpr[stmt] = sexpr;
         }
     });
 
@@ -530,14 +530,14 @@ ProgramStateRef ProgramState::widen_with_threshold(
         const auto& [stmt, sexpr] = pair;
         auto it = other->m_stmt_sexpr.find(stmt);
         if (it == other->m_stmt_sexpr.end() || it->second == sexpr) {
-            stmt_sexpr.insert_or_assign(stmt, sexpr);
+            stmt_sexpr[stmt] = sexpr;
         }
     });
 
     llvm::for_each(other->m_stmt_sexpr, [&](const auto& pair) {
         const auto& [stmt, sexpr] = pair;
         if (!stmt_sexpr.contains(stmt)) {
-            stmt_sexpr.insert_or_assign(stmt, sexpr);
+            stmt_sexpr[stmt] = sexpr;
         }
     });
 

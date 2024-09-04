@@ -59,7 +59,7 @@ void construct_mapping_for_term_condition(
     }
     if (const auto* term_cond_stmt = block->getTerminatorCondition()) {
         // does nothing if the key already exists in the map.
-        stmtToBlock.insert({term_cond_stmt, block});
+        stmtToBlock[term_cond_stmt] = block;
     }
 }
 
@@ -69,7 +69,7 @@ void construct_mapping_for_term_stmt(ProcCFG::NodeRef block,
         return;
     }
     if (const auto* term_stmt = block->getTerminatorStmt()) {
-        stmtToBlock.insert({term_stmt, block});
+        stmtToBlock[term_stmt] = block;
     }
 }
 

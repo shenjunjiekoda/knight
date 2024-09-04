@@ -183,7 +183,7 @@ class NumericalDom : public NumericalDomBase< Num > {
     using Var = Variable< Num >;
 
   public:
-    NumericalDom< Derived, Num >() : NumericalDomBase(Derived::get_kind()) {}
+    NumericalDom() : NumericalDomBase(Derived::get_kind()) {}
 
     void join_with(const AbsDomBase& other) override {
         static_assert(does_derived_dom_can_join_with< Derived >::value,

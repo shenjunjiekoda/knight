@@ -35,7 +35,8 @@ inline void print_source_location(
 
 #define log_with_type(TYPE, PRINT_SRC, NEW_LINE, X)                      \
     do {                                                                 \
-        if (::llvm::DebugFlag && ::llvm::isCurrentDebugType(TYPE)) {     \
+        using namespace llvm;                                            \
+        if (::llvm::DebugFlag && isCurrentDebugType(TYPE)) {             \
             if (PRINT_SRC) {                                             \
                 knight::print_source_location(TYPE, __func__, NEW_LINE); \
             }                                                            \

@@ -75,7 +75,7 @@ class MapDom : public AbsDom< MapDom< Key, SeparateValue, domain_kind > > {
         } else if (value.is_top()) {
             this->forget(key);
         } else {
-            this->m_table.insert_or_assign(key, value);
+            this->m_table[key] = value;
         }
     }
 

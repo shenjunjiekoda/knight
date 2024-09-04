@@ -187,7 +187,7 @@ get_domain_bottom_val_fn(DomID id) {
 template < typename Derived >
 class AbsDom : public AbsDomBase {
   public:
-    AbsDom< Derived >() : AbsDomBase(Derived::get_kind()) {}
+    AbsDom() : AbsDomBase(Derived::get_kind()) {}
 
     void join_with(const AbsDomBase& other) override {
         static_assert(does_derived_dom_can_join_with< Derived >::value,
