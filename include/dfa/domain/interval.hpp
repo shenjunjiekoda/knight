@@ -26,33 +26,33 @@ namespace knight::dfa {
 template < typename Num >
 class Interval : public AbsDom< Interval< Num > > {
   public:
-    using Bound = Bound< Num >;
+    using BoundT = Bound< Num >;
 
     struct Bottom {};
     struct Top {};
 
   private:
     /// \brief lower bound of the interval
-    Bound m_lb;
+    BoundT m_lb;
 
     /// \brief upper bound of the interval
-    Bound m_ub;
+    BoundT m_ub;
 
   public:
     /// \brief specify the domain kind
     [[nodiscard]] static DomainKind get_kind() { return DomainKind::ZInterval; }
-    Interval() : m_lb(Bound::ninf()), m_ub(Bound::pinf()) {}
-    Interval(Bound lb, Bound ub) : m_lb(std::move(lb)), m_ub(std::move(ub)) {
+    Interval() : m_lb(BoundT::ninf()), m_ub(BoundT::pinf()) {}
+    Interval(BoundT lb, BoundT ub) : m_lb(std::move(lb)), m_ub(std::move(ub)) {
         knight_assert(m_lb.is_finite() || m_ub.is_finite() || m_lb != m_ub);
         if (this->m_lb > this->m_ub) {
             this->m_lb = Num(1.);
             this->m_ub = Num(0.);
         }
     }
-    Interval(Num lb, Num ub) : Interval(Bound(lb), Bound(ub)) {}
+    Interval(Num lb, Num ub) : Interval(BoundT(lb), BoundT(ub)) {}
 
-    explicit Interval(Num n) : Interval(Bound(n)) {}
-    explicit Interval(Bound n) : Interval(n, n) {}
+    explicit Interval(Num n) : Interval(BoundT(n)) {}
+    explicit Interval(BoundT n) : Interval(n, n) {}
 
     Interval(const Interval&) noexcept = default;
     Interval(Interval&&) noexcept = default;
@@ -63,10 +63,10 @@ class Interval : public AbsDom< Interval< Num > > {
 
   public:
     explicit Interval(Top) // NOLINT(readability-named-parameter)
-        : Interval(Bound::ninf(), Bound::pinf()) {}
+        : Interval(BoundT::ninf(), BoundT::pinf()) {}
 
     explicit Interval(Bottom) // NOLINT(readability-named-parameter)
-        : Interval(Bound::pinf(), Bound::ninf()) {}
+        : Interval(BoundT::pinf(), BoundT::ninf()) {}
 
   public:
     [[nodiscard]] static Interval top() { return Interval(Top{}); }
@@ -80,8 +80,8 @@ class Interval : public AbsDom< Interval< Num > > {
     [[nodiscard]] static Interval false_val() {
         return Interval(Num(0.), Num(0.));
     }
-    [[nodiscard]] const Bound& get_lb() const { return m_lb; }
-    [[nodiscard]] const Bound& get_ub() const { return m_ub; }
+    [[nodiscard]] const BoundT& get_lb() const { return m_lb; }
+    [[nodiscard]] const BoundT& get_ub() const { return m_ub; }
     [[nodiscard]] std::optional< Num > get_singleton_opt() const {
         if (m_lb.is_finite() && m_lb == m_ub) {
             return m_lb.get_num();
@@ -116,8 +116,8 @@ class Interval : public AbsDom< Interval< Num > > {
     }
 
     void set_to_top() override {
-        m_lb = Bound::ninf();
-        m_ub = Bound::pinf();
+        m_lb = BoundT::ninf();
+        m_ub = BoundT::pinf();
     }
 
     void normalize() override {}
@@ -152,8 +152,8 @@ class Interval : public AbsDom< Interval< Num > > {
         if (other.is_bottom()) {
             return;
         }
-        m_lb = other.m_lb < m_lb ? Bound::ninf() : m_lb;
-        m_ub = other.m_ub > m_ub ? Bound::pinf() : m_ub;
+        m_lb = other.m_lb < m_lb ? BoundT::ninf() : m_lb;
+        m_ub = other.m_ub > m_ub ? BoundT::pinf() : m_ub;
     }
 
     void widen_with_threshold(const Interval& other, const Num& threshold) {
@@ -164,15 +164,15 @@ class Interval : public AbsDom< Interval< Num > > {
         if (other.is_bottom()) {
             return;
         }
-        Bound thr = Bound(threshold);
-        Bound one = Bound(Num(1));
+        BoundT thr = BoundT(threshold);
+        BoundT one = BoundT(Num(1));
         if (m_lb > other.m_lb) {
             if (other.m_lb >= thr) {
                 m_lb = thr;
             } else if (other.m_lb == thr - one) {
                 m_lb = thr - one;
             } else {
-                m_lb = Bound::ninf();
+                m_lb = BoundT::ninf();
             }
         }
         if (m_ub < other.m_ub) {
@@ -181,7 +181,7 @@ class Interval : public AbsDom< Interval< Num > > {
             } else if (other.m_ub == thr + one) {
                 m_ub = thr + one;
             } else {
-                m_ub = Bound::pinf();
+                m_ub = BoundT::pinf();
             }
         }
     }
@@ -218,7 +218,7 @@ class Interval : public AbsDom< Interval< Num > > {
             set_to_bottom();
             return;
         }
-        Bound thr = Bound(threshold);
+        BoundT thr = BoundT(threshold);
         m_lb = m_lb.is_inf() ? other.m_lb : (m_lb == thr ? other.m_lb : m_lb);
         m_ub = m_ub.is_inf() ? other.m_ub : (m_ub == thr ? other.m_ub : m_ub);
     }
@@ -263,7 +263,7 @@ class Interval : public AbsDom< Interval< Num > > {
 
     /// \brief Return true if the interval contains n
     [[nodiscard]] bool contains(const Num& n) const {
-        return !this->is_bottom() && m_lb <= Bound(n) && m_ub >= Bound(n);
+        return !this->is_bottom() && m_lb <= BoundT(n) && m_ub >= BoundT(n);
     }
 
     void cast(clang::QualType type, unsigned bit_width) {}

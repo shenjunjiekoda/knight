@@ -29,59 +29,81 @@ constexpr unsigned AssignEventAlignSmallSize = 32U;
 constexpr unsigned AssignEventAlignSize = 64U;
 constexpr unsigned AssignEventAlignBigSize = 128U;
 
-struct ZVarAssignZVar {
+struct alignas(AssignEventAlignSmallSize) ZVarAssignZVar {
     ZVariable x;
     ZVariable y;
+};
 
-    void dump(llvm::raw_ostream& os) const { os << x << " = " << y; }
-} __attribute__((aligned(AssignEventAlignSmallSize)));
+inline llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
+                                     const ZVarAssignZVar& e) {
+    os << e.x << " = " << e.y;
+    return os;
+}
 
-struct ZVarAssignZNum {
+struct alignas(AssignEventAlignSize) ZVarAssignZNum {
     ZVariable x;
     ZNum y;
+};
 
-    void dump(llvm::raw_ostream& os) const { os << x << " = " << y; }
-} __attribute__((aligned(AssignEventAlignSize)));
+inline llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
+                                     const ZVarAssignZNum& e) {
+    os << e.x << " = " << e.y;
+    return os;
+}
 
-struct ZVarAssignZLinearExpr {
+struct alignas(AssignEventAlignBigSize) ZVarAssignZLinearExpr {
     ZVariable x;
     ZLinearExpr y;
-    void dump(llvm::raw_ostream& os) const { os << x << " = " << y; }
-} __attribute__((aligned(AssignEventAlignBigSize)));
+};
 
-struct ZVarAssignBinaryVarVar {
+inline llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
+                                     const ZVarAssignZLinearExpr& e) {
+    os << e.x << " = " << e.y;
+    return os;
+}
+
+struct alignas(AssignEventAlignSize) ZVarAssignBinaryVarVar {
     clang::BinaryOperatorKind op;
     ZVariable x;
     ZVariable y;
     ZVariable z;
-    void dump(llvm::raw_ostream& os) const {
-        os << x << " = " << y << " " << clang::BinaryOperator::getOpcodeStr(op)
-           << " " << z;
-    }
-} __attribute__((aligned(AssignEventAlignSize)));
+};
 
-struct ZVarAssignBinaryVarNum {
+inline llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
+                                     const ZVarAssignBinaryVarVar& e) {
+    os << e.x << " = " << e.y << " "
+       << clang::BinaryOperator::getOpcodeStr(e.op) << " " << e.z;
+    return os;
+}
+
+struct alignas(AssignEventAlignSize) ZVarAssignBinaryVarNum {
     clang::BinaryOperatorKind op;
     ZVariable x;
     ZVariable y;
     ZNum z;
-    void dump(llvm::raw_ostream& os) const {
-        os << x << " = " << y << " " << clang::BinaryOperator::getOpcodeStr(op)
-           << " " << z;
-    }
-} __attribute__((aligned(AssignEventAlignSize)));
+};
 
-struct ZVarAssignZCast {
+inline llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
+                                     const ZVarAssignBinaryVarNum& e) {
+    os << e.x << " = " << e.y << " "
+       << clang::BinaryOperator::getOpcodeStr(e.op) << " " << e.z;
+    return os;
+}
+
+struct alignas(AssignEventAlignSize) ZVarAssignZCast {
     unsigned dst_bit_width;
     clang::QualType dst_type;
     ZVariable x;
     ZVariable y;
-    void dump(llvm::raw_ostream& os) const {
-        os << x << " = (" << dst_type << ")" << y;
-    }
-} __attribute__((aligned(AssignEventAlignSize)));
+};
 
-struct LinearAssignEvent {
+inline llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
+                                     const ZVarAssignZCast& e) {
+    os << e.x << " = (" << e.dst_type << ")" << e.y;
+    return os;
+}
+
+struct alignas(AssignEventAlignBigSize) LinearAssignEvent {
     static EventKind get_kind() { return EventKind::LinearAssignEvent; }
 
     using AssignT = std::variant< ZVarAssignZVar,
@@ -97,39 +119,45 @@ struct LinearAssignEvent {
     LinearAssignEvent(AssignT assign, ProgramStateRef& state)
         : assign(std::move(assign)), state(state) {}
 
-} __attribute__((packed))
-__attribute__((aligned(AssignEventAlignBigSize))); // struct LinearAssignEvent
+}; // struct LinearAssignEvent
 
-struct PredicateZVarZNum {
+struct alignas(AssignEventAlignSize) PredicateZVarZNum {
     clang::BinaryOperatorKind op;
     ZVariable x;
     ZNum y;
 
-    void dump(llvm::raw_ostream& os) const {
-        os << x << " " << clang::BinaryOperator::getOpcodeStr(op) << " " << y;
-    }
-} __attribute__((aligned(AssignEventAlignSize)))
-__attribute__((packed)); // struct PredicateZVarZVar
+}; // struct PredicateZVarZVar
 
-struct PredicateZVarZVar {
+inline llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
+                                     const PredicateZVarZNum& e) {
+    os << e.x << " " << clang::BinaryOperator::getOpcodeStr(e.op) << " " << e.y;
+    return os;
+}
+
+struct alignas(AssignEventAlignSize) PredicateZVarZVar {
     clang::BinaryOperatorKind op;
     ZVariable x;
     ZVariable y;
+}; // struct PredicateZVarZVar
 
-    void dump(llvm::raw_ostream& os) const {
-        os << x << " " << clang::BinaryOperator::getOpcodeStr(op) << " " << y;
-    }
-} __attribute__((aligned(AssignEventAlignSize)))
-__attribute__((packed)); // struct PredicateZVarZVar
+inline llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
+                                     const PredicateZVarZVar& e) {
+    os << e.x << " " << clang::BinaryOperator::getOpcodeStr(e.op) << " " << e.y;
+    return os;
+}
 
-struct GeneralLinearConstraint {
+struct alignas(AssignEventAlignBigSize) GeneralLinearConstraint {
     ZLinearConstraint cstr;
 
-    void dump(llvm::raw_ostream& os) const { os << cstr; }
-} __attribute__((
-    aligned(AssignEventAlignBigSize))); // struct GeneralLinearConstraint
+}; // struct GeneralLinearConstraint
 
-struct LinearAssumptionEvent {
+inline llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
+                                     const GeneralLinearConstraint& e) {
+    os << e.cstr;
+    return os;
+}
+
+struct LinearAssumptionEvent { // NOLINT(altera-struct-pack-align)
     static EventKind get_kind() { return EventKind::LinearAssumptionEvent; }
 
     using AssumpT = std::variant< PredicateZVarZNum,
@@ -141,6 +169,6 @@ struct LinearAssumptionEvent {
     LinearAssumptionEvent(AssumpT assumption, ProgramStateRef& state)
         : assumption(std::move(assumption)), state(state) {}
 
-} __attribute__((packed)); // struct LinearPredicateEvent
+}; // struct LinearPredicateEvent
 
 } // namespace knight::dfa

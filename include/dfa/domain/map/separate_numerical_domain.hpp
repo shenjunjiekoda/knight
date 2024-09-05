@@ -36,9 +36,9 @@ class SeparateNumericalDom
   public:
     using Var = Variable< Num >;
     using Map = llvm::DenseMap< Var, SeparateNumericalValue >;
-    using LinearExpr = LinearExpr< Num >;
-    using LinearConstraint = LinearConstraint< Num >;
-    using LinearConstraintSystem = LinearConstraintSystem< Num >;
+    using LinearExprT = LinearExpr< Num >;
+    using LinearConstraintT = LinearConstraint< Num >;
+    using LinearConstraintSystemT = LinearConstraintSystem< Num >;
 
   private:
     Map m_table;
@@ -423,7 +423,7 @@ class SeparateNumericalDom
     }
 
     [[nodiscard]] SeparateNumericalValue project(
-        const LinearExpr& linear_expr) const {
+        const LinearExprT& linear_expr) const {
         if (is_bottom()) {
             return SeparateNumericalValue::bottom();
         }
@@ -444,7 +444,7 @@ class SeparateNumericalDom
     void assign_var(Var x, Var y) { this->set_value(x, this->get_value(y)); }
 
     /// \brief Assign `x = linear_expr`
-    void assign_linear_expr(Var x, const LinearExpr& linear_expr) {
+    void assign_linear_expr(Var x, const LinearExprT& linear_expr) {
         this->set_value(x, this->project(linear_expr));
     }
 

@@ -42,7 +42,7 @@ template < typename Num >
 struct Variable : public llvm::FoldingSetNode {
     SymbolRef m_symbol{};
 
-    explicit Variable< Num >(SymbolRef symbol) : m_symbol(symbol) {}
+    explicit Variable(SymbolRef symbol) : m_symbol(symbol) {}
     Variable(const Variable&) = default;
     Variable(Variable&&) = default;
     Variable& operator=(const Variable&) = default;
@@ -58,7 +58,7 @@ struct Variable : public llvm::FoldingSetNode {
     // NOLINTNEXTLINE
     void Profile(llvm::FoldingSetNodeID& id) const { id.AddPointer(m_symbol); }
 
-} __attribute__((packed)); // struct Variable < Num >
+}; // struct Variable < Num >
 
 template < typename Num >
 inline llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
@@ -846,21 +846,21 @@ template < typename Num >
 template < typename Num >
 class LinearConstraintSystem : public llvm::FoldingSetNode {
   public:
-    using LinearConstraint = LinearConstraint< Num >;
+    using LinearConstraintT = LinearConstraint< Num >;
     using Var = Variable< Num >;
-    using VarSet = typename LinearConstraint::VarSet;
+    using VarSet = typename LinearConstraintT::VarSet;
 
   private:
-    using LinearConstraints = std::vector< LinearConstraint >;
+    using LinearConstraints = std::vector< LinearConstraintT >;
 
   private:
     LinearConstraints m_linear_csts;
 
   public:
     LinearConstraintSystem() = default;
-    explicit LinearConstraintSystem(LinearConstraint cst)
+    explicit LinearConstraintSystem(LinearConstraintT cst)
         : m_linear_csts{std::move(cst)} {}
-    LinearConstraintSystem(std::initializer_list< LinearConstraint > csts)
+    LinearConstraintSystem(std::initializer_list< LinearConstraintT > csts)
         : m_linear_csts(std::move(csts)) {}
 
     LinearConstraintSystem(const LinearConstraintSystem&) = default;
@@ -871,7 +871,7 @@ class LinearConstraintSystem : public llvm::FoldingSetNode {
 
     // NOLINTNEXTLINE
     void Profile(llvm::FoldingSetNodeID& id) const {
-        for (const LinearConstraint& cst : this->m_linear_csts) {
+        for (const LinearConstraintT& cst : this->m_linear_csts) {
             cst.Profile(id);
         }
     }
@@ -883,7 +883,7 @@ class LinearConstraintSystem : public llvm::FoldingSetNode {
         return this->m_linear_csts.size();
     }
 
-    void add_linear_constraint(LinearConstraint cst) {
+    void add_linear_constraint(LinearConstraintT cst) {
         this->m_linear_csts.emplace_back(std::move(cst));
     }
 
@@ -899,7 +899,7 @@ class LinearConstraintSystem : public llvm::FoldingSetNode {
         auto it = this->m_linear_csts.begin();
         while (it != this->m_linear_csts.end()) {
             if (llvm::any_of(csts.m_linear_csts,
-                             [&](const LinearConstraint& cst) {
+                             [&](const LinearConstraintT& cst) {
                                  return cst.equals(*it);
                              })) {
                 it = this->m_linear_csts.erase(it);
@@ -925,7 +925,7 @@ class LinearConstraintSystem : public llvm::FoldingSetNode {
 
     [[nodiscard]] VarSet get_var_set() const {
         VarSet vars;
-        for (const LinearConstraint& cst : this->m_linear_csts) {
+        for (const LinearConstraintT& cst : this->m_linear_csts) {
             for (const auto& term : cst) {
                 vars.insert(term.first);
             }

@@ -31,12 +31,11 @@ std::optional< ProcCFG::DeclRef > get_called_decl(const ProcCFG::StmtRef& call);
 
 constexpr unsigned CallSiteInfoAlignment = 32;
 
-struct CallSiteInfo {
+struct alignas(CallSiteInfoAlignment) CallSiteInfo {
     ProcCFG::StmtRef callsite_expr;
     ProcCFG::NodeRef node;
     unsigned stmt_idx; // index of the call site in the node
-} __attribute__((aligned(CallSiteInfoAlignment)))
-__attribute__((packed)); // struct CallSiteInfo
+}; // struct CallSiteInfo
 
 class StackFrame : public llvm::FoldingSetNode {
   private:
@@ -47,7 +46,7 @@ class StackFrame : public llvm::FoldingSetNode {
 
   public:
     StackFrame(LocationManager* manager,
-               [[gnu::nonnull]] const clang::Decl* decl,
+               const clang::Decl* decl,
                StackFrame* parent,
                CallSiteInfo call_site_info);
     StackFrame(const StackFrame&) = delete;

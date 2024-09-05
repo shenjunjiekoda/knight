@@ -29,10 +29,10 @@ class LocationContext : public llvm::FoldingSetNode {
     const clang::CFGBlock* m_block;
 
   public:
-    LocationContext([[gnu::nonnull]] const LocationManager* manager,
-                    [[gnu::nonnull]] const StackFrame* stack_frame,
+    LocationContext(const LocationManager* manager,
+                    const StackFrame* stack_frame,
                     int element_id,
-                    [[gnu::nonnull]] const clang::CFGBlock* block);
+                    const clang::CFGBlock* block);
 
     ~LocationContext() = default;
 

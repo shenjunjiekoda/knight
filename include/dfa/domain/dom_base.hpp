@@ -32,10 +32,12 @@ using AbsValRef = AbsDomBase*;
 using AbsValConstRef = const AbsDomBase*;
 using SharedVal = std::shared_ptr< AbsDomBase >;
 
+constexpr unsigned DomBaseAlignment = 8U;
+
 /// \brief Base for all abstract domains
 ///
 /// Abstract domain should be thread-safe on copy and `const` methods
-struct AbsDomBase {
+struct alignas(DomBaseAlignment) AbsDomBase {
     DomainKind kind;
     bool is_numerical;
 
@@ -119,7 +121,7 @@ struct AbsDomBase {
     /// default impl is dump nothing
     virtual void dump(llvm::raw_ostream& os) const {}
 
-} __attribute__((aligned(8))) __attribute__((packed)); // class AbsDomBase
+}; // class AbsDomBase
 
 inline llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
                                      const AbsDomBase& dom) {

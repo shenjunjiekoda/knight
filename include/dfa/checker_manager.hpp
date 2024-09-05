@@ -77,12 +77,12 @@ using CheckStmtCallBack = CheckerCallBack< void(StmtRef, CheckerContext&) >;
 using MatchStmtCallBack = bool (*)(StmtRef S);
 enum class CheckStmtKind { Pre, Post };
 constexpr unsigned StmtCheckerInfoAlign = 64;
-struct StmtCheckerInfo {
+
+struct alignas(StmtCheckerInfoAlign) StmtCheckerInfo {
     CheckStmtCallBack anz_cb;
     MatchStmtCallBack match_cb;
     CheckStmtKind kind;
-} __attribute__((aligned(StmtCheckerInfoAlign)))
-__attribute__((packed)); // struct StmtCheckerInfo
+}; // struct StmtCheckerInfo
 
 } // namespace internal
 

@@ -34,6 +34,7 @@ namespace knight::dfa {
 
 namespace internal {
 
+constexpr unsigned BinaryOperationContextAlignment = 128U;
 constexpr unsigned AssignmentContextAlignment = 64U;
 
 } // namespace internal
@@ -83,8 +84,9 @@ class SymbolResolver
     }
 
   private:
-    struct BinaryOperationContext {
-        clang::BinaryOperator::Opcode op;
+    struct alignas(internal::BinaryOperationContextAlignment)
+        BinaryOperationContext {
+        clang::BinaryOperator::Opcode op{};
         // lhs_expr has value or lhs_sexpr has value
         std::optional< const clang::Expr* > lhs_expr;
         std::optional< SExprRef > lhs_sexpr;
@@ -94,12 +96,13 @@ class SymbolResolver
         std::optional< SExprRef > rhs_sexpr;
 
         clang::QualType result_type;
-        const clang::Stmt* result_stmt;
+        const clang::Stmt* result_stmt{};
     }; // struct BinaryOperationContext
 
     void handle_binary_operation(BinaryOperationContext bo_ctx) const;
 
-    struct AssignmentContext {
+    struct alignas(internal::AssignmentContextAlignment)
+        AssignmentContext { // NOLINT(altera-struct-pack-align)
         std::optional< const TypedRegion* > treg = std::nullopt;
         std::optional< const clang::Stmt* > stmt = std::nullopt;
         std::optional< const clang::Expr* > rhs_expr = std::nullopt;
@@ -107,8 +110,7 @@ class SymbolResolver
         SExprRef rhs_sexpr{};
         clang::BinaryOperator::Opcode op =
             clang::BinaryOperator::Opcode::BO_Assign;
-    } __attribute__((aligned(internal::AssignmentContextAlignment)))
-    __attribute__((packed));
+    };
 
     ProgramStateRef handle_assign(AssignmentContext assign_ctx) const;
     void handle_load(const clang::Expr* load_expr) const;

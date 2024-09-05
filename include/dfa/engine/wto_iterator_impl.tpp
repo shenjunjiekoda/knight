@@ -92,10 +92,10 @@ class WtoIterator final : public WtoComponentVisitor< G, GraphTrait > {
     using GraphRef = typename WtoFPIterator::GraphRef;
     using NodeRef = typename WtoFPIterator::NodeRef;
 
-    using Wto = Wto< G, GraphTrait >;
-    using WtoNesting = WtoNesting< G, GraphTrait >;
-    using WtoVertex = WtoVertex< G, GraphTrait >;
-    using WtoCycle = WtoCycle< G, GraphTrait >;
+    using WtoT = Wto< G, GraphTrait >;
+    using WtoNestingT = WtoNesting< G, GraphTrait >;
+    using WtoVertexT = WtoVertex< G, GraphTrait >;
+    using WtoCycleT = WtoCycle< G, GraphTrait >;
 
   private:
     /// \brief Fixpoint iterator
@@ -124,9 +124,9 @@ class WtoIterator final : public WtoComponentVisitor< G, GraphTrait > {
     ///
     /// Use join of pred-dst edge out status to update the pre-state,
     /// and apply node transfer function on pre to update the post-state.
-    void visit(const WtoVertex& vertex) override;
+    void visit(const WtoVertexT& vertex) override;
 
-    void visit(const WtoCycle& cycle) override;
+    void visit(const WtoCycleT& cycle) override;
 
     const LocationContext* get_location_context(const NodeRef& node) const;
 
@@ -138,10 +138,10 @@ class WtoChecker final : public WtoComponentVisitor< G, GraphTrait > {
     using GraphRef = typename WtoFPIterator::GraphRef;
     using NodeRef = typename WtoFPIterator::NodeRef;
 
-    using Wto = Wto< G, GraphTrait >;
-    using WtoNesting = WtoNesting< G, GraphTrait >;
-    using WtoVertex = WtoVertex< G, GraphTrait >;
-    using WtoCycle = WtoCycle< G, GraphTrait >;
+    using WtoT = Wto< G, GraphTrait >;
+    using WtoNestingT = WtoNesting< G, GraphTrait >;
+    using WtoVertexT = WtoVertex< G, GraphTrait >;
+    using WtoCycleT = WtoCycle< G, GraphTrait >;
 
   private:
     WtoFPIterator& m_fp_iterator;
@@ -157,15 +157,15 @@ class WtoChecker final : public WtoComponentVisitor< G, GraphTrait > {
         : m_fp_iterator(fp_iter), m_loc_mgr(loc_mgr), m_frame(frame) {}
 
   public:
-    void visit(const WtoVertex& vertex) override;
+    void visit(const WtoVertexT& vertex) override;
 
-    void visit(const WtoCycle& cycle) override;
+    void visit(const WtoCycleT& cycle) override;
 
 }; // class WtoChecker
 
 template < graph G, typename GraphTrait >
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-void WtoIterator< G, GraphTrait >::visit(const WtoVertex& vertex) {
+void WtoIterator< G, GraphTrait >::visit(const WtoVertexT& vertex) {
     auto node = vertex.get_node();
     ProgramStateRef state_pre = this->m_fp_iterator.get_pre(node);
 
@@ -206,7 +206,7 @@ void WtoIterator< G, GraphTrait >::visit(const WtoVertex& vertex) {
 }
 
 template < graph G, typename GraphTrait >
-void WtoIterator< G, GraphTrait >::visit(const WtoCycle& cycle) {
+void WtoIterator< G, GraphTrait >::visit(const WtoCycleT& cycle) {
     auto head = cycle.get_head();
     ProgramStateRef state_pre = this->m_fp_iterator.get_bottom();
     auto& wto = this->m_fp_iterator.get_wto();
@@ -348,14 +348,14 @@ const LocationContext* WtoIterator< G, GraphTrait >::get_location_context(
 }
 
 template < graph G, typename GraphTrait >
-void WtoChecker< G, GraphTrait >::visit(const WtoVertex& vertex) {
+void WtoChecker< G, GraphTrait >::visit(const WtoVertexT& vertex) {
     auto node = vertex.get_node();
     this->m_fp_iterator.check_pre(node, this->m_fp_iterator.get_pre(node));
     this->m_fp_iterator.check_post(node, this->m_fp_iterator.get_post(node));
 }
 
 template < graph G, typename GraphTrait >
-void WtoChecker< G, GraphTrait >::visit(const WtoCycle& cycle) {
+void WtoChecker< G, GraphTrait >::visit(const WtoCycleT& cycle) {
     auto head = cycle.get_head();
     this->m_fp_iterator.check_pre(head, this->m_fp_iterator.get_pre(head));
     this->m_fp_iterator.check_post(head, this->m_fp_iterator.get_post(head));

@@ -21,7 +21,7 @@
 
 namespace knight {
 
-constexpr unsigned GlobAlign = 32;
+constexpr unsigned GlobAlignment = 32U;
 
 /// \brief A utility class for matching comma-separated
 /// strings against globs.
@@ -29,11 +29,10 @@ constexpr unsigned GlobAlign = 32;
 /// negative glob starts with '-'
 class Globs {
   public:
-    struct Glob {
+    struct alignas(GlobAlignment) Glob {
         bool is_negative;
         llvm::Regex regex;
-    } __attribute__((aligned(GlobAlign)))
-    __attribute__((packed)); // struct Glob
+    }; // struct Glob
 
   private:
     std::vector< Glob > m_globs;

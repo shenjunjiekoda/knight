@@ -24,9 +24,9 @@ namespace knight::dfa {
 
 template < typename Num >
 struct NumericalDomBase : AbsDomBase {
-    using LinearExpr = LinearExpr< Num >;
-    using LinearConstraint = LinearConstraint< Num >;
-    using LinearConstraintSystem = LinearConstraintSystem< Num >;
+    using LinearExprT = LinearExpr< Num >;
+    using LinearConstraintT = LinearConstraint< Num >;
+    using LinearConstraintSystemT = LinearConstraintSystem< Num >;
     using Var = Variable< Num >;
 
   public:
@@ -51,7 +51,7 @@ struct NumericalDomBase : AbsDomBase {
     /// \brief Assign `x = expr`
     ///
     /// This method is often
-    virtual void assign_linear_expr(const Var& x, const LinearExpr& expr) = 0;
+    virtual void assign_linear_expr(const Var& x, const LinearExprT& expr) = 0;
 
     /// \brief Apply `x = y op z`
     ///
@@ -77,9 +77,9 @@ struct NumericalDomBase : AbsDomBase {
                              const Var& x,
                              const Var& y) = 0;
 
-    LinearConstraint construct_constraint(clang::BinaryOperatorKind op,
-                                          const Var& lhs,
-                                          const Num& rhs) {
+    LinearConstraintT construct_constraint(clang::BinaryOperatorKind op,
+                                           const Var& lhs,
+                                           const Num& rhs) {
         knight_assert(clang::BinaryOperator::isComparisonOp(op));
         switch (op) {
             using enum clang::BinaryOperatorKind;
@@ -101,9 +101,9 @@ struct NumericalDomBase : AbsDomBase {
         knight_unreachable("Unsupported binary operator");
     }
 
-    LinearConstraint construct_constraint(clang::BinaryOperatorKind op,
-                                          const Var& lhs,
-                                          const Var& rhs) {
+    LinearConstraintT construct_constraint(clang::BinaryOperatorKind op,
+                                           const Var& lhs,
+                                           const Var& rhs) {
         knight_assert(clang::BinaryOperator::isComparisonOp(op));
         switch (op) {
             using enum clang::BinaryOperatorKind;
@@ -138,14 +138,14 @@ struct NumericalDomBase : AbsDomBase {
     }
 
     /// \brief Add a linear constraint (semantic)
-    virtual void apply_linear_constraint(const LinearConstraint& cst) = 0;
+    virtual void apply_linear_constraint(const LinearConstraintT& cst) = 0;
 
     /// \brief Add a linear constraint system (semantic)
     virtual void merge_with_linear_constraint_system(
-        const LinearConstraintSystem& csts) = 0;
+        const LinearConstraintSystemT& csts) = 0;
 
     /// \brief Get the linear constraint system (semantic)
-    [[nodiscard]] virtual LinearConstraintSystem to_linear_constraint_system()
+    [[nodiscard]] virtual LinearConstraintSystemT to_linear_constraint_system()
         const = 0;
 
     /// \brief Forget a numerical variable
@@ -176,14 +176,14 @@ struct NumericalDomBase : AbsDomBase {
 template < typename Derived, typename Num >
 class NumericalDom : public NumericalDomBase< Num > {
   public:
-    using NumericalDomBase = NumericalDomBase< Num >;
-    using LinearExpr = LinearExpr< Num >;
-    using LinearConstraint = LinearConstraint< Num >;
-    using LinearConstraintSystem = LinearConstraintSystem< Num >;
+    using NumericalDomBaseT = NumericalDomBase< Num >;
+    using LinearExprT = LinearExpr< Num >;
+    using LinearConstraintT = LinearConstraint< Num >;
+    using LinearConstraintSystemT = LinearConstraintSystem< Num >;
     using Var = Variable< Num >;
 
   public:
-    NumericalDom() : NumericalDomBase(Derived::get_kind()) {}
+    NumericalDom() : NumericalDomBaseT(Derived::get_kind()) {}
 
     void join_with(const AbsDomBase& other) override {
         static_assert(does_derived_dom_can_join_with< Derived >::value,
@@ -239,14 +239,14 @@ class NumericalDom : public NumericalDomBase< Num > {
         }
     }
 
-    [[nodiscard]] virtual bool leq(const AbsDomBase& other) const override {
+    [[nodiscard]] bool leq(const AbsDomBase& other) const override {
         static_assert(does_derived_dom_can_leq< Derived >::value,
                       "derived domain needs to implement `leq` method");
         return static_cast< const Derived& >(*this).leq(
             static_cast< const Derived& >(other));
     }
 
-    [[nodiscard]] virtual bool equals(const AbsDomBase& other) const override {
+    [[nodiscard]] bool equals(const AbsDomBase& other) const override {
         if constexpr (does_derived_dom_can_equals< Derived >::value) {
             return static_cast< const Derived& >(*this).equals(
                 static_cast< const Derived& >(other));
@@ -256,7 +256,7 @@ class NumericalDom : public NumericalDomBase< Num > {
     }
 
     /// \brief Widen with a threshold num
-    void widen_with_threshold(const NumericalDomBase& other,
+    void widen_with_threshold(const NumericalDomBaseT& other,
                               const Num& threshold) override {
         if constexpr (does_derived_numerical_dom_can_widen_with_threshold<
                           Derived,
@@ -270,7 +270,7 @@ class NumericalDom : public NumericalDomBase< Num > {
     }
 
     /// \brief Narrow with a threshold num
-    void narrow_with_threshold(const NumericalDomBase& other,
+    void narrow_with_threshold(const NumericalDomBaseT& other,
                                const Num& threshold) override {
         if constexpr (does_derived_numerical_dom_can_narrow_with_threshold<
                           Derived,

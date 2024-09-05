@@ -27,8 +27,8 @@ namespace knight::dfa {
 class IntraProceduralFixpointIterator final
     : public WtoBasedFixPointIterator< ProcCFG, GraphTrait< ProcCFG > > {
   private:
-    using GraphTrait = GraphTrait< ProcCFG >;
-    using FixPointIterator = WtoBasedFixPointIterator< ProcCFG, GraphTrait >;
+    using GraphTraitT = GraphTrait< ProcCFG >;
+    using FixPointIterator = WtoBasedFixPointIterator< ProcCFG, GraphTraitT >;
     using GraphRef = typename FixPointIterator::GraphRef;
     using FunctionRef = ProcCFG::FunctionRef;
     using NodeRef = typename FixPointIterator::NodeRef;

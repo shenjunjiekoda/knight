@@ -41,7 +41,7 @@ class WtoBasedFixPointIterator : public FixPointIterator< CFG, GraphTrait > {
     using GraphRef = typename Base::GraphRef;
     using NodeRef = typename Base::NodeRef;
     using InvariantMap = typename Base::InvariantMap;
-    using Wto = Wto< CFG, GraphTrait >;
+    using WtoT = Wto< CFG, GraphTrait >;
     using WtoIterator = impl::WtoIterator< CFG, GraphTrait >;
     using WtoChecker = impl::WtoChecker< CFG, GraphTrait >;
     using HeadThresholdMap = llvm::DenseMap< NodeRef, std::optional< ZNum > >;
@@ -50,7 +50,7 @@ class WtoBasedFixPointIterator : public FixPointIterator< CFG, GraphTrait > {
     AnalyzerOptions m_analyzer_opts;
 
     GraphRef m_cfg;
-    Wto m_wto;
+    WtoT m_wto;
 
     InvariantMap m_pre;
     InvariantMap m_post;
@@ -80,7 +80,7 @@ class WtoBasedFixPointIterator : public FixPointIterator< CFG, GraphTrait > {
     }
     [[nodiscard]] bool is_converged() const override { return m_converged; }
     [[nodiscard]] GraphRef get_cfg() const override { return m_cfg; }
-    [[nodiscard]] const Wto& get_wto() const { return m_wto; }
+    [[nodiscard]] const WtoT& get_wto() const { return m_wto; }
     [[nodiscard]] const ProgramStateRef& get_bottom() const { return m_bottom; }
 
   public:

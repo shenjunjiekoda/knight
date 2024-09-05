@@ -719,9 +719,7 @@ class ArgumentRegion : public DeclRegion {
 
     [[nodiscard]] unsigned get_arg_index() const { return m_arg_idx; }
 
-    void set_arg_expr([[gnu::nonnull]] clang::Expr* arg_expr) {
-        m_arg_expr = arg_expr;
-    }
+    void set_arg_expr(clang::Expr* arg_expr) { m_arg_expr = arg_expr; }
 
     void set_arg_index(unsigned arg_idx) { m_arg_idx = arg_idx; }
 

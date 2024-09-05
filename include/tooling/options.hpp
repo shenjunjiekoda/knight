@@ -34,9 +34,10 @@ using Extensions = std::set< std::string >;
 
 constexpr unsigned KnightOptionsAlignment = 128U;
 constexpr unsigned KnightOptionsProviderAlignment = 64U;
+constexpr unsigned KnightOptionsProviderBigAlignment = 128U;
 
 /// \brief Knight options.
-struct KnightOptions {
+struct alignas(KnightOptionsAlignment) KnightOptions {
     /// \brief Checkers filter.
     std::string checkers;
 
@@ -53,7 +54,7 @@ struct KnightOptions {
     Extensions impl_extensions = {"c", "cc", "cpp", "cxx"};
 
     /// \brief checker specific options
-    std::map< std::string, CheckerOptVal > check_opts{};
+    std::map< std::string, CheckerOptVal > check_opts;
 
     /// \brief the user using knight
     std::string user = "unknown";
@@ -70,8 +71,7 @@ struct KnightOptions {
     /// \brief analyzer options
     dfa::AnalyzerOptions analyzer_opts;
 
-} __attribute__((aligned(KnightOptionsAlignment)))
-__attribute__((packed)); // struct KnightOptions
+}; // struct KnightOptions
 
 struct KnightOptionsProvider {
     virtual ~KnightOptionsProvider() = default;
@@ -84,9 +84,11 @@ struct KnightOptionsProvider {
 
     virtual void set_checker_option(const std::string& option,
                                     CheckerOptVal value) = 0;
-} __attribute__((packed)); // struct KnightOptionsProvider
+}; // struct KnightOptionsProvider
 
-struct KnightOptionsDefaultProvider : KnightOptionsProvider {
+struct alignas(KnightOptionsProviderBigAlignment)
+    KnightOptionsDefaultProvider // NOLINT(altera-struct-pack-align)
+    : KnightOptionsProvider {
   public:
     KnightOptions options;
 
@@ -105,10 +107,11 @@ struct KnightOptionsDefaultProvider : KnightOptionsProvider {
   protected:
     void set_default_options();
 
-} __attribute__((aligned(KnightOptionsProviderAlignment)))
-__attribute__((packed)); // struct KnightOptionsDefaultProvider
+}; // struct KnightOptionsDefaultProvider
 
-struct KnightOptionsCommandLineProvider : KnightOptionsDefaultProvider {
+struct alignas(KnightOptionsProviderBigAlignment)
+    KnightOptionsCommandLineProvider // NOLINT(altera-struct-pack-align)
+    : KnightOptionsDefaultProvider {
   protected:
     std::set< std::string > m_cmd_override_opts;
 
@@ -121,10 +124,9 @@ struct KnightOptionsCommandLineProvider : KnightOptionsDefaultProvider {
     void set_checker_option(const std::string& option,
                             CheckerOptVal value) override;
 
-} __attribute__((aligned(KnightOptionsProviderAlignment)))
-__attribute__((packed)); // class KnightOptionsCommandLineProvider
+}; // class KnightOptionsCommandLineProvider
 
-// TODO: add config file support
+// TODO(config-file): add config file support
 class KnightOptionsConfigFileProvider
     : public KnightOptionsCommandLineProvider {
   public:

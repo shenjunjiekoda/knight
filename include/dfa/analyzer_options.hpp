@@ -18,7 +18,7 @@ namespace knight::dfa {
 constexpr unsigned AnalyzerOptionsAlignment = 16U;
 
 /// \brief Options for the knight analyzer
-struct AnalyzerOptions {
+struct alignas(AnalyzerOptionsAlignment) AnalyzerOptions {
     /// \brief Delay count of iterations before widening
     int widening_delay = 1;
 
@@ -31,6 +31,6 @@ struct AnalyzerOptions {
     /// \brief If true, do widening and narrowing with threshold
     bool analyze_with_threshold = false;
 
-} __attribute__((aligned(AnalyzerOptionsAlignment))); // struct AnalyzerOptions
+}; // struct AnalyzerOptions
 
 } // namespace knight::dfa

@@ -38,20 +38,21 @@ class IntervalDom
     using Base = NumericalDom< IntervalDom< Num, Kind, SepKind >, Num >;
     using IntervalDomT = IntervalDom< Num, Kind, SepKind >;
     using Var = Variable< Num >;
-    using Interval = Interval< Num >;
-    using LinearExpr = LinearExpr< Num >;
-    using LinearConstraint = LinearConstraint< Num >;
-    using LinearConstraintSystem = LinearConstraintSystem< Num >;
-    using SeparateNumericalDom = SeparateNumericalDom< Num, Interval, SepKind >;
+    using IntervalT = Interval< Num >;
+    using LinearExprT = LinearExpr< Num >;
+    using LinearConstraintT = LinearConstraint< Num >;
+    using LinearConstraintSystemT = LinearConstraintSystem< Num >;
+    using SeparateNumericalDomT =
+        SeparateNumericalDom< Num, IntervalT, SepKind >;
     using Solver = impl::IntervalSolver< Num, IntervalDomT >;
-    using Map = typename SeparateNumericalDom::Map;
+    using Map = typename SeparateNumericalDomT::Map;
 
   private:
-    SeparateNumericalDom m_sep_dom;
+    SeparateNumericalDomT m_sep_dom;
 
   public:
     explicit IntervalDom(bool is_bottom, Map table = {})
-        : m_sep_dom(SeparateNumericalDom(is_bottom, table)) {}
+        : m_sep_dom(SeparateNumericalDomT(is_bottom, table)) {}
 
   public:
     [[nodiscard]] static DomainKind get_kind() { return Kind; }
@@ -102,7 +103,7 @@ class IntervalDom
         m_sep_dom.meet_with(other.m_sep_dom);
     }
 
-    void meet_value(const Var& x, const Interval& itv) {
+    void meet_value(const Var& x, const IntervalT& itv) {
         m_sep_dom.meet_value(x, itv);
     }
 
@@ -118,11 +119,11 @@ class IntervalDom
         return m_sep_dom.equals(other.m_sep_dom);
     }
 
-    Interval get_value(const Var& key) const {
+    IntervalT get_value(const Var& key) const {
         return m_sep_dom.get_value(key);
     }
 
-    void set_value(const Var& key, const Interval& value) {
+    void set_value(const Var& key, const IntervalT& value) {
         return m_sep_dom.set_value(key, value);
     }
 
@@ -146,7 +147,7 @@ class IntervalDom
         m_sep_dom.assign_var(x, y);
     }
 
-    void assign_linear_expr(const Var& x, const LinearExpr& e) override {
+    void assign_linear_expr(const Var& x, const LinearExprT& e) override {
         m_sep_dom.assign_linear_expr(x, e);
     }
 
@@ -167,24 +168,24 @@ class IntervalDom
         m_sep_dom.assign_cast(dst_type, dst_bit_width, x, y);
     }
 
-    Interval to_interval(const Var& x) const override {
+    IntervalT to_interval(const Var& x) const override {
         return m_sep_dom.get_value(x);
     }
 
-    void apply_linear_constraint(const LinearConstraint& cst) override;
+    void apply_linear_constraint(const LinearConstraintT& cst) override;
 
     void merge_with_linear_constraint_system(
-        const LinearConstraintSystem& csts) override;
+        const LinearConstraintSystemT& csts) override;
 
-    LinearConstraintSystem within_interval(const LinearExpr& expr,
-                                           const Interval& itv) const;
+    LinearConstraintSystemT within_interval(const LinearExprT& expr,
+                                            const IntervalT& itv) const;
 
-    LinearConstraintSystem within_interval(const Var& x,
-                                           const Interval& itv) const {
-        return within_interval(LinearExpr(x), itv);
+    LinearConstraintSystemT within_interval(const Var& x,
+                                            const IntervalT& itv) const {
+        return within_interval(LinearExprT(x), itv);
     }
 
-    [[nodiscard]] LinearConstraintSystem to_linear_constraint_system()
+    [[nodiscard]] LinearConstraintSystemT to_linear_constraint_system()
         const override;
 
 }; // class IntervalDom

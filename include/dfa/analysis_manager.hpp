@@ -90,17 +90,16 @@ using EventListenerCallback = AnalysisCallBack< void(void* event) >;
 constexpr unsigned SmallAlignedSize = 32U;
 constexpr unsigned BigAlignedSize = 64U;
 
-struct EventInfo {
+struct alignas(SmallAlignedSize) EventInfo {
     std::vector< EventListenerCallback > listeners;
     bool has_dispatcher = false;
-} __attribute__((aligned(SmallAlignedSize))); // struct EventInfo
+}; // struct EventInfo
 
-struct StmtAnalysisInfo {
+struct alignas(BigAlignedSize) StmtAnalysisInfo {
     AnalyzeStmtCallBack anz_cb;
     MatchStmtCallBack match_cb;
     VisitStmtKind kind;
-} __attribute__((aligned(BigAlignedSize)))
-__attribute__((packed)); // struct StmtAnalysisInfo
+}; // struct StmtAnalysisInfo
 
 } // namespace internal
 

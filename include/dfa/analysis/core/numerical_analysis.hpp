@@ -47,7 +47,7 @@ class NumericalAnalysis
         return AnalysisKind::NumericalAnalysis;
     }
 
-    struct LinearAssignEventHandler {
+    struct alignas(EventHandlerAlignment) LinearAssignEventHandler {
         const NumericalAnalysis& analysis;
         ProgramStateRef& state;
 
@@ -67,7 +67,7 @@ class NumericalAnalysis
         void handle(const ZVarAssignBinaryVarVar& assign) const;
         void handle(const ZVarAssignBinaryVarNum& assign) const;
 
-    } __attribute__((aligned(EventHandlerAlignment))); // struct EventHandler
+    }; // struct EventHandler
 
     void handle_event(LinearAssignEvent* event) const {
         std::visit(LinearAssignEventHandler{*this, event->state},
