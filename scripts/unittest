@@ -144,11 +144,13 @@ class Driver:
         self.timeout = args.timeout
         self.verbose = args.verbose
         self.paths = args.paths
+        self.knight_path = args.analyzer
 
         # file_path: str -> knight_cmd: str
         self.knight_commands = {}
         self.passed_count = 0
         self.failed_count = 0
+        
 
     def log(self, msg):
         """
@@ -227,7 +229,7 @@ class Driver:
                 )
                 if skip:
                     return "", True
-        cmd = ["knight", file_path]
+        cmd = [self.knight_path, file_path]
         cmd.append("--checkers='" + ",".join(checkers) + "'")
         cmd.append("--analyses='" + ",".join(analyses) + "'")
         cmd.extend(extra_args)
@@ -560,6 +562,9 @@ def main():
     )
     parser.add_argument(
         "-v", "--verbose", action="store_true", help="Print verbose output."
+    )
+    parser.add_argument(
+        "-a", "--analyzer", default="knight", help="Analyzer path to use for testing."
     )
 
     args = parser.parse_args()

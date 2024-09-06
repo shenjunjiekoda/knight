@@ -25,3 +25,5 @@ elseif(NOT ${LLVM_LIBS})
   llvm_map_components_to_libnames(LLVM_LIBS ${LLVM_TARGETS_TO_BUILD}
     core support option frontendopenmp)
 endif()
+
+message(STATUS "LLVM_LIBS: ${LLVM_LIBS}")

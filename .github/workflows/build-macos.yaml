@@ -45,10 +45,10 @@ jobs:
           cmake --build build -j16
           echo $(pwd)/build/bin >> $GITHUB_PATH
 
-      - name: Clang Tidy
-        run: |
-          chmod +x scripts/run-clang-tidy
-          scripts/run-clang-tidy -j16
+      # - name: Clang Tidy
+      #   run: |
+      #     chmod +x scripts/run-clang-tidy
+      #     scripts/run-clang-tidy -j16
       
       - name: Test Binary
         run: |

@@ -6,7 +6,7 @@ on:
     branches: [ "main" ]
 jobs:
   build-win:
-    runs-on: windows-latest
+    runs-on: windows-2022
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
@@ -15,30 +15,6 @@ jobs:
         run: |
           choco install 7zip.install wget -y
 
-      - name: Download LLVM and Clang
-        run: |
-          wget https://github.com/llvm/llvm-project/releases/download/llvmorg-18.1.8/clang+llvm-18.1.8-x86_64-pc-windows-msvc.tar.xz -O llvm.tar.xz
-
-      - name: Install LLVM and Clang
-        run: |
-          7z x llvm.tar.xz -so | 7z x -aoa -si -ttar -o${{ runner.temp }}
-          dir ${{ runner.temp }}
-          mv ${{ runner.temp }}/clang+llvm-18.1.8-x86_64-pc-windows-msvc ${{ runner.temp }}/llvm
-        shell: pwsh
-
-      - name: Add LLVM to PATH
-        run: |
-          echo "${{ runner.temp }}/llvm/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-
-      - name: Verify LLVM Path
-        run: |
-          echo $env:PATH
-          which clang
-          clang --version
-          clang-tidy --version
-          clang-format --version
-        shell: pwsh
-
       - name: Install Python
         uses: actions/setup-python@v4
         with:
@@ -46,26 +22,121 @@ jobs:
 
       - name: Install MSYS2
         uses: msys2/setup-msys2@v2
+        id: msys2
         with:
-          install: mingw-w64-x86_64-gmp
+          update: true
+          install: >
+            mingw-w64-x86_64-toolchain
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-gmp
+            mingw-w64-x86_64-llvm
+            mingw-w64-x86_64-llvm-libs
+            mingw-w64-x86_64-clang
+            mingw-w64-x86_64-clang-libs
+            mingw-w64-x86_64-clang-tools-extra
+            mingw-w64-x86_64-lld
+            mingw-w64-x86_64-ncurses
 
-      - name: Add MSYS2 to PATH
-        run: echo "C:/msys64/mingw64/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-
-      - name: Build Repo
-        shell: pwsh
+      
+      - name: Verify MSYS2
         run: |
-          cmake -DCMAKE_BUILD_TYPE:STRING=Release -DLINK_LLVM_DYLIB=ON -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE -DLLVM_BUILD_DIR=${{ runner.temp }}/llvm -B build
+          dir ${{ steps.msys2.outputs.msys2-location }}
+          dir ${{ steps.msys2.outputs.msys2-location }}/usr
+          dir ${{ steps.msys2.outputs.msys2-location }}/usr/include
+          dir ${{ steps.msys2.outputs.msys2-location }}/usr/bin
+          dir ${{ steps.msys2.outputs.msys2-location }}/mingw64
+          dir ${{ steps.msys2.outputs.msys2-location }}/mingw64/include
+          dir ${{ steps.msys2.outputs.msys2-location }}/mingw64/lib
+          dir ${{ steps.msys2.outputs.msys2-location }}/mingw64/bin
+          
+          echo '${{ steps.msys2.outputs.msys2-location }}' | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          echo '${{ steps.msys2.outputs.msys2-location }}/mingw64' | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          echo '${{ steps.msys2.outputs.msys2-location }}/mingw64/bin' | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+          echo '${{ steps.msys2.outputs.msys2-location }}/usr/bin' | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+          which cmake
+          which gcc
+          which g++
+          which clang
+          which clang++
+      
+      - name: Verify Installation
+        run: |
+          ${{ steps.msys2.outputs.msys2-location }}/msys2 --version
+          dir ${{ steps.msys2.outputs.msys2-location }}/mingw64/lib/cmake/llvm/
+          pacman -Ql mingw-w64-x86_64-gmp
+          pacman -Ql mingw-w64-x86_64-llvm
+          pacman -Ql mingw-w64-x86_64-llvm-libs
+          pacman -Ql mingw-w64-x86_64-clang
+          pacman -Ql mingw-w64-x86_64-clang-libs
+          pacman -Ql mingw-w64-x86_64-clang-tools-extra
+
+
+      - name: install DIA SDK
+        shell: bash
+        run: |
+          set -x
+          mkdir -p ${{ runner.temp }}/workspace
+          mkdir -p "C:/Program Files (x86)/Microsoft Visual Studio/2019/Professional" || true
+          cp -rv "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/DIA SDK" "C:/Program Files (x86)/Microsoft Visual Studio/2019/Professional/DIA SDK"
+
+      # - name: Download LLVM and Clang
+      #   run: |
+      #     wget https://github.com/llvm/llvm-project/releases/download/llvmorg-18.1.8/llvm-project-18.1.8.src.tar.xz -O llvm.tar.xz
+      #     7z x llvm.tar.xz -so | 7z x -aoa -si -ttar -o${{ runner.temp }}/workspace
+      #     dir ${{ runner.temp }}/workspace
+      #     mv ${{ runner.temp }}/workspace/llvm-project-18.1.8.src ${{ runner.temp }}/workspace/llvm
+      #     dir ${{ runner.temp }}/workspace/llvm
+      #   shell: pwsh
+
+      # - name: Configure LLVM and Clang
+      #   run: |
+      #     cmake -DCMAKE_BUILD_TYPE:STRING=Release -DCMAKE_C_COMPILER:STRING=gcc -DCMAKE_CXX_COMPILER:STRING=g++ "-DLLVM_ENABLE_PROJECTS:STRING=clang;clang-tools-extra" -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE -DLLVM_ENABLE_ASSERTIONS:STRING=ON -S ${{ runner.temp }}/workspace/llvm/llvm -B ${{ runner.temp }}/workspace/llvm/build
+      #     cmake --build ${{ runner.temp }}/workspace/llvm/build -j16
+
+      # - name: Add LLVM to PATH
+      #   run: |
+      #     echo "${{ runner.temp }}/workspace/llvm/build/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      # - name: Verify LLVM Path
+      #   run: |
+      #     echo $env:PATH
+      #     which clang
+      #     clang --version
+      #     clang-tidy --version
+      #     clang-format --version
+      #     dir ${{ runner.temp }}/workspace/llvm/build/bin
+      #     dir ${{ runner.temp }}/workspace/llvm/build/lib
+      #     dir ${{ runner.temp }}/workspace/llvm/build/include
+      #   shell: pwsh
+
+      
+          
+      - name: Configure CMake
+        run: |
+          cmake -G "MSYS Makefiles" -DLINK_CLANG_DYLIB=on -DLINK_LLVM_DYLIB=on -DCMAKE_BUILD_TYPE:STRING=Release -DGMP_ROOT:STRING=${{ steps.msys2.outputs.msys2-location }}/mingw64 -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE -DLLVM_BUILD_DIR=${{ steps.msys2.outputs.msys2-location }}/mingw64 -B build
+
+      - name: Build Knight
+        run: |    
           cmake --build build -j16
+
+      - name: Add Knight Binary to PATH
+        run: |
           echo "$(pwd)/build/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
       
       - name: Test Binary
-        shell: pwsh
+        shell: cmd
         run: |
-          which knight
-          knight --help
+          ${{ steps.msys2.outputs.msys2-location }}/msys2 -c 'which knight'
+          ${{ steps.msys2.outputs.msys2-location }}/msys2 -c 'knight --version'
 
       - name: Unit Tests
-        shell: pwsh
+        shell: cmd
         run: |
-          python3 scripts/unittest run test/testcase/
+          ${{ steps.msys2.outputs.msys2-location }}/msys2 -c 'python3 scripts/unittest -v p test/testcase/'
+          ${{ steps.msys2.outputs.msys2-location }}/msys2 -c 'python3 scripts/unittest -v -a "knight.exe" run test/testcase/'
+          
+
+          
+

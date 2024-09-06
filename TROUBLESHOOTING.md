@@ -10,4 +10,4 @@ LLVM ERROR: inconsistency in registered CommandLine options
 
 When you encounter this error, it means you shall link against the LLVM dynamic library dynamic library.
 
-Running Cmake with `-DLINK_LLVM_DYLIB=ON` should fix the issue.
+Running cmake with `-DLINK_LLVM_DYLIB=ON` should fix the issue.

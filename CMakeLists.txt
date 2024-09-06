@@ -37,6 +37,7 @@ set(SRC_DIR ${CMAKE_SOURCE_DIR})
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 
 option(LINK_LLVM_DYLIB "Link with libLLVM dynamic library" OFF)
+option(LINK_CLANG_DYLIB "Link with libclang-cpp dynamic library" OFF)
 
 # LLVM and Clang setup
 include(cmake/addLLVM.cmake)
