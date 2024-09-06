@@ -1,14 +1,14 @@
 name: Build on Mac OS
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 jobs:
   build-mac:
     runs-on: macos-latest
     env:
-      LDFLAGS:  "-L/opt/homebrew/opt/llvm@18/lib"
+      LDFLAGS: "-L/opt/homebrew/opt/llvm@18/lib"
       CPPFLAGS: "-I/opt/homebrew/opt/llvm@18/include"
     steps:
       - name: Checkout Repo
@@ -16,18 +16,18 @@ jobs:
 
       - name: Install Dependencies
         run: |
-         brew update
-         brew install \
-           cmake gmp \
-           llvm@18
-         echo "/opt/homebrew/opt/llvm@18/bin" >> $GITHUB_PATH
-      
+          brew update
+          brew install \
+            cmake gmp \
+            llvm@18
+          echo "/opt/homebrew/opt/llvm@18/bin" >> $GITHUB_PATH
+
       - name: Test LLVM
         run: |
-         which clang
-         clang --version
-         llvm-config --bindir
-      
+          which clang
+          clang --version
+          llvm-config --bindir
+
       - name: Spell Check
         uses: crate-ci/typos@v1.24.3
 
@@ -45,11 +45,6 @@ jobs:
           cmake --build build -j16
           echo $(pwd)/build/bin >> $GITHUB_PATH
 
-      # - name: Clang Tidy
-      #   run: |
-      #     chmod +x scripts/run-clang-tidy
-      #     scripts/run-clang-tidy -j16
-      
       - name: Test Binary
         run: |
           knight --help
@@ -58,5 +53,3 @@ jobs:
         run: |
           chmod +x scripts/unittest
           scripts/unittest run test/testcase/
-      
-        

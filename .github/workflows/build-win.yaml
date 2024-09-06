@@ -1,9 +1,9 @@
 name: Build on Windows
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 jobs:
   build-win:
     runs-on: windows-2022
@@ -37,7 +37,6 @@ jobs:
             mingw-w64-x86_64-lld
             mingw-w64-x86_64-ncurses
 
-      
       - name: Verify MSYS2
         run: |
           dir ${{ steps.msys2.outputs.msys2-location }}
@@ -48,7 +47,7 @@ jobs:
           dir ${{ steps.msys2.outputs.msys2-location }}/mingw64/include
           dir ${{ steps.msys2.outputs.msys2-location }}/mingw64/lib
           dir ${{ steps.msys2.outputs.msys2-location }}/mingw64/bin
-          
+
           echo '${{ steps.msys2.outputs.msys2-location }}' | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           echo '${{ steps.msys2.outputs.msys2-location }}/mingw64' | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           echo '${{ steps.msys2.outputs.msys2-location }}/mingw64/bin' | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
@@ -60,7 +59,7 @@ jobs:
           which g++
           which clang
           which clang++
-      
+
       - name: Verify Installation
         run: |
           ${{ steps.msys2.outputs.msys2-location }}/msys2 --version
@@ -72,7 +71,6 @@ jobs:
           pacman -Ql mingw-w64-x86_64-clang-libs
           pacman -Ql mingw-w64-x86_64-clang-tools-extra
 
-
       - name: install DIA SDK
         shell: bash
         run: |
@@ -81,50 +79,18 @@ jobs:
           mkdir -p "C:/Program Files (x86)/Microsoft Visual Studio/2019/Professional" || true
           cp -rv "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/DIA SDK" "C:/Program Files (x86)/Microsoft Visual Studio/2019/Professional/DIA SDK"
 
-      # - name: Download LLVM and Clang
-      #   run: |
-      #     wget https://github.com/llvm/llvm-project/releases/download/llvmorg-18.1.8/llvm-project-18.1.8.src.tar.xz -O llvm.tar.xz
-      #     7z x llvm.tar.xz -so | 7z x -aoa -si -ttar -o${{ runner.temp }}/workspace
-      #     dir ${{ runner.temp }}/workspace
-      #     mv ${{ runner.temp }}/workspace/llvm-project-18.1.8.src ${{ runner.temp }}/workspace/llvm
-      #     dir ${{ runner.temp }}/workspace/llvm
-      #   shell: pwsh
-
-      # - name: Configure LLVM and Clang
-      #   run: |
-      #     cmake -DCMAKE_BUILD_TYPE:STRING=Release -DCMAKE_C_COMPILER:STRING=gcc -DCMAKE_CXX_COMPILER:STRING=g++ "-DLLVM_ENABLE_PROJECTS:STRING=clang;clang-tools-extra" -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE -DLLVM_ENABLE_ASSERTIONS:STRING=ON -S ${{ runner.temp }}/workspace/llvm/llvm -B ${{ runner.temp }}/workspace/llvm/build
-      #     cmake --build ${{ runner.temp }}/workspace/llvm/build -j16
-
-      # - name: Add LLVM to PATH
-      #   run: |
-      #     echo "${{ runner.temp }}/workspace/llvm/build/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-
-      # - name: Verify LLVM Path
-      #   run: |
-      #     echo $env:PATH
-      #     which clang
-      #     clang --version
-      #     clang-tidy --version
-      #     clang-format --version
-      #     dir ${{ runner.temp }}/workspace/llvm/build/bin
-      #     dir ${{ runner.temp }}/workspace/llvm/build/lib
-      #     dir ${{ runner.temp }}/workspace/llvm/build/include
-      #   shell: pwsh
-
-      
-          
       - name: Configure CMake
         run: |
           cmake -G "MSYS Makefiles" -DLINK_CLANG_DYLIB=on -DLINK_LLVM_DYLIB=on -DCMAKE_BUILD_TYPE:STRING=Release -DGMP_ROOT:STRING=${{ steps.msys2.outputs.msys2-location }}/mingw64 -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE -DLLVM_BUILD_DIR=${{ steps.msys2.outputs.msys2-location }}/mingw64 -B build
 
       - name: Build Knight
-        run: |    
+        run: |
           cmake --build build -j16
 
       - name: Add Knight Binary to PATH
         run: |
           echo "$(pwd)/build/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-      
+
       - name: Test Binary
         shell: cmd
         run: |
@@ -136,7 +102,3 @@ jobs:
         run: |
           ${{ steps.msys2.outputs.msys2-location }}/msys2 -c 'python3 scripts/unittest -v p test/testcase/'
           ${{ steps.msys2.outputs.msys2-location }}/msys2 -c 'python3 scripts/unittest -v -a "knight.exe" run test/testcase/'
-          
-
-          
-

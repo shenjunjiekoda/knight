@@ -1,6 +1,8 @@
 <img src="doc/icon.png" alt="logo" width="20%" />
 
-# Knight ![Language](https://img.shields.io/badge/language-c++-brightgreen)![License](https://img.shields.io/badge/license-MIT-yellow)
+# Knight
+
+![Language](https://img.shields.io/badge/language-c++-brightgreen)![License](https://img.shields.io/badge/license-MIT-yellow)[![Ubuntu Build](https://github.com/shenjunjiekoda/knight/actions/workflows/build-ubuntu.yaml/badge.svg)](https://github.com/shenjunjiekoda/knight/actions/workflows/build-ubuntu.yaml)[![MacOS Build](https://github.com/shenjunjiekoda/knight/actions/workflows/build-macos.yaml/badge.svg)](https://github.com/shenjunjiekoda/knight/actions/workflows/build-macos.yaml)[![Win Build](https://github.com/shenjunjiekoda/knight/actions/workflows/build-win.yaml/badge.svg)](https://github.com/shenjunjiekoda/knight/actions/workflows/build-win.yaml)
 
 _Knight_ is a static analysis tool for C/C++ programs written in C++20.
 
