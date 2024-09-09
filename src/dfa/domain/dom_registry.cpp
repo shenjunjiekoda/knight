@@ -13,14 +13,17 @@
 
 #include "dfa/domain/demo_dom.hpp"
 #include "dfa/domain/numerical/interval_dom.hpp"
+#include "dfa/domain/pointer.hpp"
 
 namespace knight::dfa {
 
 std::unordered_map< DomainKind, DomainDefaultValFn > DefaultValFns;
 std::unordered_map< DomainKind, DomainBottomValFn > BottomValFns;
 
-static DomainRegistry< ZIntervalDom > A;
-static DomainRegistry< DemoItvDom > B;
-static DomainRegistry< DemoMapDomain > C;
+DomainRegistry< ZIntervalDom > A;
+DomainRegistry< DemoItvDom > B;
+DomainRegistry< DemoMapDomain > C;
+DomainRegistry< PointToSet > D;
+DomainRegistry< PointerDom > E;
 
 } // namespace knight::dfa

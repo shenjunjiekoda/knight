@@ -112,7 +112,12 @@ class MapDom : public AbsDom< MapDom< Key, SeparateValue, domain_kind > > {
     [[nodiscard]] AbsDomBase* clone() const override {
         Map table;
         for (auto& [key, value] : m_table) {
-            table[key] = *(static_cast< SeparateValue* >(value.clone()));
+            if constexpr (isa_abs_dom< Key >::value) {
+                table[*static_cast< Key* >(key.clone())] =
+                    *(static_cast< SeparateValue* >(value.clone()));
+            } else {
+                table[key] = *(static_cast< SeparateValue* >(value.clone()));
+            }
         }
         return new MapDom(m_is_bottom, table);
     }

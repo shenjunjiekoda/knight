@@ -293,17 +293,24 @@ void SymbolResolver::handle_binary_operation(
     BinaryOperationContext bo_ctx) const {
     using enum clang::BinaryOperator::Opcode;
 
+    bool is_int = bo_ctx.result_type->isIntegralOrEnumerationType();
+    if (is_int) {
+        handle_int_binary_operation(bo_ctx);
+        return;
+    }
+    knight_log(llvm::outs() << "not int type binary operation!\n");
+}
+
+void SymbolResolver::handle_int_binary_operation(
+    BinaryOperationContext bo_ctx) const {
+    using enum clang::BinaryOperator::Opcode;
+
     auto state = m_ctx->get_state();
     auto& sym_mgr = m_ctx->get_symbol_manager();
 
     auto lhs_expr = bo_ctx.lhs_expr;
     auto rhs_expr = bo_ctx.rhs_expr;
 
-    bool is_int = bo_ctx.result_type->isIntegralOrEnumerationType();
-    if (!is_int) {
-        knight_log(llvm::outs() << "not int type binary operation!\n");
-        return;
-    }
     auto op = bo_ctx.op;
     bool is_assign = clang::BinaryOperator::isAssignmentOp(op);
     bool is_direct_assign =
@@ -365,53 +372,49 @@ void SymbolResolver::handle_binary_operation(
                                     bo_ctx.result_type,
                                     m_ctx->get_current_stack_frame());
 
-    if (is_int) {
-        ZVariable x(binary_conjured_sym);
+    ZVariable x(binary_conjured_sym);
 
-        knight_log_nl(llvm::outs() << "zvar x: "; x.dump(llvm::outs());
-                      llvm::outs() << "\n";);
+    knight_log_nl(llvm::outs() << "zvar x: "; x.dump(llvm::outs());
+                  llvm::outs() << "\n";);
 
-        ZLinearExpr cstr(x);
-        auto lhs_var = lhs_sexpr->get_as_zvariable();
-        auto lhs_num = lhs_sexpr->get_as_znum();
-        auto rhs_var = rhs_sexpr->get_as_zvariable();
-        auto rhs_num = rhs_sexpr->get_as_znum();
-        if (lhs_var && rhs_var) {
-            LinearAssignEvent
-                event(ZVarAssignBinaryVarVar{op, x, *lhs_var, *rhs_var}, state);
+    ZLinearExpr cstr(x);
+    auto lhs_var = lhs_sexpr->get_as_zvariable();
+    auto lhs_num = lhs_sexpr->get_as_znum();
+    auto rhs_var = rhs_sexpr->get_as_zvariable();
+    auto rhs_num = rhs_sexpr->get_as_znum();
+    if (lhs_var && rhs_var) {
+        LinearAssignEvent
+            event(ZVarAssignBinaryVarVar{op, x, *lhs_var, *rhs_var}, state);
+        EventDispatcher< LinearAssignEvent >::dispatch_event(event);
+
+        cstr -= (*lhs_var + *rhs_var);
+    } else if ((lhs_var && rhs_num) || (lhs_num && rhs_var)) {
+        auto y = lhs_var ? *lhs_var : *rhs_var;
+        auto z = lhs_var ? *rhs_num : *lhs_num;
+        LinearAssignEvent event(ZVarAssignBinaryVarNum{op, x, y, z}, state);
+        EventDispatcher< LinearAssignEvent >::dispatch_event(event);
+
+        cstr -= (y + z);
+    } else if (auto zexpr = binary_sexpr->get_as_zexpr()) {
+        if (auto znum = binary_sexpr->get_as_znum()) {
+            LinearAssignEvent event(ZVarAssignZNum{x, *znum}, state);
             EventDispatcher< LinearAssignEvent >::dispatch_event(event);
 
-            cstr -= (*lhs_var + *rhs_var);
-        } else if ((lhs_var && rhs_num) || (lhs_num && rhs_var)) {
-            auto y = lhs_var ? *lhs_var : *rhs_var;
-            auto z = lhs_var ? *rhs_num : *lhs_num;
-            LinearAssignEvent event(ZVarAssignBinaryVarNum{op, x, y, z}, state);
+            binary_sexpr = sym_mgr.get_scalar_int(*znum, bo_ctx.result_type);
+            cstr -= *znum;
+        } else if (auto zvar = binary_sexpr->get_as_zvariable()) {
+            LinearAssignEvent event(ZVarAssignZVar{x, *zvar}, state);
             EventDispatcher< LinearAssignEvent >::dispatch_event(event);
 
-            cstr -= (y + z);
-        } else if (auto zexpr = binary_sexpr->get_as_zexpr()) {
-            if (auto znum = binary_sexpr->get_as_znum()) {
-                LinearAssignEvent event(ZVarAssignZNum{x, *znum}, state);
-                EventDispatcher< LinearAssignEvent >::dispatch_event(event);
+            cstr -= *zvar;
+        } else {
+            LinearAssignEvent event(ZVarAssignZLinearExpr{x, *zexpr}, state);
+            EventDispatcher< LinearAssignEvent >::dispatch_event(event);
 
-                binary_sexpr =
-                    sym_mgr.get_scalar_int(*znum, bo_ctx.result_type);
-                cstr -= *znum;
-            } else if (auto zvar = binary_sexpr->get_as_zvariable()) {
-                LinearAssignEvent event(ZVarAssignZVar{x, *zvar}, state);
-                EventDispatcher< LinearAssignEvent >::dispatch_event(event);
-
-                cstr -= *zvar;
-            } else {
-                LinearAssignEvent event(ZVarAssignZLinearExpr{x, *zexpr},
-                                        state);
-                EventDispatcher< LinearAssignEvent >::dispatch_event(event);
-
-                cstr -= *zexpr;
-            }
-            state = state->add_zlinear_constraint(
-                ZLinearConstraint(cstr, LinearConstraintKind::LCK_Equality));
+            cstr -= *zexpr;
         }
+        state = state->add_zlinear_constraint(
+            ZLinearConstraint(cstr, LinearConstraintKind::LCK_Equality));
     }
 
     knight_log(llvm::outs()

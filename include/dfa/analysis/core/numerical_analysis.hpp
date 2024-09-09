@@ -7,7 +7,7 @@
 //
 //===------------------------------------------------------------------===//
 //
-//  This header defines an numerical analysis
+//  This header defines the numerical analysis
 //
 //===------------------------------------------------------------------===//
 
@@ -36,6 +36,7 @@
 namespace knight::dfa {
 
 constexpr unsigned EventHandlerAlignment = 16U;
+
 class NumericalAnalysis
     : public Analysis< NumericalAnalysis,
                        analyze::EventListener< LinearAssignEvent >,

@@ -180,6 +180,14 @@ void CastSymExpr::dump(llvm::raw_ostream& os) const {
     os << ")";
 }
 
+bool Scalar::is_integer() const {
+    return get_kind() == SymExprKind::Int;
+}
+
+bool Scalar::is_region() const {
+    return get_kind() == SymExprKind::Region;
+}
+
 std::optional< ZLinearExpr > SymExpr::get_as_zexpr() const {
     if (!get_type()->isIntegralOrEnumerationType()) {
         return std::nullopt;
@@ -216,6 +224,14 @@ std::optional< ZLinearExpr > SymExpr::get_as_zexpr() const {
         }
     }
     return std::nullopt;
+}
+
+const TypedRegion* ScalarRegion::get_region() const {
+    return m_region;
+}
+
+clang::QualType ScalarRegion::get_type() const {
+    return m_region->get_value_type();
 }
 
 std::optional< ZLinearConstraint > SymExpr::get_as_zconstraint() const {

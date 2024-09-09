@@ -23,6 +23,7 @@
 #include "dfa/stack_frame.hpp"
 #include "support/dumpable.hpp"
 #include "support/symbol.hpp"
+#include "util/log.hpp"
 
 #include <clang/AST/Expr.h>
 #include <clang/AST/OperationKinds.h>
@@ -30,7 +31,6 @@
 #include <clang/Basic/SourceLocation.h>
 #include <llvm/ADT/APSInt.h>
 #include <llvm/ADT/StringRef.h>
-#include "util/log.hpp"
 
 namespace knight::dfa {
 
@@ -40,8 +40,8 @@ enum class SymExprKind {
 
     SCALAR_BEGIN,
     Int,
+    Region,
     // TODO(scalar-sexpr): add more scalar types here
-    // TODO(scalar-sexpr): Shall we add a region type here?
     SCALAR_END,
 
     // symbol leaf node
@@ -137,7 +137,8 @@ class Scalar : public SymExpr {
     ~Scalar() override = default;
 
     [[nodiscard]] bool is_leaf() const override { return true; }
-    [[nodiscard]] virtual bool is_integer() const { return false; }
+    [[nodiscard]] bool is_integer() const;
+    [[nodiscard]] bool is_region() const;
     [[nodiscard]] unsigned get_worst_complexity() const override { return 0U; }
     [[nodiscard]] static bool classof(const SymExpr* sym_expr) {
         return sym_expr->get_kind() >= SymExprKind::SCALAR_BEGIN &&
@@ -155,15 +156,20 @@ class ScalarInt : public Scalar {
         : Scalar(SymExprKind::Int), m_value(std::move(value)), m_type(type) {}
 
     [[nodiscard]] ZNum get_value() const { return m_value; }
-    [[nodiscard]] bool is_integer() const override { return true; }
+
+    [[nodiscard]] clang::QualType get_type() const override { return m_type; }
+
+    [[nodiscard]] bool is_loc() const {
+        return !m_type->isSignedIntegerOrEnumerationType();
+    }
+
     [[nodiscard]] static bool classof(const SymExpr* sym_expr) {
         return sym_expr->get_kind() == SymExprKind::Int;
     }
-    [[nodiscard]] static bool classof(const Scalar* scalar) {
-        return scalar->get_kind() == SymExprKind::Int;
-    }
 
-    [[nodiscard]] clang::QualType get_type() const override { return m_type; }
+    [[nodiscard]] static bool classof(const Scalar* scalar) {
+        return scalar->is_integer();
+    }
 
     void dump(llvm::raw_ostream& os) const override { os << m_value; }
 
@@ -179,6 +185,27 @@ class ScalarInt : public Scalar {
         ScalarInt::profile(id, m_value, m_type);
     }
 }; // class Integer
+
+/// \brief A scalar region address
+class ScalarRegion : public Scalar {
+  private:
+    const TypedRegion* m_region;
+
+  public:
+    explicit ScalarRegion(const TypedRegion* region)
+        : Scalar(SymExprKind::RegionSymbolVal), m_region(region) {}
+
+    [[nodiscard]] const TypedRegion* get_region() const;
+    [[nodiscard]] clang::QualType get_type() const override;
+
+    [[nodiscard]] static bool classof(const SymExpr* sym_expr) {
+        return sym_expr->get_kind() == SymExprKind::Region;
+    }
+
+    [[nodiscard]] static bool classof(const Scalar* scalar) {
+        return scalar->is_region();
+    }
+};
 
 using SymID = unsigned;
 

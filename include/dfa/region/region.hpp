@@ -36,6 +36,7 @@ class TypedRegion;
 class MemSpaceRegion;
 
 using RegionRef = const TypedRegion*;
+using RegionRefSet = llvm::SmallPtrSet< RegionRef, 2 >;
 using MemSpaceRegionRef = const MemSpaceRegion*;
 
 class MemSpaceRegion {

@@ -22,6 +22,7 @@
 #endif
 
 ANALYSIS_DEF(SymbolResolver, "core-symbol-resolver", 0, "Resolves symbols in the program.")
-ANALYSIS_DEF(DemoAnalysis, "demo-analysis", 1, "A demo analysis.")
-ANALYSIS_DEF(NumericalAnalysis, "core-numerical", 2, "The numerical analysis.")
-ANALYSIS_DEF(StatePrinter, "debug-state-printer", 3, "A state printer for debugging.")
+ANALYSIS_DEF(NumericalAnalysis, "core-numerical", 1, "The numerical analysis.")
+ANALYSIS_DEF(PointerAnalysis, "core-pointer", 2, "The pointer analysis.")
+ANALYSIS_DEF(DemoAnalysis, "demo-analysis", 3, "A demo analysis.")
+ANALYSIS_DEF(StatePrinter, "debug-state-printer", 4, "A state printer for debugging.")

@@ -100,6 +100,7 @@ class SymbolResolver
     }; // struct BinaryOperationContext
 
     void handle_binary_operation(BinaryOperationContext bo_ctx) const;
+    void handle_int_binary_operation(BinaryOperationContext bo_ctx) const;
 
     struct alignas(internal::AssignmentContextAlignment)
         AssignmentContext { // NOLINT(altera-struct-pack-align)

@@ -21,6 +21,7 @@
 
 #include <clang/AST/Decl.h>
 #include <clang/AST/Type.h>
+
 namespace knight::dfa {
 
 template < typename Num >
