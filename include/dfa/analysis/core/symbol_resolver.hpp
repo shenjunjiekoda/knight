@@ -89,12 +89,17 @@ class SymbolResolver
         const clang::Stmt* result_stmt{};
     }; // struct BinaryOperationContext
 
+    void handle_var_decl(const clang::VarDecl* var_decl,
+                         ProgramStateRef& state,
+                         SExprRef& stmt_sexpr) const;
+
     void handle_binary_operation(BinaryOperationContext) const;
     void handle_int_binary_operation(BinaryOperationContext) const;
-    void hanlde_int_assign_binary_operation(BinaryOperationContext) const;
+    void handle_int_assign_binary_operation(BinaryOperationContext) const;
     void handle_int_non_assign_binary_operation(BinaryOperationContext) const;
     void handle_ref_binary_operation(BinaryOperationContext) const;
     void handle_ptr_binary_operation(BinaryOperationContext) const;
+    void handle_ptr_assign_binary_operation(BinaryOperationContext) const;
 
     void handle_int_cond_op(const clang::ConditionalOperator*) const;
 
@@ -110,6 +115,13 @@ class SymbolResolver
     };
 
     [[nodiscard]] ProgramStateRef handle_assign(AssignmentContext) const;
+    void handle_int_assign(AssignmentContext assign_ctx,
+                           SymbolRef res_sym,
+                           bool is_direct_assign,
+                           clang::BinaryOperator::Opcode op,
+                           ProgramStateRef& state,
+                           SExprRef& binary_sexpr) const;
+
     void handle_load(const clang::Expr* load_expr) const;
 };
 
