@@ -21,5 +21,5 @@
 #define EVENT_DEF(KIND, NAME, ID, DESC)
 #endif
 
-EVENT_DEF(LinearAssignEvent, "LinearAssignEvent", 0, "The numerical linear assignment event.")
-EVENT_DEF(LinearAssumptionEvent, "LinearAssumptionEvent", 1, "The numerical linear assumption event.")
+EVENT_DEF(LinearNumericalAssignEvent, "LinearNumericalAssignEvent", 0, "The numerical linear assignment event.")
+EVENT_DEF(LinearNumericalAssumptionEvent, "LinearNumericalAssumptionEvent", 1, "The numerical linear assumption event.")

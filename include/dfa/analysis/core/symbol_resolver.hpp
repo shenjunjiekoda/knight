@@ -40,11 +40,12 @@ constexpr unsigned AssignmentContextAlignment = 64U;
 } // namespace internal
 
 class SymbolResolver
-    : public Analysis< SymbolResolver,
-                       analyze::EvalStmt< clang::Stmt >,
-                       analyze::EventDispatcher< LinearAssignEvent >,
-                       analyze::EventDispatcher< LinearAssumptionEvent >,
-                       analyze::ConditionFilter >,
+    : public Analysis<
+          SymbolResolver,
+          analyze::EvalStmt< clang::Stmt >,
+          analyze::EventDispatcher< LinearNumericalAssignEvent,
+                                    LinearNumericalAssumptionEvent >,
+          analyze::ConditionFilter >,
       public clang::ConstStmtVisitor< SymbolResolver > {
   private:
     mutable AnalysisContext* m_ctx{};
@@ -56,29 +57,18 @@ class SymbolResolver
         return AnalysisKind::SymbolResolver;
     }
 
-    void VisitIntegerLiteral(
-        const clang::IntegerLiteral* integer_literal) const;
+    void VisitIntegerLiteral(const clang::IntegerLiteral*) const;
+    void VisitUnaryOperator(const clang::UnaryOperator*) const;
+    void VisitBinaryOperator(const clang::BinaryOperator*) const;
+    void VisitConditionalOperator(const clang::ConditionalOperator*) const;
+    void VisitDeclStmt(const clang::DeclStmt*) const;
+    void VisitCastExpr(const clang::CastExpr*) const;
 
-    void VisitUnaryOperator(const clang::UnaryOperator* unary_operator) const;
+    void analyze_stmt(const clang::Stmt*, AnalysisContext&) const;
+    void filter_condition(const clang::Expr*, bool, AnalysisContext&) const;
 
-    void VisitBinaryOperator(
-        const clang::BinaryOperator* binary_operator) const;
-
-    void VisitConditionalOperator(
-        const clang::ConditionalOperator* conditional_operator) const;
-
-    void VisitDeclStmt(const clang::DeclStmt* decl_stmt) const;
-
-    void VisitCastExpr(const clang::CastExpr* cast_expr) const;
-
-    void analyze_stmt(const clang::Stmt* stmt, AnalysisContext& ctx) const;
-
-    void filter_condition(const clang::Expr* expr,
-                          bool assertion_result,
-                          AnalysisContext& ctx) const;
-
-    static UniqueAnalysisRef register_analysis(AnalysisManager& mgr,
-                                               KnightContext& ctx) {
+    [[nodiscard]] static UniqueAnalysisRef register_analysis(
+        AnalysisManager& mgr, KnightContext& ctx) {
         mgr.set_analysis_privileged< SymbolResolver >();
         return mgr.register_analysis< SymbolResolver >(ctx);
     }
@@ -99,8 +89,14 @@ class SymbolResolver
         const clang::Stmt* result_stmt{};
     }; // struct BinaryOperationContext
 
-    void handle_binary_operation(BinaryOperationContext bo_ctx) const;
-    void handle_int_binary_operation(BinaryOperationContext bo_ctx) const;
+    void handle_binary_operation(BinaryOperationContext) const;
+    void handle_int_binary_operation(BinaryOperationContext) const;
+    void hanlde_int_assign_binary_operation(BinaryOperationContext) const;
+    void handle_int_non_assign_binary_operation(BinaryOperationContext) const;
+    void handle_ref_binary_operation(BinaryOperationContext) const;
+    void handle_ptr_binary_operation(BinaryOperationContext) const;
+
+    void handle_int_cond_op(const clang::ConditionalOperator*) const;
 
     struct alignas(internal::AssignmentContextAlignment)
         AssignmentContext { // NOLINT(altera-struct-pack-align)
@@ -113,7 +109,7 @@ class SymbolResolver
             clang::BinaryOperator::Opcode::BO_Assign;
     };
 
-    ProgramStateRef handle_assign(AssignmentContext assign_ctx) const;
+    [[nodiscard]] ProgramStateRef handle_assign(AssignmentContext) const;
     void handle_load(const clang::Expr* load_expr) const;
 };
 

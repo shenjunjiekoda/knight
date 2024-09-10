@@ -19,6 +19,7 @@
 #include "dfa/domain/dom_base.hpp"
 #include "dfa/domain/domains.hpp"
 #include "dfa/domain/numerical/numerical_base.hpp"
+#include "dfa/domain/pointer.hpp"
 #include "dfa/location_context.hpp"
 #include "dfa/proc_cfg.hpp"
 #include "dfa/region/region.hpp"
@@ -26,6 +27,7 @@
 #include "dfa/stack_frame.hpp"
 #include "dfa/symbol.hpp"
 
+#include <memory>
 #include <optional>
 #include <unordered_set>
 
@@ -230,7 +232,20 @@ class ProgramState : public llvm::FoldingSetNode {
             return std::nullopt;
         }
         return std::make_optional(
-            dynamic_cast< const ZNumericalDomBase* >(it->second.get()));
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+            static_cast< const ZNumericalDomBase* >(it->second.get()));
+    }
+
+    /// \brief Get the pointer domain reference.
+    [[nodiscard]] std::optional< const PointerDom* > get_pointer_dom_ref()
+        const {
+        auto it = m_dom_val.find(PointerDomID);
+        if (it == m_dom_val.end()) {
+            return std::nullopt;
+        }
+        return std::make_optional(
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+            static_cast< const PointerDom* >(it->second.get()));
     }
 
     /// \brief Get the cloned abstract value with the given domain.
@@ -260,6 +275,17 @@ class ProgramState : public llvm::FoldingSetNode {
         return std::static_pointer_cast< ZNumericalDomBase >(base_ptr);
     }
 
+    /// \brief Get the cloned pointer domain value.
+    [[nodiscard]] std::shared_ptr< PointerDom > get_pointer_dom_clone() const {
+        auto it = m_dom_val.find(PointerDomID);
+        if (it == m_dom_val.end()) {
+            auto default_fn = get_domain_default_val_fn(PointerDomID);
+            return std::static_pointer_cast< PointerDom >((*default_fn)());
+        }
+        std::shared_ptr< AbsDomBase > base_ptr(it->second->clone());
+        return std::static_pointer_cast< PointerDom >(base_ptr);
+    }
+
     /// \brief Remove the given domain from the program state.
     template < typename Domain >
     [[nodiscard]] ProgramStateRef remove() const {
@@ -286,6 +312,16 @@ class ProgramState : public llvm::FoldingSetNode {
     [[nodiscard]] ProgramStateRef set_zdom(SharedZNumericalVal val) const {
         auto dom_val = m_dom_val;
         dom_val[get_zdom_id()] = std::move(val);
+        return internal::
+            get_persistent_state_with_copy_and_dom_val_map(get_state_manager(),
+                                                           *this,
+                                                           std::move(dom_val));
+    }
+
+    [[nodiscard]] ProgramStateRef set_pointer_dom(
+        std::shared_ptr< PointerDom > val) const {
+        auto dom_val = m_dom_val;
+        dom_val[PointerDomID] = std::move(val);
         return internal::
             get_persistent_state_with_copy_and_dom_val_map(get_state_manager(),
                                                            *this,

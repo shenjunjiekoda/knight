@@ -103,8 +103,10 @@ inline llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
     return os;
 }
 
-struct alignas(AssignEventAlignBigSize) LinearAssignEvent {
-    static EventKind get_kind() { return EventKind::LinearAssignEvent; }
+struct alignas(AssignEventAlignBigSize) LinearNumericalAssignEvent {
+    static EventKind get_kind() {
+        return EventKind::LinearNumericalAssignEvent;
+    }
 
     using AssignT = std::variant< ZVarAssignZVar,
                                   ZVarAssignZNum,
@@ -116,10 +118,10 @@ struct alignas(AssignEventAlignBigSize) LinearAssignEvent {
     AssignT assign;
     ProgramStateRef& state;
 
-    LinearAssignEvent(AssignT assign, ProgramStateRef& state)
+    LinearNumericalAssignEvent(AssignT assign, ProgramStateRef& state)
         : assign(std::move(assign)), state(state) {}
 
-}; // struct LinearAssignEvent
+}; // struct LinearNumericalAssignEvent
 
 struct alignas(AssignEventAlignSize) PredicateZVarZNum {
     clang::BinaryOperatorKind op;
@@ -157,8 +159,10 @@ inline llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
     return os;
 }
 
-struct LinearAssumptionEvent { // NOLINT(altera-struct-pack-align)
-    static EventKind get_kind() { return EventKind::LinearAssumptionEvent; }
+struct LinearNumericalAssumptionEvent { // NOLINT(altera-struct-pack-align)
+    static EventKind get_kind() {
+        return EventKind::LinearNumericalAssumptionEvent;
+    }
 
     using AssumpT = std::variant< PredicateZVarZNum,
                                   PredicateZVarZVar,
@@ -166,7 +170,7 @@ struct LinearAssumptionEvent { // NOLINT(altera-struct-pack-align)
 
     AssumpT assumption;
     ProgramStateRef& state;
-    LinearAssumptionEvent(AssumpT assumption, ProgramStateRef& state)
+    LinearNumericalAssumptionEvent(AssumpT assumption, ProgramStateRef& state)
         : assumption(std::move(assumption)), state(state) {}
 
 }; // struct LinearPredicateEvent

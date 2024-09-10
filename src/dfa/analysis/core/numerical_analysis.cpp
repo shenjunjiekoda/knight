@@ -19,7 +19,7 @@
 
 namespace knight::dfa {
 
-void NumericalAnalysis::LinearAssignEventHandler::handle(
+void NumericalAnalysis::LinearNumericalAssignEventHandler::handle(
     const ZVarAssignZVar& assign) const {
     knight_log_nl(llvm::outs() << "Event ZVarAssignZVar: " << assign << "\n";);
 
@@ -28,7 +28,7 @@ void NumericalAnalysis::LinearAssignEventHandler::handle(
     state = state->set_zdom(zdom);
 }
 
-void NumericalAnalysis::LinearAssignEventHandler::handle(
+void NumericalAnalysis::LinearNumericalAssignEventHandler::handle(
     const ZVarAssignZNum& assign) const {
     knight_log_nl(llvm::outs() << "Event ZVarAssignZNum: " << assign << "\n";);
 
@@ -37,7 +37,7 @@ void NumericalAnalysis::LinearAssignEventHandler::handle(
     state = state->set_zdom(zdom);
 }
 
-void NumericalAnalysis::LinearAssignEventHandler::handle(
+void NumericalAnalysis::LinearNumericalAssignEventHandler::handle(
     const ZVarAssignZLinearExpr& assign) const {
     knight_log_nl(llvm::outs()
                       << "Event ZVarAssignZLinearExpr: " << assign << "\n";);
@@ -47,7 +47,7 @@ void NumericalAnalysis::LinearAssignEventHandler::handle(
     state = state->set_zdom(zdom);
 }
 
-void NumericalAnalysis::LinearAssignEventHandler::handle(
+void NumericalAnalysis::LinearNumericalAssignEventHandler::handle(
     const ZVarAssignZCast& assign) const {
     knight_log_nl(llvm::outs() << "Event ZVarAssignZCast: " << assign << "\n");
 
@@ -59,7 +59,7 @@ void NumericalAnalysis::LinearAssignEventHandler::handle(
     state = state->set_zdom(zdom);
 }
 
-void NumericalAnalysis::LinearAssignEventHandler::handle(
+void NumericalAnalysis::LinearNumericalAssignEventHandler::handle(
     const ZVarAssignBinaryVarVar& assign) const {
     knight_log_nl(llvm::outs()
                       << "Event ZVarAssignBinaryVarVar: " << assign << "\n";);
@@ -68,7 +68,7 @@ void NumericalAnalysis::LinearAssignEventHandler::handle(
     zdom->assign_binary_var_var(assign.op, assign.x, assign.y, assign.z);
     state = state->set_zdom(zdom);
 }
-void NumericalAnalysis::LinearAssignEventHandler::handle(
+void NumericalAnalysis::LinearNumericalAssignEventHandler::handle(
     const ZVarAssignBinaryVarNum& assign) const {
     knight_log_nl(llvm::outs()
                       << "Event ZVarAssignBinaryVarNum: " << assign << "\n";);
@@ -78,7 +78,7 @@ void NumericalAnalysis::LinearAssignEventHandler::handle(
     state = state->set_zdom(zdom);
 }
 
-void NumericalAnalysis::LinearAssumptionEventHandler::handle(
+void NumericalAnalysis::LinearNumericalAssumptionEventHandler::handle(
     const PredicateZVarZNum& pred) const {
     knight_log_nl(llvm::outs() << "Event PredicateZVarZNum: " << pred << "\n";);
 
@@ -87,7 +87,7 @@ void NumericalAnalysis::LinearAssumptionEventHandler::handle(
     state = state->set_zdom(zdom);
 }
 
-void NumericalAnalysis::LinearAssumptionEventHandler::handle(
+void NumericalAnalysis::LinearNumericalAssumptionEventHandler::handle(
     const PredicateZVarZVar& pred) const {
     knight_log_nl(llvm::outs() << "Event PredicateZVarZVar: " << pred << "\n";);
 
@@ -96,7 +96,7 @@ void NumericalAnalysis::LinearAssumptionEventHandler::handle(
     state = state->set_zdom(zdom);
 }
 
-void NumericalAnalysis::LinearAssumptionEventHandler::handle(
+void NumericalAnalysis::LinearNumericalAssumptionEventHandler::handle(
     const GeneralLinearConstraint& cstr) const {
     knight_log_nl(llvm::outs()
                       << "Event GeneralLinearConstraint: " << cstr << "\n";);

@@ -268,28 +268,29 @@ class ConditionFilter {
 
 }; // class ConditionFilter
 
-template < event EVENT >
+template < typename... EVENTS >
 class EventDispatcher {
   private:
-    AnalysisManager* m_analysis_mgr_from_event{};
+    AnalysisManager* m_analysis_mgr{};
 
   public:
     template < typename ANALYSIS >
     static void register_callback(ANALYSIS* analysis, AnalysisManager& mgr) {
-        mgr.register_for_event_dispatcher< EVENT >();
-        static_cast< EventDispatcher< EVENT >* >(analysis)
-            ->m_analysis_mgr_from_event = &mgr;
+        (mgr.register_for_event_dispatcher< EVENTS >(), ...);
+        static_cast< EventDispatcher< EVENTS... >* >(analysis)->m_analysis_mgr =
+            &mgr;
     }
 
+    template < typename EVENT >
     void dispatch_event(EVENT& event) const {
-        m_analysis_mgr_from_event->dispatch_event(event);
+        m_analysis_mgr->dispatch_event(event);
     }
 };
 
-template < event EVENT >
+template < typename... EVENTS >
 class EventListener {
-    template < typename ANALYSIS >
-    static void handle_event(void* analysis, void* event) {
+    template < typename ANALYSIS, typename EVENT >
+    static void handle_single_event(void* analysis, void* event) {
         (static_cast< const ANALYSIS* >(analysis))
             ->handle_event(static_cast< EVENT* >(event));
     }
@@ -297,10 +298,12 @@ class EventListener {
   public:
     template < typename ANALYSIS >
     static void register_callback(ANALYSIS* analysis, AnalysisManager& mgr) {
-        mgr.register_for_event_listener< EVENT >(
-            internal::EventListenerCallback(ANALYSIS::get_kind(),
-                                            analysis,
-                                            handle_event< ANALYSIS >));
+        (mgr.register_for_event_listener< EVENTS >(
+             internal::EventListenerCallback(ANALYSIS::get_kind(),
+                                             analysis,
+                                             handle_single_event< ANALYSIS,
+                                                                  EVENTS >)),
+         ...);
     }
 };
 
