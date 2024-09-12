@@ -15,6 +15,7 @@
 
 #include "dfa/analysis/analysis_base.hpp"
 #include "dfa/analysis/core/numerical_event.hpp"
+#include "dfa/analysis/core/pointer_event.hpp"
 #include "dfa/analysis_context.hpp"
 #include "dfa/constraint/linear.hpp"
 #include "dfa/region/region.hpp"
@@ -40,12 +41,12 @@ constexpr unsigned AssignmentContextAlignment = 64U;
 } // namespace internal
 
 class SymbolResolver
-    : public Analysis<
-          SymbolResolver,
-          analyze::EvalStmt< clang::Stmt >,
-          analyze::EventDispatcher< LinearNumericalAssignEvent,
-                                    LinearNumericalAssumptionEvent >,
-          analyze::ConditionFilter >,
+    : public Analysis< SymbolResolver,
+                       analyze::EvalStmt< clang::Stmt >,
+                       analyze::EventDispatcher< LinearNumericalAssignEvent,
+                                                 LinearNumericalAssumptionEvent,
+                                                 PointerAssignEvent >,
+                       analyze::ConditionFilter >,
       public clang::ConstStmtVisitor< SymbolResolver > {
   private:
     mutable AnalysisContext* m_ctx{};
@@ -93,13 +94,15 @@ class SymbolResolver
                          ProgramStateRef& state,
                          SExprRef& stmt_sexpr) const;
 
+    void handle_int_unary_operation(const clang::UnaryOperator*) const;
+    void handle_ptr_unary_operation(const clang::UnaryOperator*) const;
+
     void handle_binary_operation(BinaryOperationContext) const;
+    void handle_assign_binary_operation(BinaryOperationContext) const;
     void handle_int_binary_operation(BinaryOperationContext) const;
-    void handle_int_assign_binary_operation(BinaryOperationContext) const;
     void handle_int_non_assign_binary_operation(BinaryOperationContext) const;
     void handle_ref_binary_operation(BinaryOperationContext) const;
     void handle_ptr_binary_operation(BinaryOperationContext) const;
-    void handle_ptr_assign_binary_operation(BinaryOperationContext) const;
 
     void handle_int_cond_op(const clang::ConditionalOperator*) const;
 
@@ -116,6 +119,12 @@ class SymbolResolver
 
     [[nodiscard]] ProgramStateRef handle_assign(AssignmentContext) const;
     void handle_int_assign(AssignmentContext assign_ctx,
+                           SymbolRef res_sym,
+                           bool is_direct_assign,
+                           clang::BinaryOperator::Opcode op,
+                           ProgramStateRef& state,
+                           SExprRef& binary_sexpr) const;
+    void handle_ptr_assign(AssignmentContext assign_ctx,
                            SymbolRef res_sym,
                            bool is_direct_assign,
                            clang::BinaryOperator::Opcode op,

@@ -105,23 +105,67 @@ void SymbolResolver::VisitIntegerLiteral(
 
 void SymbolResolver::VisitUnaryOperator(
     const clang::UnaryOperator* unary_operator) const {
-    auto state = m_ctx->get_state();
-    auto& sym_mgr = m_ctx->get_symbol_manager();
-
-    auto* operand_expr = unary_operator->getSubExpr();
     auto type = unary_operator->getType();
-    auto& ast_ctx = m_ctx->get_ast_context();
-    auto type_bit_size = ast_ctx.getTypeSize(type);
+    if (type->isIntegralOrEnumerationType()) {
+        handle_int_unary_operation(unary_operator);
+        return;
+    }
+    if (type->isPointerType()) {
+        handle_ptr_unary_operation(unary_operator);
+        return;
+    }
+    knight_log(llvm::outs() << "unhandled unary operator type: " << type);
+}
 
+void SymbolResolver::handle_ptr_unary_operation(
+    const clang::UnaryOperator* unary_operator) const {
+    auto type = unary_operator->getType();
+    auto state = m_ctx->get_state();
+    auto* operand_expr = unary_operator->getSubExpr();
     SExprRef operand_sexpr =
         state
             ->get_stmt_sexpr_or_conjured(operand_expr,
                                          m_ctx->get_current_location_context());
-    if (!type->isIntegralOrEnumerationType()) {
-        knight_log(llvm::outs() << "unhandled unary operator type: " << type);
-        return;
+    auto& sym_mgr = m_ctx->get_symbol_manager();
+    auto unary_op = unary_operator->getOpcode();
+    switch (unary_op) {
+        using enum clang::UnaryOperatorKind;
+        case clang::UO_AddrOf: {
+            // TODO (stmt-pt, region-pt)
+            auto treg = state->get_region(operand_expr,
+                                          m_ctx->get_current_stack_frame());
+            if (!treg) {
+                auto treg = operand_sexpr->get_as_region();
+            }
+            if (treg) {
+                const auto* reg_addr_val = sym_mgr.get_scalar_region(*treg);
+                state = state->set_stmt_sexpr(unary_operator,
+                                              m_ctx->get_current_stack_frame(),
+                                              reg_addr_val);
+                knight_log_nl(
+                    llvm::outs() << "set addr of: ";
+                    operand_expr->printPretty(llvm::outs(),
+                                              nullptr,
+                                              m_ctx->get_ast_context()
+                                                  .getPrintingPolicy());
+                    llvm::outs() << " to region: ";
+                    treg.value()->dump(llvm::outs());
+                    llvm::outs() << " to scalar: ";
+                    reg_addr_val->dump(llvm::outs());
+                    llvm::outs() << "\n";);
+            }
+        } break;
+        default:
+            break;
     }
+}
 
+void SymbolResolver::handle_int_unary_operation(
+    const clang::UnaryOperator* unary_operator) const {
+    auto type = unary_operator->getType();
+    auto state = m_ctx->get_state();
+    auto* operand_expr = unary_operator->getSubExpr();
+    auto& sym_mgr = m_ctx->get_symbol_manager();
     auto unary_op = unary_operator->getOpcode();
     switch (unary_op) {
         using enum clang::UnaryOperatorKind;
@@ -179,6 +223,22 @@ void SymbolResolver::VisitUnaryOperator(
         default:
             break;
     }
+}
+
+void SymbolResolver::handle_ptr_assign(AssignmentContext assign_ctx,
+                                       SymbolRef res_sym,
+                                       bool is_direct_assign,
+                                       clang::BinaryOperator::Opcode op,
+                                       ProgramStateRef& state,
+                                       SExprRef& binary_sexpr) const {
+    auto type = assign_ctx.rhs_sexpr->get_type();
+    auto& sym_mgr = m_ctx->get_symbol_manager();
+    if (!is_direct_assign) {
+        knight_unreachable("indirect ptr assign not supported yet");
+        (void)op;
+    }
+    auto region_def = llvm::dyn_cast< RegionSymVal >(binary_sexpr);
+    auto region_addr_val = llvm::dyn_cast< ScalarRegion >(binary_sexpr);
 }
 
 void SymbolResolver::handle_int_assign(AssignmentContext assign_ctx,
@@ -260,8 +320,6 @@ ProgramStateRef SymbolResolver::handle_assign(
 
     knight_assert_msg(assign_ctx.rhs_sexpr != nullptr,
                       "rhs sexpr shall be nonnull in assignment context");
-    // knight_assert_msg(assign_ctx.rhs_expr != nullptr,
-    //   "rhs expr shall be nonnull in assignment context");
     knight_assert_msg(assign_ctx.lhs_sexpr != nullptr || is_direct_assign,
                       "lhs sexpr shall be nonnull in indirect assignment "
                       "context");
@@ -304,7 +362,14 @@ ProgramStateRef SymbolResolver::handle_assign(
                        << *assign_ctx.rhs_sexpr << "\n";
         llvm::outs() << "binary_sexpr: " << *binary_sexpr << "\n";);
 
-    if (type->isIntegralOrEnumerationType()) {
+    if (type->isPointerType()) {
+        handle_ptr_assign(assign_ctx,
+                          res_sym,
+                          is_direct_assign,
+                          op,
+                          state,
+                          binary_sexpr);
+    } else if (type->isIntegralOrEnumerationType()) {
         handle_int_assign(assign_ctx,
                           res_sym,
                           is_direct_assign,
@@ -363,12 +428,12 @@ void SymbolResolver::handle_binary_operation(
     knight_log(llvm::outs() << "not int type binary operation!\n");
 }
 
-void SymbolResolver::handle_int_assign_binary_operation(
+void SymbolResolver::handle_assign_binary_operation(
     BinaryOperationContext bo_ctx) const {
     auto state = m_ctx->get_state();
     auto& sym_mgr = m_ctx->get_symbol_manager();
-    auto lhs_expr = bo_ctx.lhs_expr;
-    auto rhs_expr = bo_ctx.rhs_expr;
+    internal::ExprRef lhs_expr = *bo_ctx.lhs_expr;
+    auto rhs_expr_opt = bo_ctx.rhs_expr;
     auto op = bo_ctx.op;
 
     knight_assert_msg(clang::BinaryOperator::isAssignmentOp(op),
@@ -377,9 +442,9 @@ void SymbolResolver::handle_int_assign_binary_operation(
     bool is_direct_assign = !clang::BinaryOperator::isCompoundAssignmentOp(op);
     SExprRef lhs_sexpr =
         is_direct_assign
-            ? sym_mgr.get_symbol_conjured(*lhs_expr,
+            ? sym_mgr.get_symbol_conjured(lhs_expr,
                                           m_ctx->get_current_stack_frame())
-            : state->get_stmt_sexpr(*lhs_expr, m_ctx->get_current_stack_frame())
+            : state->get_stmt_sexpr(lhs_expr, m_ctx->get_current_stack_frame())
                   .value_or(nullptr);
     if (lhs_sexpr == nullptr) {
         knight_log(llvm::outs() << "lhs_sexpr is null!\n");
@@ -387,20 +452,20 @@ void SymbolResolver::handle_int_assign_binary_operation(
     }
 
     SExprRef rhs_sexpr =
-        rhs_expr ? state->get_stmt_sexpr_or_conjured(
-                       *rhs_expr, m_ctx->get_current_location_context())
-                 : *bo_ctx.rhs_sexpr;
+        rhs_expr_opt ? state->get_stmt_sexpr_or_conjured(
+                           *rhs_expr_opt, m_ctx->get_current_location_context())
+                     : *bo_ctx.rhs_sexpr;
 
     knight_log_nl(llvm::outs() << "lhs_sexpr: "; lhs_sexpr->dump(llvm::outs());
                   llvm::outs() << "\nrhs_sexpr: ";
                   rhs_sexpr->dump(llvm::outs());
                   llvm::outs() << "\n";);
 
-    auto treg = state->get_region(*lhs_expr, m_ctx->get_current_stack_frame());
+    auto treg = state->get_region(lhs_expr, m_ctx->get_current_stack_frame());
     std::optional< const clang::Stmt* > stmt =
         treg ? std::nullopt : std::make_optional(bo_ctx.result_stmt);
     m_ctx->set_state(handle_assign(
-        AssignmentContext{treg, stmt, rhs_expr, lhs_sexpr, rhs_sexpr, op}));
+        AssignmentContext{treg, stmt, rhs_expr_opt, lhs_sexpr, rhs_sexpr, op}));
 }
 
 void SymbolResolver::handle_int_non_assign_binary_operation(
@@ -518,7 +583,7 @@ void SymbolResolver::handle_int_binary_operation(
     BinaryOperationContext bo_ctx) const {
     auto op = bo_ctx.op;
     if (clang::BinaryOperator::isAssignmentOp(op)) {
-        handle_int_assign_binary_operation(bo_ctx);
+        handle_assign_binary_operation(bo_ctx);
     } else {
         handle_int_non_assign_binary_operation(bo_ctx);
     }
@@ -534,15 +599,8 @@ void SymbolResolver::handle_ptr_binary_operation(
     // TODO(ptr-binary-op): handle ptr binary operation.
     auto op = bo_ctx.op;
     if (clang::BinaryOperator::isAssignmentOp(op)) {
-        handle_ptr_assign_binary_operation(bo_ctx);
+        handle_assign_binary_operation(bo_ctx);
     }
-}
-
-void SymbolResolver::handle_ptr_assign_binary_operation(
-    BinaryOperationContext bo_ctx) const {
-    auto op = bo_ctx.op;
-    knight_assert_msg(clang::BinaryOperator::isAssignmentOp(op),
-                      "shall be assign op here.");
 }
 
 void SymbolResolver::VisitConditionalOperator(

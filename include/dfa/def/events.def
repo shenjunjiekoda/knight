@@ -23,3 +23,4 @@
 
 EVENT_DEF(LinearNumericalAssignEvent, "LinearNumericalAssignEvent", 0, "The numerical linear assignment event.")
 EVENT_DEF(LinearNumericalAssumptionEvent, "LinearNumericalAssumptionEvent", 1, "The numerical linear assumption event.")
+EVENT_DEF(PointerAssignEvent, "PointerAssignEvent", 2, "The pointer assignment event.")

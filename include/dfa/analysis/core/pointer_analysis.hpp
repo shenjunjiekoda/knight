@@ -16,6 +16,7 @@
 #include "dfa/analysis/analyses.hpp"
 #include "dfa/analysis/analysis_base.hpp"
 #include "dfa/domain/domains.hpp"
+#include "dfa/domain/pointer.hpp"
 
 namespace knight::dfa {
 
@@ -31,8 +32,7 @@ class PointerAnalysis
     void analyze_begin_function([[maybe_unused]] AnalysisContext& ctx) const;
 
     static void add_dependencies(AnalysisManager& mgr) {
-        auto ptr_id = get_domain_id(DomainKind::PointerDomain);
-        mgr.add_domain_dependency(get_analysis_id(get_kind()), ptr_id);
+        mgr.add_domain_dependency(get_analysis_id(get_kind()), PointerInfoID);
     }
 
     static UniqueAnalysisRef register_analysis(AnalysisManager& mgr,

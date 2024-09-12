@@ -14,6 +14,9 @@
 #pragma once
 
 #include <clang/AST/Stmt.h>
+#include "clang/AST/ASTDumper.h"
+#include "dumpable.hpp"
+#include "llvm/Support/raw_ostream.h"
 
 #include <concepts>
 
@@ -29,5 +32,16 @@ concept clang_stmt = is_clang_stmt< STMT >::value;
 
 template < typename DECL >
 concept clang_decl = is_clang_decl< DECL >::value;
+
+template < clang_stmt T >
+struct DumpableTrait< T* > {
+    static void dump(llvm::raw_ostream& os, T* stmt) {
+        clang::ASTDumper dumper(os, /*ShowColors=*/false);
+        dumper.Visit(stmt);
+    }
+};
+
+template < clang_stmt T >
+struct is_dumpable< T > : std::true_type {};
 
 } // namespace knight

@@ -234,6 +234,10 @@ clang::QualType ScalarRegion::get_type() const {
     return m_region->get_value_type();
 }
 
+void ScalarRegion::dump(llvm::raw_ostream& os) const {
+    os << "&" << *m_region;
+}
+
 std::optional< ZLinearConstraint > SymExpr::get_as_zconstraint() const {
     if (!get_type()->isBooleanType()) {
         return std::nullopt;

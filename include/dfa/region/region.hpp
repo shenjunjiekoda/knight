@@ -335,6 +335,11 @@ inline llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
     return os;
 }
 
+inline llvm::raw_ostream& operator<<(llvm::raw_ostream& os, RegionRef R) {
+    R->dump(os);
+    return os;
+}
+
 class CXXThisRegion : public TypedRegion {
     friend class RegionManager;
 

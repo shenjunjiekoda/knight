@@ -64,10 +64,12 @@ bool is_valid_type_for_sym_expr(clang::QualType type);
 class SymExpr;
 class TypedRegion;
 class Sym;
+class RegionSymVal;
 
 using SExprRef = const SymExpr*;
 using SymbolRef = const Sym*;
 using RegionRef = const TypedRegion*;
+using RegionDef = const RegionSymVal*;
 
 class SymIterator {
   private:
@@ -126,6 +128,11 @@ class SymExpr : public llvm::FoldingSetNode {
 inline llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
                                      const SymExpr& sym) {
     sym.dump(os);
+    return os;
+}
+
+inline llvm::raw_ostream& operator<<(llvm::raw_ostream& os, SExprRef sym) {
+    sym->dump(os);
     return os;
 }
 
@@ -204,6 +211,17 @@ class ScalarRegion : public Scalar {
 
     [[nodiscard]] static bool classof(const Scalar* scalar) {
         return scalar->is_region();
+    }
+
+    void dump(llvm::raw_ostream& os) const override;
+
+    static void profile(llvm::FoldingSetNodeID& id, const TypedRegion* region) {
+        id.AddInteger(static_cast< unsigned >(SymExprKind::Region));
+        id.AddPointer(region);
+    }
+
+    void Profile(llvm::FoldingSetNodeID& id) const override { // NOLINT
+        ScalarRegion::profile(id, m_region);
     }
 };
 

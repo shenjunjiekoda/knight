@@ -35,7 +35,7 @@ class DiscreteDom : public AbsDom< DiscreteDom< Key, domain_kind > > {
     bool m_is_top;
 
   public:
-    explicit DiscreteDom(bool is_top = true, Set set = {})
+    explicit DiscreteDom(bool is_top = true, Set set = Set{})
         : m_is_top(is_top), m_set(std::move(set)) {}
     DiscreteDom(std::initializer_list< Key > elements)
         : DiscreteDom(false, elements) {}

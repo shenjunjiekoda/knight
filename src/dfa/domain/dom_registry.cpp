@@ -25,7 +25,7 @@ DomainRegistry< ZIntervalDom > A;
 DomainRegistry< DemoItvDom > B;
 DomainRegistry< DemoMapDomain > C;
 DomainRegistry< PointToSet > D;
-DomainRegistry< PointerDom > E;
+DomainRegistry< PointerInfo > E;
 // NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables,fuchsia-statically-constructed-objects)
 
 } // namespace knight::dfa

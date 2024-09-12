@@ -26,10 +26,10 @@ class MapDom : public AbsDom< MapDom< Key, SeparateValue, domain_kind > > {
 
   private:
     Map m_table;
-    bool m_is_bottom = false;
+    bool m_is_bottom;
 
   public:
-    explicit MapDom(bool is_bottom, Map table = {})
+    explicit MapDom(bool is_bottom = false, Map table = {})
         : m_is_bottom(is_bottom), m_table(std::move(table)) {}
 
     MapDom(const MapDom&) = default;

@@ -36,6 +36,11 @@ class SymbolManager {
         return get_persistent_sexpr< ScalarInt >(value, type);
     }
 
+    [[nodiscard]] const ScalarRegion* get_scalar_region(
+        const TypedRegion* region) {
+        return get_persistent_sexpr< ScalarRegion >(region);
+    }
+
     [[nodiscard]] const RegionSymVal* get_region_sym_val(
         const TypedRegion* typed_region, const LocationContext* loc_ctx) {
         m_sym_cnt++;
