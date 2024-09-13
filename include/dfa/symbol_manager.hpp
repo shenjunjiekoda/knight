@@ -36,20 +36,19 @@ class SymbolManager {
         return get_persistent_sexpr< ScalarInt >(value, type);
     }
 
-    [[nodiscard]] const ScalarRegion* get_scalar_region(
-        const TypedRegion* region) {
-        return get_persistent_sexpr< ScalarRegion >(region);
+    [[nodiscard]] const RegionAddr* get_region_addr(const TypedRegion* region) {
+        return get_persistent_sexpr< RegionAddr >(region);
     }
 
-    [[nodiscard]] const RegionSymVal* get_region_sym_val(
+    [[nodiscard]] const RegionDef* get_region_def(
         const TypedRegion* typed_region, const LocationContext* loc_ctx) {
         m_sym_cnt++;
         const auto* space = typed_region->get_memory_space();
         bool is_external = space == nullptr || space->is_stack_arg();
-        return get_persistent_sexpr< RegionSymVal >(m_sym_cnt,
-                                                    typed_region,
-                                                    loc_ctx,
-                                                    is_external);
+        return get_persistent_sexpr< RegionDef >(m_sym_cnt,
+                                                 typed_region,
+                                                 loc_ctx,
+                                                 is_external);
     }
 
     [[nodiscard]] const SymbolConjured* get_symbol_conjured(

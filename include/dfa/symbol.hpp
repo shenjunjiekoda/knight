@@ -64,12 +64,12 @@ bool is_valid_type_for_sym_expr(clang::QualType type);
 class SymExpr;
 class TypedRegion;
 class Sym;
-class RegionSymVal;
+class RegionDef;
 
 using SExprRef = const SymExpr*;
 using SymbolRef = const Sym*;
 using RegionRef = const TypedRegion*;
-using RegionDef = const RegionSymVal*;
+using RegionDefRef = const RegionDef*;
 
 class SymIterator {
   private:
@@ -194,12 +194,12 @@ class ScalarInt : public Scalar {
 }; // class Integer
 
 /// \brief A scalar region address
-class ScalarRegion : public Scalar {
+class RegionAddr : public Scalar {
   private:
     const TypedRegion* m_region;
 
   public:
-    explicit ScalarRegion(const TypedRegion* region)
+    explicit RegionAddr(const TypedRegion* region)
         : Scalar(SymExprKind::RegionSymbolVal), m_region(region) {}
 
     [[nodiscard]] const TypedRegion* get_region() const;
@@ -221,7 +221,7 @@ class ScalarRegion : public Scalar {
     }
 
     void Profile(llvm::FoldingSetNodeID& id) const override { // NOLINT
-        ScalarRegion::profile(id, m_region);
+        RegionAddr::profile(id, m_region);
     }
 };
 
@@ -251,7 +251,7 @@ class Sym : public SymExpr {
 }; // class Sym
 
 /// \brief A symbol representing a region value.
-class RegionSymVal : public Sym {
+class RegionDef : public Sym {
   private:
     /// \brief The region that the symbol represents.
     RegionRef m_region;
@@ -264,11 +264,11 @@ class RegionSymVal : public Sym {
     bool m_is_external;
 
   public:
-    RegionSymVal(SymID id,
-                 RegionRef region,
-                 const LocationContext* loc_ctx,
-                 bool is_external);
-    ~RegionSymVal() override = default;
+    RegionDef(SymID id,
+              RegionRef region,
+              const LocationContext* loc_ctx,
+              bool is_external);
+    ~RegionDef() override = default;
 
     [[gnu::returns_nonnull]] RegionRef get_region() const;
     [[nodiscard]] bool is_external() const { return m_is_external; }
@@ -285,11 +285,11 @@ class RegionSymVal : public Sym {
     }
 
     void Profile(llvm::FoldingSetNodeID& profile) const override { // NOLINT
-        RegionSymVal::profile(profile,
-                              get_id(),
-                              m_region,
-                              m_loc_ctx,
-                              m_is_external);
+        RegionDef::profile(profile,
+                           get_id(),
+                           m_region,
+                           m_loc_ctx,
+                           m_is_external);
     }
 
     [[nodiscard]] llvm::StringRef get_kind_name() const override {
@@ -313,7 +313,7 @@ class RegionSymVal : public Sym {
         return sym->get_kind() == SymExprKind::RegionSymbolVal;
     }
 
-}; // class RegionSymVal
+}; // class RegionDef
 
 class RegionSymExtent : public Sym {
   private:

@@ -65,7 +65,7 @@ namespace knight::dfa {
 using ProgramStateRef = llvm::IntrusiveRefCntPtr< const ProgramState >;
 using DomValMap = llvm::DenseMap< DomID, SharedVal >;
 using RegionDefMap = llvm::DenseMap< std::pair< RegionRef, const StackFrame* >,
-                                     const RegionSymVal* >;
+                                     const RegionDef* >;
 using StmtSExprMap =
     llvm::DenseMap< std::pair< ProcCFG::StmtRef, const StackFrame* >,
                     SExprRef >;
@@ -153,14 +153,14 @@ class ProgramState : public llvm::FoldingSetNode {
 
     [[nodiscard]] ProgramStateRef set_region_def(RegionRef region,
                                                  const StackFrame* frame,
-                                                 const RegionSymVal* def) const;
+                                                 const RegionDef* def) const;
     [[nodiscard]] ProgramStateRef set_stmt_sexpr(ProcCFG::StmtRef stmt,
                                                  const StackFrame* frame,
                                                  SExprRef sexpr) const;
     [[nodiscard]] ProgramStateRef set_constraint_system(
         const ConstraintSystem& cst_system) const;
 
-    [[nodiscard]] std::optional< const RegionSymVal* > get_region_def(
+    [[nodiscard]] std::optional< const RegionDef* > get_region_def(
         RegionRef region, const StackFrame* frame) const;
     [[nodiscard]] std::optional< SExprRef > get_stmt_sexpr(
         ProcCFG::StmtRef stmt, const StackFrame* frame) const;

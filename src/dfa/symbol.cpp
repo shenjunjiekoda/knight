@@ -87,7 +87,7 @@ const Sym* SymIterator::operator*() {
 }
 
 std::optional< RegionRef > SymExpr::get_as_region() const {
-    if (const auto* reg_sym = dyn_cast< RegionSymVal >(this)) {
+    if (const auto* reg_sym = dyn_cast< RegionDef >(this)) {
         return reg_sym->get_region();
     }
     return std::nullopt;
@@ -100,10 +100,10 @@ std::optional< SymbolRef > SymExpr::get_as_symbol() const {
     return std::nullopt;
 }
 
-RegionSymVal::RegionSymVal(SymID id,
-                           RegionRef region,
-                           const LocationContext* loc_ctx,
-                           bool is_external)
+RegionDef::RegionDef(SymID id,
+                     RegionRef region,
+                     const LocationContext* loc_ctx,
+                     bool is_external)
     : Sym(id, SymExprKind::RegionSymbolVal),
       m_loc_ctx(loc_ctx),
       m_region(region),
@@ -113,11 +113,11 @@ RegionSymVal::RegionSymVal(SymID id,
                       "Invalid type for region symbol value");
 }
 
-RegionRef RegionSymVal::get_region() const {
+RegionRef RegionDef::get_region() const {
     return m_region;
 }
 
-void RegionSymVal::dump(llvm::raw_ostream& os) const {
+void RegionDef::dump(llvm::raw_ostream& os) const {
     os << get_kind_name() << get_id() << "<" << get_type() << ' ';
     get_region()->dump(os);
     if (auto loc = get_loc_ctx()->get_source_location()) {
@@ -132,7 +132,7 @@ void RegionSymVal::dump(llvm::raw_ostream& os) const {
     os << '>';
 }
 
-clang::QualType RegionSymVal::get_type() const {
+clang::QualType RegionDef::get_type() const {
     return get_region()->get_value_type();
 }
 
@@ -226,15 +226,15 @@ std::optional< ZLinearExpr > SymExpr::get_as_zexpr() const {
     return std::nullopt;
 }
 
-const TypedRegion* ScalarRegion::get_region() const {
+const TypedRegion* RegionAddr::get_region() const {
     return m_region;
 }
 
-clang::QualType ScalarRegion::get_type() const {
+clang::QualType RegionAddr::get_type() const {
     return m_region->get_value_type();
 }
 
-void ScalarRegion::dump(llvm::raw_ostream& os) const {
+void RegionAddr::dump(llvm::raw_ostream& os) const {
     os << "&" << *m_region;
 }
 

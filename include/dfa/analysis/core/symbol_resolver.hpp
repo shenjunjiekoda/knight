@@ -33,13 +33,6 @@
 
 namespace knight::dfa {
 
-namespace internal {
-
-constexpr unsigned BinaryOperationContextAlignment = 128U;
-constexpr unsigned AssignmentContextAlignment = 64U;
-
-} // namespace internal
-
 class SymbolResolver
     : public Analysis< SymbolResolver,
                        analyze::EvalStmt< clang::Stmt >,
@@ -75,61 +68,11 @@ class SymbolResolver
     }
 
   private:
-    struct alignas(internal::BinaryOperationContextAlignment)
-        BinaryOperationContext {
-        clang::BinaryOperator::Opcode op{};
-        // lhs_expr has value or lhs_sexpr has value
-        std::optional< const clang::Expr* > lhs_expr;
-        std::optional< SExprRef > lhs_sexpr;
-
-        // rhs_expr has value or rhs_sexpr has value
-        std::optional< const clang::Expr* > rhs_expr;
-        std::optional< SExprRef > rhs_sexpr;
-
-        clang::QualType result_type;
-        const clang::Stmt* result_stmt{};
-    }; // struct BinaryOperationContext
-
     void handle_var_decl(const clang::VarDecl* var_decl,
                          ProgramStateRef& state,
                          SExprRef& stmt_sexpr) const;
 
-    void handle_int_unary_operation(const clang::UnaryOperator*) const;
-    void handle_ptr_unary_operation(const clang::UnaryOperator*) const;
-
-    void handle_binary_operation(BinaryOperationContext) const;
-    void handle_assign_binary_operation(BinaryOperationContext) const;
-    void handle_int_binary_operation(BinaryOperationContext) const;
-    void handle_int_non_assign_binary_operation(BinaryOperationContext) const;
-    void handle_ref_binary_operation(BinaryOperationContext) const;
-    void handle_ptr_binary_operation(BinaryOperationContext) const;
-
     void handle_int_cond_op(const clang::ConditionalOperator*) const;
-
-    struct alignas(internal::AssignmentContextAlignment)
-        AssignmentContext { // NOLINT(altera-struct-pack-align)
-        std::optional< const TypedRegion* > treg = std::nullopt;
-        std::optional< const clang::Stmt* > stmt = std::nullopt;
-        std::optional< const clang::Expr* > rhs_expr = std::nullopt;
-        SExprRef lhs_sexpr{};
-        SExprRef rhs_sexpr{};
-        clang::BinaryOperator::Opcode op =
-            clang::BinaryOperator::Opcode::BO_Assign;
-    };
-
-    [[nodiscard]] ProgramStateRef handle_assign(AssignmentContext) const;
-    void handle_int_assign(AssignmentContext assign_ctx,
-                           SymbolRef res_sym,
-                           bool is_direct_assign,
-                           clang::BinaryOperator::Opcode op,
-                           ProgramStateRef& state,
-                           SExprRef& binary_sexpr) const;
-    void handle_ptr_assign(AssignmentContext assign_ctx,
-                           SymbolRef res_sym,
-                           bool is_direct_assign,
-                           clang::BinaryOperator::Opcode op,
-                           ProgramStateRef& state,
-                           SExprRef& binary_sexpr) const;
 
     void handle_load(const clang::Expr* load_expr) const;
 };

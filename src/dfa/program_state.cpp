@@ -137,7 +137,7 @@ std::optional< RegionRef > ProgramState::get_region(
 
 ProgramStateRef ProgramState::set_region_def(RegionRef region,
                                              const StackFrame* frame,
-                                             const RegionSymVal* def) const {
+                                             const RegionDef* def) const {
     auto region_defs = m_region_defs;
     region_defs[{region, frame}] = def;
     return get_state_manager()
@@ -160,7 +160,7 @@ ProgramStateRef ProgramState::set_constraint_system(
                                                               cst_system);
 }
 
-std::optional< const RegionSymVal* > ProgramState::get_region_def(
+std::optional< const RegionDef* > ProgramState::get_region_def(
     RegionRef region, const StackFrame* frame) const {
     auto it = m_region_defs.find({region, frame});
     if (it != m_region_defs.end()) {
@@ -168,8 +168,7 @@ std::optional< const RegionSymVal* > ProgramState::get_region_def(
     }
     if (region->get_memory_space()->is_stack_arg()) {
         return get_state_manager()
-            .m_symbol_mgr.get_region_sym_val(region,
-                                             frame->get_entry_location());
+            .m_symbol_mgr.get_region_def(region, frame->get_entry_location());
     }
     return std::nullopt;
 }
@@ -209,8 +208,7 @@ SExprRef ProgramState::get_stmt_sexpr_or_conjured(
     }
 
     if (region_opt) {
-        return m_state_mgr->m_symbol_mgr.get_region_sym_val(*region_opt,
-                                                            loc_ctx);
+        return m_state_mgr->m_symbol_mgr.get_region_def(*region_opt, loc_ctx);
     }
 
     return m_state_mgr->m_symbol_mgr.get_symbol_conjured(stmt, type, frame);
@@ -276,8 +274,8 @@ ProgramStateRef ProgramState::set_to_top() const {
     });                                                                        \
                                                                                \
     RegionDefMap region_defs = m_region_defs;                                  \
-    std::map< const RegionSymVal*,                                             \
-              std::pair< const RegionSymVal*, const RegionSymVal* > >          \
+    std::map< const RegionDef*,                                                \
+              std::pair< const RegionDef*, const RegionDef* > >                \
         new_zregion_def;                                                       \
     for (const auto [region_frame_pair, def] : other->m_region_defs) {         \
         auto it = region_defs.find(region_frame_pair);                         \
@@ -292,8 +290,8 @@ ProgramStateRef ProgramState::set_to_top() const {
                           region->dump(llvm::outs()););                        \
                                                                                \
             const auto* new_def =                                              \
-                get_state_manager().m_symbol_mgr.get_region_sym_val(region,    \
-                                                                    loc_ctx);  \
+                get_state_manager().m_symbol_mgr.get_region_def(region,        \
+                                                                loc_ctx);      \
                                                                                \
             if (region->get_value_type()->isIntegralOrEnumerationType()) {     \
                 new_zregion_def[new_def] = {it->second, def};                  \
@@ -396,8 +394,8 @@ ProgramStateRef ProgramState::join(const ProgramStateRef& other,
     });
 
     RegionDefMap region_defs = m_region_defs;
-    std::map< const RegionSymVal*,
-              std::pair< const RegionSymVal*, const RegionSymVal* > >
+    std::map< const RegionDef*,
+              std::pair< const RegionDef*, const RegionDef* > >
         new_zregion_def;
     for (const auto [region_frame_pair, def] : other->m_region_defs) {
         auto it = region_defs.find(region_frame_pair);
@@ -412,8 +410,8 @@ ProgramStateRef ProgramState::join(const ProgramStateRef& other,
                           region->dump(llvm::outs()););
 
             const auto* new_def =
-                get_state_manager().m_symbol_mgr.get_region_sym_val(region,
-                                                                    loc_ctx);
+                get_state_manager().m_symbol_mgr.get_region_def(region,
+                                                                loc_ctx);
 
             if (region->get_value_type()->isIntegralOrEnumerationType()) {
                 new_zregion_def[new_def] = {it->second, def};
@@ -542,8 +540,8 @@ ProgramStateRef ProgramState::widen_with_threshold(
     });
 
     RegionDefMap region_defs = m_region_defs;
-    std::map< const RegionSymVal*,
-              std::pair< const RegionSymVal*, const RegionSymVal* > >
+    std::map< const RegionDef*,
+              std::pair< const RegionDef*, const RegionDef* > >
         new_zregion_def;
     for (const auto [region_frame_pair, def] : other->m_region_defs) {
         auto it = region_defs.find(region_frame_pair);
@@ -558,8 +556,8 @@ ProgramStateRef ProgramState::widen_with_threshold(
                           region->dump(llvm::outs()););
 
             const auto* new_def =
-                get_state_manager().m_symbol_mgr.get_region_sym_val(region,
-                                                                    loc_ctx);
+                get_state_manager().m_symbol_mgr.get_region_def(region,
+                                                                loc_ctx);
 
             if (region->get_value_type()->isIntegralOrEnumerationType()) {
                 new_zregion_def[new_def] = {it->second, def};

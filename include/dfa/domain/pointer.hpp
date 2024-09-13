@@ -29,13 +29,13 @@ namespace knight::dfa {
 
 constexpr DomID PointerInfoID = get_domain_id(DomainKind::PointerInfo);
 
-using PointToSet = DiscreteDom< RegionDef, DomainKind::PointToSetDomain >;
+using PointToSet = DiscreteDom< RegionDefRef, DomainKind::PointToSetDomain >;
 using RegionPointToDom =
     MapDom< RegionRef, PointToSet, DomainKind::RegionPointToSetDomain >;
 using StmtPointToDom = MapDom< internal::StmtRef,
                                RegionPointToDom,
                                DomainKind::StmtPointToSetDomain >;
-using AliasToSet = DiscreteDom< RegionDef, DomainKind::AliasToDomain >;
+using AliasToSet = DiscreteDom< RegionDefRef, DomainKind::AliasToDomain >;
 using RegionAliasDom =
     MapDom< RegionRef, AliasToSet, DomainKind::RegionAliasToDomain >;
 using StmtAliasDom =
