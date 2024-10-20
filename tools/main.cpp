@@ -71,10 +71,7 @@ llvm::IntrusiveRefCntPtr< llvm::vfs::OverlayFileSystem > get_vfs(
 
 dfa::AnalyzerOptions forward_to_knight_analyzer_options(int argc,
                                                         const char** argv) {
-    (void)cl::ParseCommandLineOptions(argc,
-                                      argv,
-                                      "knight analyzer options",
-                                      &llvm::WithColor::error());
+    (void)cl::ParseCommandLineOptions(argc, argv, "knight analyzer options");
 
     return dfa::AnalyzerOptions{widening_delay,
                                 max_widening_iterations,
@@ -96,10 +93,10 @@ dfa::AnalyzerOptions get_analyzer_options() {
     analyzer_argc = static_cast< int >(analyzer_argv.size()) - 1;
 
     knight_log_nl(
-        llvm::WithColor::error()
+        llvm::WithColor::note()
             << "Forwarding the following arguments to the target mechanism:\n";
         for (int i = 1; i < analyzer_argc;
-             ++i) { llvm::WithColor::error() << analyzer_argv[i] << "\n"; });
+             ++i) { llvm::WithColor::note() << analyzer_argv[i] << "\n"; });
 
     return forward_to_knight_analyzer_options(analyzer_argc,
                                               analyzer_argv.data());

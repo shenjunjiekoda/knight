@@ -12,6 +12,7 @@
 //===------------------------------------------------------------------===//
 
 #include "dfa/analysis/core/assign_resolver.hpp"
+#include "llvm/Support/raw_ostream.h"
 #include "util/log.hpp"
 
 #define DEBUG_TYPE "assign_resolver"
@@ -27,11 +28,19 @@ void AssignResolver::handle_ptr_assign(internal::AssignmentContext assign_ctx,
     auto type = assign_ctx.rhs_sexpr->get_type();
     auto& sym_mgr = m_ctx->get_symbol_manager();
     if (!is_direct_assign) {
-        knight_unreachable("indirect ptr assign not supported yet");
+        knight_unreachable("indirect ptr assign not supported yet for now.");
         (void)op;
     }
-    auto region_def = llvm::dyn_cast< RegionDef >(binary_sexpr);
-    auto region_addr_val = llvm::dyn_cast< RegionAddr >(binary_sexpr);
+
+    knight_log_nl(assign_ctx.dump(llvm::outs()); llvm::outs() << "\nres_sym: ";
+                  res_sym->dump(llvm::outs());
+                  llvm::outs()
+                  << "op: " << clang::BinaryOperator::getOpcodeStr(op);
+                  llvm::outs() << "\nbinary_sexpr: ";
+                  binary_sexpr->dump(llvm::outs());
+                  llvm::outs() << "\n";);
+    // auto region_def = llvm::dyn_cast< RegionDef >(binary_sexpr);
+    // auto region_addr_val = llvm::dyn_cast< RegionAddr >(binary_sexpr);
 }
 
 void AssignResolver::handle_int_assign(internal::AssignmentContext assign_ctx,

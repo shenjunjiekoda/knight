@@ -29,6 +29,33 @@ struct alignas(AssignmentContextAlignment)
     SExprRef lhs_sexpr{};
     SExprRef rhs_sexpr{};
     clang::BinaryOperator::Opcode op = clang::BinaryOperator::Opcode::BO_Assign;
+
+    void dump(llvm::raw_ostream& os) const {
+        os << "AssignmentContext: ";
+        os << "treg:{";
+        if (treg) {
+            treg.value()->dump(os);
+        } else {
+            os << "null";
+        }
+        os << "}, stmt:{";
+        if (stmt) {
+            stmt.value()->dump();
+        } else {
+            os << "null";
+        }
+        os << "}, rhs_expr:{";
+        if (rhs_expr) {
+            rhs_expr.value()->dump();
+        } else {
+            os << "null";
+        }
+        os << "}, lhs_sexpr:{";
+        lhs_sexpr->dump(os);
+        os << "}, rhs_sexpr:{";
+        rhs_sexpr->dump(os);
+        os << "}, op:" << clang::BinaryOperator::getOpcodeStr(op);
+    }
 }; // struct AssignmentContext
 
 } // namespace internal

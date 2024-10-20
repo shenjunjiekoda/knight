@@ -13,6 +13,7 @@
 
 #include "dfa/analysis/core/unary_op_resolver.hpp"
 #include "dfa/analysis/core/binary_op_resolver.hpp"
+#include "llvm/Support/raw_ostream.h"
 #include "util/log.hpp"
 
 #define DEBUG_TYPE "unary_op_resolver"
@@ -35,6 +36,8 @@ void UnaryOpResolver::resolve(
 
 void UnaryOpResolver::handle_ptr_unary_operation(
     const clang::UnaryOperator* unary_operator) const {
+    knight_log_nl(llvm::outs() << "handle ptr unary operator: ";
+                  unary_operator->dumpColor());
     auto type = unary_operator->getType();
     auto state = m_ctx->get_state();
     auto* operand_expr = unary_operator->getSubExpr();
@@ -48,6 +51,8 @@ void UnaryOpResolver::handle_ptr_unary_operation(
         using enum clang::UnaryOperatorKind;
         case clang::UO_AddrOf: {
             // TODO (stmt-pt, region-pt)
+            knight_log_nl(llvm::outs() << "addr op\n";);
+
             auto treg = state->get_region(operand_expr,
                                           m_ctx->get_current_stack_frame());
             if (!treg) {
@@ -59,14 +64,14 @@ void UnaryOpResolver::handle_ptr_unary_operation(
                                               m_ctx->get_current_stack_frame(),
                                               reg_addr_val);
                 knight_log_nl(
-                    llvm::outs() << "set addr of: ";
+                    llvm::outs() << "set addr of expr: `";
                     operand_expr->printPretty(llvm::outs(),
                                               nullptr,
                                               m_ctx->get_ast_context()
                                                   .getPrintingPolicy());
-                    llvm::outs() << " to region: ";
+                    llvm::outs() << "` , region: `";
                     treg.value()->dump(llvm::outs());
-                    llvm::outs() << " to scalar: ";
+                    llvm::outs() << "`, to scalar val: ";
                     reg_addr_val->dump(llvm::outs());
                     llvm::outs() << "\n";);
             }
@@ -74,6 +79,7 @@ void UnaryOpResolver::handle_ptr_unary_operation(
         default:
             break;
     }
+    m_ctx->set_state(state);
 }
 
 void UnaryOpResolver::handle_int_unary_operation(
