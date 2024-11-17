@@ -1,5 +1,5 @@
 
-cmake_minimum_required(VERSION 3.10.0 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.14.0 FATAL_ERROR)
 
 project(knight)
 
@@ -38,12 +38,23 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 
 option(LINK_LLVM_DYLIB "Link with libLLVM dynamic library" OFF)
 option(LINK_CLANG_DYLIB "Link with libclang-cpp dynamic library" OFF)
+option(EXAMPLE_USE_EXTERNAL_JSON "Use an external JSON library" OFF)
 
 # LLVM and Clang setup
 include(cmake/addLLVM.cmake)
 include(cmake/addClang.cmake)
+# Curl setup
+include(cmake/addCURL.cmake)
+include(cmake/addSqlite3.cmake)
+# Other Third-party libraries setup
+add_subdirectory(third_party)
 
-include_directories(${SRC_DIR}/include ${LLVM_INCLUDE_DIRS} ${CLANG_INCLUDE_DIRS})
+include_directories(
+  ${SRC_DIR}/include 
+  ${LLVM_INCLUDE_DIRS} 
+  ${CLANG_INCLUDE_DIRS}
+  ${CURL_INCLUDE_DIRS}
+  ${SQLite3_INCLUDE_DIRS})
 
 include(cmake/addGMP.cmake)
 

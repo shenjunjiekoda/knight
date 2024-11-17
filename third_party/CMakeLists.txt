@@ -1,0 +1,6 @@
+if(EXAMPLE_USE_EXTERNAL_JSON)
+    find_package(nlohmann_json 3.11.3 REQUIRED)
+else()
+    set(JSON_BuildTests OFF CACHE INTERNAL "")
+    add_subdirectory(json)
+endif()

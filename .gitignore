@@ -57,3 +57,6 @@ autoconf/autom4te.cache
 scripts/bin/knight
 *.patch
 *.diff
+
+# ignore py virtual environments
+**/.pyvenv/

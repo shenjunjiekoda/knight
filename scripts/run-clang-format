@@ -24,7 +24,7 @@ from pathlib import Path
 # Constants
 CLANG_FORMAT_VERSION = "16.0.6"
 SOURCE_EXTENSIONS = (".c", ".cpp", ".h", ".hpp", ".tpp")
-IGNORE_DIRECTORIES = {".git", "build"}
+IGNORE_DIRECTORIES = {".git", "build", "third_party"}
 
 RESET_COLOR = "\033[0m"
 GREEN = "\033[32m"

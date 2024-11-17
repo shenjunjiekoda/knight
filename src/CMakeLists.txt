@@ -13,4 +13,5 @@ target_link_libraries(knightLib PUBLIC
     ${LLVM_LIBS}
     ${GMP_LIB}
     ${GMPXX_LIB}
+    ${SQLite3_LIBRARIES}
 )

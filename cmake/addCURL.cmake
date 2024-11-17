@@ -1,0 +1,4 @@
+find_package(CURL REQUIRED COMPONENTS HTTP HTTPS)
+
+message(STATUS "Found CURL include: ${CURL_INCLUDE_DIRS}")
+message(STATUS "Found CURL: ${CURL_LIBRARIES}")
