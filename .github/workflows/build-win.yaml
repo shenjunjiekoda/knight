@@ -36,6 +36,7 @@ jobs:
             mingw-w64-x86_64-clang-tools-extra
             mingw-w64-x86_64-lld
             mingw-w64-x86_64-ncurses
+            mingw-w64-x86_64-sqlite3
 
       - name: Verify MSYS2
         run: |

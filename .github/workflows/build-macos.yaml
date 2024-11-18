@@ -19,6 +19,7 @@ jobs:
           brew update
           brew install \
             cmake gmp \
+            sqlite\
             llvm@18
           echo "/opt/homebrew/opt/llvm@18/bin" >> $GITHUB_PATH
 
