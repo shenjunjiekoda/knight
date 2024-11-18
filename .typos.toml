@@ -1,4 +1,16 @@
+[files]
+extend-exclude = [
+    "third_party/json/**"
+]
+
 [default.extend-words]
 thr = "thr"
 parm = "parm"
 parms = "parms"
+unexpect = "unexpect"
+ue = "ue"
+seh = "seh"
+Ned = "Ned"
+ba = "ba"
+nwo = "nwo"
+ND = "ND"

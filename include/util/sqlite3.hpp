@@ -24,7 +24,7 @@
 
 namespace knight::sqlite {
 
-constexpr unsigned DBExeptionAlignment = 16U;
+constexpr unsigned DBExceptionAlignment = 16U;
 /// \brief Maximum number of rows per transaction, in CommitPolicy::Auto
 constexpr unsigned MaxRowsPerTransaction = 8192;
 
@@ -57,7 +57,7 @@ struct DBException : std::exception {
     std::shared_ptr< const std::string > m_context;
     /// \brief Computed message for what() method
     std::shared_ptr< const std::string > m_what;
-} __attribute__((aligned(DBExeptionAlignment))); // struct DBExeption
+} __attribute__((aligned(DBExceptionAlignment))); // struct DBException
 
 /// \brief Integer type for SQLite
 using DbInt64 = sqlite3_int64;
