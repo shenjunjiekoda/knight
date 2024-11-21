@@ -32,34 +32,20 @@ message(STATUS "- Build type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "- Install prefix: ${CMAKE_INSTALL_PREFIX}")
 message(STATUS "- Generator: ${CMAKE_GENERATOR}")
 
-set(SRC_DIR ${CMAKE_SOURCE_DIR})
-
-set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
-
 option(LINK_LLVM_DYLIB "Link with libLLVM dynamic library" OFF)
 option(LINK_CLANG_DYLIB "Link with libclang-cpp dynamic library" OFF)
 option(EXAMPLE_USE_EXTERNAL_JSON "Use an external JSON library" OFF)
 
-# LLVM and Clang setup
-include(cmake/addLLVM.cmake)
-include(cmake/addClang.cmake)
-# Curl setup
-include(cmake/addCURL.cmake)
-include(cmake/addSqlite3.cmake)
 # Other Third-party libraries setup
 add_subdirectory(third_party)
 
-include_directories(
-  ${SRC_DIR}/include 
-  ${LLVM_INCLUDE_DIRS} 
-  ${CLANG_INCLUDE_DIRS}
-  ${CURL_INCLUDE_DIRS}
-  ${SQLite3_INCLUDE_DIRS})
+message(STATUS "Including common")
+add_subdirectory(common)
 
-include(cmake/addGMP.cmake)
+set(COMMON_FOUND TRUE)
+set(COMMON_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/common/include")
+set(COMMON_LIB knightCommonLib)
 
-include_directories(SYSTEM ${GMP_INCLUDE_DIR})
-include_directories(SYSTEM ${GMPXX_INCLUDE_DIR})
-
-add_subdirectory(src)
-add_subdirectory(tools)
+# Add analyzer
+message(STATUS "Including analyzer")
+add_subdirectory(analyzer)
