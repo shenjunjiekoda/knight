@@ -1,0 +1,205 @@
+//===- checker_manager.hpp --------------------------------------------===//
+//
+// Copyright (c) 2024 Junjie Shen
+//
+// see https://github.com/shenjunjiekoda/knight/blob/main/LICENSE for
+// license information.
+//
+//===------------------------------------------------------------------===//
+//
+//  This header defines the checker manager class.
+//
+//===------------------------------------------------------------------===//
+
+#pragma once
+
+#include <llvm/Support/Debug.h>
+#include "common/util/log.hpp"
+
+#include "analyzer/core/analysis/analyses.hpp"
+#include "analyzer/core/analysis_manager.hpp"
+#include "analyzer/core/checker/checkers.hpp"
+#include "analyzer/core/checker_context.hpp"
+#include "analyzer/core/proc_cfg.hpp"
+#include "analyzer/tooling/context.hpp"
+
+#include <llvm/Support/WithColor.h>
+
+#include <memory>
+#include <unordered_set>
+
+namespace knight::analyzer {
+
+class CheckerBase;
+
+using UniqueCheckerRef = std::unique_ptr< CheckerBase >;
+using CheckerRef = CheckerBase*;
+using CheckerRefs = std::vector< CheckerRef >;
+
+using CheckerIDSet = std::unordered_set< CheckerID >;
+using CheckerNameRef = llvm::StringRef;
+
+template < typename T >
+class CheckerCallBack;
+
+template < typename RET, typename... Args >
+class CheckerCallBack< RET(Args...) > {
+  public:
+    using CallBack = RET (*)(void*, Args...);
+
+  private:
+    CallBack m_callback;
+    CheckerBase* m_checker;
+    CheckerKind m_kind;
+
+  public:
+    CheckerCallBack(CheckerKind kind, CheckerBase* checker, CallBack callback)
+        : m_kind(kind), m_checker(checker), m_callback(callback) {}
+
+    CheckerID get_id() const { return get_checker_id(m_kind); }
+
+    RET operator()(Args... args) const {
+        return m_callback(m_checker, args...);
+    }
+}; // class CheckerCallBack
+
+namespace internal {
+
+using ExitNodeRef = ProcCFG::NodeRef;
+using StmtRef = ProcCFG::StmtRef;
+
+using CheckBeginFunctionCallBack = CheckerCallBack< void(CheckerContext&) >;
+
+using CheckEndFunctionCallBack =
+    CheckerCallBack< void(ExitNodeRef, CheckerContext&) >;
+
+using CheckStmtCallBack = CheckerCallBack< void(StmtRef, CheckerContext&) >;
+using MatchStmtCallBack = bool (*)(StmtRef S);
+enum class CheckStmtKind { Pre, Post };
+constexpr unsigned StmtCheckerInfoAlign = 64;
+
+struct alignas(StmtCheckerInfoAlign) StmtCheckerInfo {
+    CheckStmtCallBack anz_cb;
+    MatchStmtCallBack match_cb;
+    CheckStmtKind kind;
+}; // struct StmtCheckerInfo
+
+} // namespace internal
+
+/// \brief The checker manager which holds all the registered analyses.
+///
+class CheckerManager {
+  private:
+    /// \brief knight context
+    KnightContext& m_ctx;
+
+    /// \brief analysis manager
+    AnalysisManager& m_analysis_mgr;
+
+    /// \brief checkers
+    CheckerIDSet m_checkers; // all checkers
+    std::unordered_map< CheckerID, std::unique_ptr< CheckerBase > >
+        m_enabled_checkers;
+    CheckerIDSet m_required_checkers;
+    std::unordered_map< CheckerID, AnalysisIDSet > m_checker_dependencies;
+
+    /// \brief visit begin function callbacks
+    std::vector< internal::CheckBeginFunctionCallBack > m_begin_function_checks;
+    /// \brief visit end function callbacks
+    std::vector< internal::CheckEndFunctionCallBack > m_end_function_checks;
+    /// \brief visit statement callbacks
+    std::vector< internal::StmtCheckerInfo > m_stmt_checks;
+
+  public:
+    CheckerManager(KnightContext& ctx, AnalysisManager& analysis_mgr)
+        : m_ctx(ctx), m_analysis_mgr(analysis_mgr) {}
+
+  public:
+    /// \brief specialized checker management
+    ///
+    /// Each checker may depend on some analyses.
+    /// Dependencies shall be handled before the registration.
+    /// @{
+    template < typename CHECKER, typename... AT >
+    UniqueCheckerRef register_checker(KnightContext& ctx, AT&&... Args) {
+        CheckerID id = get_checker_id(CHECKER::get_kind());
+        if (m_checkers.contains(id)) {
+            llvm::WithColor::error() << get_checker_name_by_id(id)
+                                     << " checker is already registered.\n";
+        } else {
+            m_checkers.insert(id);
+        }
+
+        auto checker =
+            std::make_unique< CHECKER >(ctx, std::forward< AT >(Args)...);
+        CHECKER::register_callback(checker.get(), *this);
+        return std::move(checker);
+    }
+
+    void add_required_checker(CheckerID id);
+    bool is_checker_required(CheckerID id) const;
+
+    void enable_checker(std::unique_ptr< CheckerBase > checker);
+    std::optional< CheckerBase* > get_checker(CheckerID id);
+
+    template < typename Checker, typename Analysis >
+    void add_checker_dependency() {
+        CheckerID id = get_checker_id(Checker::get_kind());
+        AnalysisID required_analysis_id = get_analysis_id(Analysis::get_kind());
+        add_checker_dependency(id, required_analysis_id);
+        log_checker_dependency(id, required_analysis_id);
+    }
+    /// @}
+
+    void add_all_required_analyses_by_checker_dependencies();
+
+    /// \brief callback registrations
+    /// @{
+    void register_for_begin_function(internal::CheckBeginFunctionCallBack cb);
+    void register_for_end_function(internal::CheckEndFunctionCallBack cb);
+    void register_for_stmt(internal::CheckStmtCallBack cb,
+                           internal::MatchStmtCallBack match_fn,
+                           internal::CheckStmtKind kind);
+    /// @}
+
+    const std::vector< internal::CheckBeginFunctionCallBack >&
+    begin_function_checks() const {
+        return m_begin_function_checks;
+    }
+
+    [[nodiscard]] const std::vector< internal::CheckEndFunctionCallBack >&
+    end_function_checks() const {
+        return m_end_function_checks;
+    }
+
+    [[nodiscard]] const std::vector< internal::StmtCheckerInfo >& stmt_checks()
+        const {
+        return m_stmt_checks;
+    }
+
+    [[nodiscard]] const std::unordered_map< CheckerID, AnalysisIDSet >&
+    get_checker_dependencies() const {
+        return m_checker_dependencies;
+    }
+
+    void run_checkers_for_stmt(CheckerContext& checker_ctx,
+                               internal::StmtRef stmt,
+                               internal::CheckStmtKind check_kind);
+    void run_checkers_for_pre_stmt(CheckerContext& checker_ctx,
+                                   internal::StmtRef stmt);
+    void run_checkers_for_post_stmt(CheckerContext& checker_ctx,
+                                    internal::StmtRef stmt);
+    void run_checkers_for_begin_function(CheckerContext& checker_ctx);
+    void run_checkers_for_end_function(CheckerContext& checker_ctx,
+                                       ProcCFG::NodeRef node);
+
+  private:
+    static void log_checker_dependency(CheckerID id,
+                                       AnalysisID required_analysis_id);
+
+    void add_checker_dependency(CheckerID checker_id, AnalysisID analysis_id) {
+        m_checker_dependencies[checker_id].insert(analysis_id);
+    }
+}; // class CheckerManager
+
+} // namespace knight::analyzer

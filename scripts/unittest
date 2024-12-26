@@ -564,7 +564,7 @@ def main():
         "-v", "--verbose", action="store_true", help="Print verbose output."
     )
     parser.add_argument(
-        "-a", "--analyzer", default="knight", help="Analyzer path to use for testing."
+        "-a", "--analyzer", default="knight-analyzer", help="Analyzer path to use for testing."
     )
 
     args = parser.parse_args()

@@ -110,8 +110,8 @@ def main():
     os.environ["PATH"] += os.pathsep + str(args.project_build_dir / "bin")
 
     # Run knight --help
-    print("Running knight --help to verify installation...")
-    subprocess.run(["knight", "--help"])
+    print("Running knight-analyzer --help to verify installation...")
+    subprocess.run(["knight-analyzer", "--help"])
 
 
 if __name__ == "__main__":
