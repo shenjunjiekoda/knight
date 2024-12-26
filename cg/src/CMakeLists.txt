@@ -11,4 +11,5 @@ target_link_libraries(knightCGLib PUBLIC
     ${CLANG_LIBS}
     ${LLVM_LIBS}
     ${SQLite3_LIBRARIES}
+    ${COMMON_LIB}
 )

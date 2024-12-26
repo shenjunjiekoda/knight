@@ -69,15 +69,7 @@ jobs:
 
       - name: Configure CMake
         run: |
-          cmake -G "MSYS Makefiles" \
-            -DLINK_CLANG_DYLIB=on \
-            -DLINK_LLVM_DYLIB=on \
-            -DCMAKE_BUILD_TYPE:STRING=Release \
-            -DGMP_ROOT:STRING=${{ steps.msys2.outputs.msys2-location }}/mingw64 \
-            -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE \
-            -DLLVM_BUILD_DIR=${{ steps.msys2.outputs.msys2-location }}/mingw64 \
-            -DGTest_DIR=${{ steps.msys2.outputs.msys2-location }}/mingw64/lib/cmake/GTest \
-            -B build
+          cmake -G "MSYS Makefiles" -DLINK_CLANG_DYLIB=on -DLINK_LLVM_DYLIB=on -DCMAKE_BUILD_TYPE:STRING=Release -DGMP_ROOT:STRING=${{ steps.msys2.outputs.msys2-location }}/mingw64 -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE -DLLVM_BUILD_DIR=${{ steps.msys2.outputs.msys2-location }}/mingw64 -DGTest_DIR=${{ steps.msys2.outputs.msys2-location }}/mingw64/lib/cmake/GTest -B build
 
       - name: Build Knight
         run: |
@@ -90,10 +82,11 @@ jobs:
       - name: Test Binary
         shell: cmd
         run: |
-          ${{ steps.msys2.outputs.msys2-location }}/msys2 -c 'which knight'
-          ${{ steps.msys2.outputs.msys2-location }}/msys2 -c 'knight --version'
+          ${{ steps.msys2.outputs.msys2-location }}/msys2 -c 'which knight-analyzer'
+          ${{ steps.msys2.outputs.msys2-location }}/msys2 -c 'knight-analyzer --version'
 
       - name: Unit Tests
         shell: cmd
         run: |
-          ${{ steps.msys2.outputs.msys2-location }}/msys2 -c 'ctest --output-on-failure'
+          ${{ steps.msys2.outputs.msys2-location }}/msys2 -c 'python3 scripts/unittest -v p test/testcase/'
+          ${{ steps.msys2.outputs.msys2-location }}/msys2 -c 'python3 scripts/unittest -v -a "knight-analyzer.exe" run test/testcase/'
