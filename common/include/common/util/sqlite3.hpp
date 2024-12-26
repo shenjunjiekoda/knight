@@ -434,7 +434,7 @@ enum KNIGHT_API OpenMode : unsigned {
     /// Database filename is not allowed to be a symbolic link (Note: only
     /// since
     /// SQlite 3.31.0 from 2020-01-22)
-    NOFOLLOW = SQLITE_OPEN_NOFOLLOW
+    // NOFOLLOW = SQLITE_OPEN_NOFOLLOW
 };
 
 const char* get_lib_version() noexcept;
