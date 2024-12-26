@@ -152,8 +152,8 @@ std::string ResColumn::get_name() const noexcept {
     return sqlite3_column_name(m_stmt.get(), static_cast< int >(m_idx));
 }
 
-KNIGHT_API void Database::HandleCloser::operator()(sqlite3* hanlde) {
-    const int ret = sqlite3_close(hanlde);
+KNIGHT_API void Database::HandleCloser::operator()(sqlite3* handle) {
+    const int ret = sqlite3_close(handle);
     (void)ret;
 
     // statements are not finalized
@@ -374,7 +374,7 @@ bool PreparedStmt::execute_step() {
         if (ret == sqlite3_errcode(m_handle)) {
             throw_db_error(ret);
         } else {
-            throw_db_error(ret, "Statement needs to be reseted: ");
+            throw_db_error(ret, "Statement needs to be reset: ");
         }
     }
 
@@ -383,7 +383,7 @@ bool PreparedStmt::execute_step() {
 
 int PreparedStmt::try_execute_step() noexcept {
     if (m_rows_done) {
-        return SQLITE_MISUSE; // Statement needs to be reseted !
+        return SQLITE_MISUSE; // Statement needs to be reset !
     }
     knight_log_nl(llvm::outs()
                   << "Executing one step: " << get_expanded_sql() << "\n");
@@ -407,7 +407,7 @@ int PreparedStmt::execute() {
         } else if (ret == sqlite3_errcode(m_handle)) {
             throw_db_error(ret);
         } else {
-            throw_db_error(ret, "Statement needs to be reseted");
+            throw_db_error(ret, "Statement needs to be reset");
         }
     }
 
@@ -592,7 +592,7 @@ DBHeader Database::parse_header(const std::string& file) const noexcept(false) {
     header.user_version =
         (buf[60] << 24) | (buf[61] << 16) | (buf[62] << 8) | (buf[63] << 0);
 
-    header.incremental_vaccum_mode =
+    header.incremental_vacuum_mode =
         (buf[64] << 24) | (buf[65] << 16) | (buf[66] << 8) | (buf[67] << 0);
 
     header.application_id =
@@ -694,7 +694,7 @@ Transaction::Transaction(Database& db) noexcept(false) : m_db(db) {
 }
 
 Transaction::~Transaction() noexcept {
-    if (!m_comitted) {
+    if (!m_committed) {
         try {
             (void)m_db.execute("ROLLBACK TRANSACTION");
         } catch (...) {
@@ -722,16 +722,16 @@ Transaction::Transaction(Database& db, TransactionMode behavior) noexcept(false)
 }
 
 void Transaction::commit() noexcept(false) {
-    if (!m_comitted) {
+    if (!m_committed) {
         (void)m_db.execute("COMMIT TRANSACTION");
-        m_comitted = true;
+        m_committed = true;
     } else {
         throw std::runtime_error("Transaction already committed.");
     }
 }
 
 void Transaction::rollback() noexcept(false) {
-    if (!m_comitted) {
+    if (!m_committed) {
         (void)m_db.execute("ROLLBACK TRANSACTION");
     } else {
         throw std::runtime_error("Transaction already committed.");

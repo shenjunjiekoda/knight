@@ -359,7 +359,7 @@ TEST(Database, TryExecuteError) {
                  db.get_error_msg().c_str());
 }
 
-TEST(Database, ExecuteMutiple) {
+TEST(Database, ExecuteMultiple) {
     CreateMemoryDB;
 
     EXPECT_EQ(0, db.execute(DropTableIfExistSql));
@@ -461,7 +461,7 @@ TEST(Database, PreparedStatementInvalid) {
     EXPECT_THROW((void)query.get_column(0), std::runtime_error);
     EXPECT_STREQ("no more rows available", query.get_error_msg().c_str());
 
-    // need to be reseted before execute
+    // need to be reset before execute
     EXPECT_THROW((void)query.execute(), std::runtime_error);
 
     EXPECT_EQ(1, db.execute(InsertDefaultTableWithValue("first")));

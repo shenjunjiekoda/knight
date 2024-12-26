@@ -397,7 +397,7 @@ class KNIGHT_API Transaction {
 
   private:
     Database& m_db;
-    bool m_comitted = false;
+    bool m_committed = false;
 
 }; // class Transaction
 
@@ -482,7 +482,7 @@ struct DBHeader { // NOLINT
     // Offset 60: The "user version"
     uint32_t user_version;
     // Offset 64: True for incremental-vacuum mode
-    uint32_t incremental_vaccum_mode;
+    uint32_t incremental_vacuum_mode;
     // Offset 68: The "Application ID"
     uint32_t application_id;
     // Offset 72: Reserved for expansion
