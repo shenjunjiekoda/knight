@@ -20,6 +20,7 @@ jobs:
           brew install \
             cmake gmp \
             sqlite\
+            googletest\
             llvm@18
           echo "/opt/homebrew/opt/llvm@18/bin" >> $GITHUB_PATH
 
@@ -48,7 +49,7 @@ jobs:
 
       - name: Test Binary
         run: |
-          knight --help
+          knight-analyzer --help
 
       - name: Unit Tests
         run: |

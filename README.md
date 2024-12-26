@@ -40,7 +40,8 @@ or run step by step:
 cd knight
 cmake -DLLVM_BUILD_DIR=/path/to/llvm/build -B path-to-build -S .
 cmake --build path-to-build -j$(nproc)
-path-to-build/bin/knight --help # for usages
+path-to-build/bin/knight-analyzer --help # for usages
+path-to-build/bin/knight-cg --help # for usages
 ```
 
 Note: Knight only support _C++20_, so you need to use a cpp compiler support C++20.

@@ -48,15 +48,15 @@ include_directories(
 
 add_subdirectory(src)
 
-# if(BUILD_TESTS)
-#   enable_testing()
-#   message(STATUS "Build common tests ...")
-#   include("../cmake/addGTest.cmake")
-#   set(knight_COMMON_TESTS
-#     test/sqlite3.cpp
-#   )
-#   add_gtest(knightCommonTests ${knight_COMMON_TESTS} knightCommonLib)
+if(BUILD_TESTS)
+  enable_testing()
+  message(STATUS "Build common tests ...")
+  include("../cmake/addGTest.cmake")
+  set(knight_COMMON_TESTS
+    test/sqlite3.cpp
+  )
+  add_gtest(knightCommonTests ${knight_COMMON_TESTS} knightCommonLib)
 
-# else(BUILD_TESTS)
-#   message(STATUS "Tests are disabled")
-# endif(BUILD_TESTS)
+else(BUILD_TESTS)
+  message(STATUS "Tests are disabled")
+endif(BUILD_TESTS)

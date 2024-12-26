@@ -22,7 +22,7 @@ jobs:
           wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
           sudo apt-get update
           sudo apt-get install --yes \
-            gcc g++ cmake libgmp-dev libedit-dev libsqlite3-dev \
+            gcc g++ cmake libgmp-dev libedit-dev libsqlite3-dev libgtest-dev \
             python3 python3-pip \
             llvm-18 llvm-18-dev llvm-18-tools clang-18 libclang-18-dev\
             libcurl4-openssl-dev
@@ -48,9 +48,13 @@ jobs:
 
       - name: Test Binary
         run: |
-          knight --help
+          knight-analyzer --help
 
       - name: Unit Tests
         run: |
           chmod +x scripts/unittest
           scripts/unittest run test/testcase/
+      
+      - name: Common Tests
+        run: |
+          build/common/knightCommonTests

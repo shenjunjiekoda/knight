@@ -109,7 +109,7 @@ def main():
     print(f"Adding {args.project_build_dir}/bin to PATH")
     os.environ["PATH"] += os.pathsep + str(args.project_build_dir / "bin")
 
-    # Run knight --help
+    # Run knight-analyzer --help
     print("Running knight-analyzer --help to verify installation...")
     subprocess.run(["knight-analyzer", "--help"])
 
