@@ -5,7 +5,7 @@ else()
     if (NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/json)
         message(STATUS "thirdparty/json not found. Cloning from https://github.com/nlohmann/json.git...")
         execute_process(
-            COMMAND git clone https://github.com/nlohmann/json.git ${CMAKE_SOURCE_DIR}/thirdparty/json
+            COMMAND git clone https://github.com/nlohmann/json.git ${CMAKE_SOURCE_DIR}/third_party/json
             WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
             RESULT_VARIABLE GIT_CLONE_RESULT
         )
