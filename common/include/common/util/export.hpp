@@ -7,7 +7,7 @@
 //
 //===------------------------------------------------------------------===//
 //
-//  This header defines some macros rquired to export symbols when creating
+//  This header defines some macros required to export symbols when creating
 //  a DLL under Windows and to import symbols when using a DLL.
 //
 // * #define KNIGHT_COMPILE_DLL to compile a DLL under Windows

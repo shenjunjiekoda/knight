@@ -502,7 +502,7 @@ class KNIGHT_API Database {
 
   private:
     struct HandleCloser {
-        KNIGHT_API void operator()(sqlite3* hanlde);
+        KNIGHT_API void operator()(sqlite3* handle);
     };
     std::unique_ptr< sqlite3, HandleCloser > m_sqlite3_handle;
     std::string m_file;
