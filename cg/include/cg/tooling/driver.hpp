@@ -32,11 +32,11 @@
 
 namespace knight {
 
-struct CGContext {
-    bool use_color = true;
-    bool show_process_sys_function = false;
-    bool skip_system_header = false;
-    bool skip_implicit_code = false;
+struct CGContext { // NOLINT
+    bool use_color;
+    bool show_process_sys_function;
+    bool skip_system_header;
+    bool skip_implicit_code;
 
     llvm::IntrusiveRefCntPtr< llvm::vfs::OverlayFileSystem > overlay_fs;
     const clang::tooling::CompilationDatabase* cdb;
@@ -46,6 +46,30 @@ struct CGContext {
     unsigned db_busy_timeout;
     clang::ASTContext* ast_ctx = nullptr;
     std::string file;
+
+    CGContext(
+        bool use_color,
+        bool show_process_sys_function,
+        bool skip_system_header,
+        bool skip_implicit_code,
+        llvm::IntrusiveRefCntPtr< llvm::vfs::OverlayFileSystem > overlay_fs,
+        const clang::tooling::CompilationDatabase* cdb,
+        std::vector< std::string > input_files,
+        std::string knight_dir,
+        unsigned db_busy_timeout,
+        clang::ASTContext* ast_ctx = nullptr,
+        std::string file = "")
+        : use_color(use_color),
+          show_process_sys_function(show_process_sys_function),
+          skip_system_header(skip_system_header),
+          skip_implicit_code(skip_implicit_code),
+          overlay_fs(std::move(overlay_fs)),
+          cdb(cdb),
+          input_files(std::move(input_files)),
+          knight_dir(std::move(knight_dir)),
+          db_busy_timeout(db_busy_timeout),
+          ast_ctx(ast_ctx),
+          file(std::move(file)) {}
 };
 
 class KnightASTConsumer : public clang::ASTConsumer {
