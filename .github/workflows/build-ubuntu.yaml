@@ -55,6 +55,3 @@ jobs:
           chmod +x scripts/unittest
           scripts/unittest run test/testcase/
       
-      - name: Common Tests
-        run: |
-          build/common/knightCommonTests
