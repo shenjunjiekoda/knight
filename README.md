@@ -4,7 +4,7 @@
 
 ![Language](https://img.shields.io/badge/language-c++-brightgreen)![License](https://img.shields.io/badge/license-MIT-yellow)[![Ubuntu Build](https://github.com/shenjunjiekoda/knight/actions/workflows/build-ubuntu.yaml/badge.svg)](https://github.com/shenjunjiekoda/knight/actions/workflows/build-ubuntu.yaml)[![MacOS Build](https://github.com/shenjunjiekoda/knight/actions/workflows/build-macos.yaml/badge.svg)](https://github.com/shenjunjiekoda/knight/actions/workflows/build-macos.yaml)[![Win Build](https://github.com/shenjunjiekoda/knight/actions/workflows/build-win.yaml/badge.svg)](https://github.com/shenjunjiekoda/knight/actions/workflows/build-win.yaml)
 
-_Knight_ is a static analysis tool for C/C++ programs written in C++20.
+_Knight_ is a static analysis tool for C/C++ programs written in C++20 (still in development).
 
 # Install
 
@@ -13,17 +13,16 @@ _Knight_ is a static analysis tool for C/C++ programs written in C++20.
 - cmake
 - llvm/clang(>=18 is best)
 - GMP (>= 6 is best)
+- sqlite (>= 3.30 is best)
 
 You can install llvm by your package manager
 
 ```SHELL
-apt install llvm libgmp-dev libedit-dev # for Ubuntu
-brew install llvm gmp # for Homebrew
-yum install llvm gmp-devel libedit-devel # for CentOS
-sudo pacman -S llvm gmp # for Arch Linux
+apt install llvm libgmp-dev libedit-dev libsqlite3-dev libcurl4-openssl-dev libgtest-dev  # for Ubuntu, CentOS and Arch Linux is similar
+brew install llvm gmp sqlite googletest curl # for Homebrew
 ```
 
-or [build from source](https://llvm.org/docs/GettingStarted.html).
+or [you can build llvm from source](https://llvm.org/docs/GettingStarted.html).
 
 ## Install knight by following steps
 
